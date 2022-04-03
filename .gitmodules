@@ -1,0 +1,6 @@
+[submodule "minhook"]
+	path = minhook
+	url = https://github.com/TsudaKageyu/minhook
+[submodule "mini_gzip"]
+	path = mini_gzip
+	url = https://github.com/shuax/mini_gzip
