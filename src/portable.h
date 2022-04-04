@@ -105,10 +105,12 @@ std::wstring GetCommand(LPWSTR param)
         // ×·¼Ó²ÎÊý
         if (i == insert_pos)
         {
-            args.push_back(L"--shuax");
+            args.push_back(L"--bush");
 
 			// args.push_back(L"--force-local-ntp");
             args.push_back(L"--disable-background-networking");
+            
+            args.push_back(L"--disable-crash-reporter");
 
 			args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
 
