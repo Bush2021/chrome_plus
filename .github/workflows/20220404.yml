@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include: [
+            { name: windows_x86, os: windows-latest, arch: x86 },
+            { name: windows_x64, os: windows-latest, arch: x64 },
+        ]
+
+    name: ${{ matrix.name }}
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+
+    - name: setup VC-LTL
+      if: matrix.os == 'windows-latest'
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: nuget install VC-LTL
+
+    - name: setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+
+    - name: configure
+      run: xmake f -a ${{ matrix.arch }}
+
+    - name: build
+      run: xmake
+
+    - name: upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.name }}
+        path: build/release
