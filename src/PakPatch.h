@@ -97,7 +97,7 @@ HANDLE WINAPI MyMapViewOfFile(
 						ReplaceStringInPlace(html, R"(hidden="[[!shouldShowIcons_(showUpdateStatus_)]]")", R"(hidden="true")");
 					}
 
-                    const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/shuax/chrome_plus">Chrome++</a> )" RELEASE_VER_STR u8R"( inside</div>)";
+                    const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR u8R"( Bush ÐÞ¸Ä°æ</div>)";
                     ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)", prouct_title);
 
                     if (html.length() <= size)
