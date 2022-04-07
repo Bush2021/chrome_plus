@@ -106,8 +106,6 @@ std::wstring GetCommand(LPWSTR param)
         if (i == insert_pos)
         {
             args.push_back(L"--shuax");
-
-            args.push_back(L"--disable-background-networking");
             
             args.push_back(L"--disable-crash-reporter");
 
