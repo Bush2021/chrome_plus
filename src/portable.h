@@ -31,19 +31,19 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines, const std::wstring 
 
 bool IsExistsPortable()
 {
-	std::wstring path = GetAppDir() + L"\\portable";
-	if (PathFileExists(path.data()))
-	{
-		return true;
-	}
-	return false;
+    std::wstring path = GetAppDir() + L"\\portable";
+    if (PathFileExists(path.data()))
+    {
+        return true;
+    }
+    return false;
 }
 
 bool IsNeedPortable()
 {
     return true;
-	static bool need_portable = IsExistsPortable();
-	return need_portable;
+    static bool need_portable = IsExistsPortable();
+    return need_portable;
 }
 
 std::wstring GetUserDataDir()
@@ -65,23 +65,13 @@ std::wstring GetDiskCacheDir()
     return temp;
 }
 
-std::wstring GetTxtPath()
-{
-    std::wstring path = GetAppDir() + L"\\..\\说明.txt";
-
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
-
-    return temp;
-}
-
 // 构造新命令行
 std::wstring GetCommand(LPWSTR param)
 {
-	std::vector <std::wstring> args;
+    std::vector <std::wstring> args;
 
-	int argc;
-	LPWSTR* argv = CommandLineToArgvW(param, &argc);
+    int argc;
+    LPWSTR* argv = CommandLineToArgvW(param, &argc);
 
     int insert_pos = 0;
     for (int i = 0; i < argc; i++)
@@ -106,11 +96,14 @@ std::wstring GetCommand(LPWSTR param)
         if (i == insert_pos)
         {
             args.push_back(L"--shuax");
-            
+
             args.push_back(L"--disable-crash-reporter");
+            // args.push_back(L"--disable-background-networking");
 
-			args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
 
+            args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
+
+            //if (IsNeedPortable())
             {
                 auto diskcache = GetDiskCacheDir();
 

@@ -11,11 +11,9 @@ HMODULE hInstance;
 
 #include "hijack.h"
 #include "utils.h"
-#include "patch.h"
 #include "TabBookmark.h"
 #include "portable.h"
 #include "PakPatch.h"
-#include "admin.h"
 #include "appid.h"
 #include "green.h"
 
@@ -24,24 +22,17 @@ Startup ExeMain = NULL;
 
 void ChromePlus()
 {
-	//if (IsNeedPortable())
-	{
-		// 快捷方式
-		//LockLnk();
-		SetAppId();
+    // 快捷方式
+    SetAppId();
 
-		//
-		MakeGreen();
-	}
+    // 便携化补丁
+    MakeGreen();
 
     // 标签页，书签，地址栏增强
     TabBookmark();
 
     // 给pak文件打补丁
     PakPatch();
-
-	// 去除管理员警告
-	//RemoveAdminWarn();
 }
 
 void ChromePlusCommand(LPWSTR param)
@@ -58,9 +49,6 @@ void ChromePlusCommand(LPWSTR param)
 
 int Loader()
 {
-    // 破解Flash，移除开发者警告
-	MakePatch();
-
     // 只关注主界面
     LPWSTR param = GetCommandLineW();
     //DebugLog(L"param %s", param);
@@ -94,6 +82,7 @@ void InstallLoader()
 }
 #define EXTERNC extern "C"
 
+// 
 EXTERNC __declspec(dllexport) void shuax()
 {
 }
@@ -107,13 +96,6 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 
         // 保持系统dll原有功能
         LoadSysDll(hModule);
-
-        //UnlinkModuleFromPEB(hModule);
-        //RemovePeHeader(hModule);
-
-        //if (!check_exe_crc32()) return true;
-
-        //if (!check_txt_crc32()) return true;
 
         // 初始化HOOK库成功以后安装加载器
         MH_STATUS status = MH_Initialize();

@@ -51,21 +51,21 @@ uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m)
 
 uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m)
 {
-	uint8_t* buffer = (uint8_t*)module;
+    uint8_t* buffer = (uint8_t*)module;
 
-	PIMAGE_NT_HEADERS nt_header = (PIMAGE_NT_HEADERS)(buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
-	PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)((char*)nt_header + sizeof(DWORD) +
-		sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
+    PIMAGE_NT_HEADERS nt_header = (PIMAGE_NT_HEADERS)(buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
+    PIMAGE_SECTION_HEADER section = (PIMAGE_SECTION_HEADER)((char*)nt_header + sizeof(DWORD) +
+        sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
 
-	for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++)
-	{
-		if (strcmp((const char*)section[i].Name, ".text") == 0)
-		{
-			return memmem(buffer + section[i].PointerToRawData, section[i].SizeOfRawData, sub, m);
-			break;
-		}
-	}
-	return NULL;
+    for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++)
+    {
+        if (strcmp((const char*)section[i].Name, ".text") == 0)
+        {
+            return memmem(buffer + section[i].PointerToRawData, section[i].SizeOfRawData, sub, m);
+            break;
+        }
+    }
+    return NULL;
 }
 
 uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m)
@@ -92,10 +92,10 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m)
 // 获得程序所在文件夹
 std::wstring GetAppDir()
 {
-	wchar_t path[MAX_PATH];
-	::GetModuleFileName(NULL, path, MAX_PATH);
-	::PathRemoveFileSpec(path);
-	return path;
+    wchar_t path[MAX_PATH];
+    ::GetModuleFileName(NULL, path, MAX_PATH);
+    ::PathRemoveFileSpec(path);
+    return path;
 }
 
 #define IDC_NEW_TAB                     34014
@@ -239,7 +239,7 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
 
 // 压缩HTML
 std::string &ltrim(std::string &s) {
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {return !std::isspace(ch); }));
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {return !std::isspace(ch); }));
     return s;
 }
 std::string &rtrim(std::string &s) {

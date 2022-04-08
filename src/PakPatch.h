@@ -2,47 +2,6 @@
 
 DWORD resources_pak_size = 0;
 
-// void EdgeChinese(uint8_t *buffer)
-// {
-// 	BYTE match[] = u8R"(      <title>New tab</title>)";
-
-// 	uint8_t* pos = memmem(buffer, resources_pak_size, match, sizeof(match) - 1);
-// 	if (pos)
-// 	{
-// 		PakFind(buffer, pos, [=](uint8_t * begin, uint32_t size)
-// 		{
-// 			// 压缩HTML以备写入补丁信息
-// 			std::string html((char*)begin, size);
-// 			compression_html(html);
-
-// 			ReplaceStringInPlace(html, u8R"(<title>New tab</title>)", u8R"(<title>新标签页</title>)");
-// 			ReplaceStringInPlace(html, u8R"(placeholder="Search the web")", u8R"(placeholder="搜索")");
-// 			ReplaceStringInPlace(html, u8R"(<span>Add a website</span>)", u8R"(<span>添加网站</span>)");
-// 			ReplaceStringInPlace(html, u8R"(<label>URL</label>)", u8R"(<label>网址</label>)");
-// 			ReplaceStringInPlace(html, u8R"(>Add</button>)", u8R"(>添加</button>)");
-// 			ReplaceStringInPlace(html, u8R"(>Cancel</button>)", u8R"(>取消</button>)");
-
-// 			if (html.length() <= size)
-// 			{
-// 				// 写入修改
-// 				memcpy(begin, html.c_str(), html.length());
-
-// 				// 填充空格
-// 				memset(begin + html.length(), ' ', size - html.length());
-// 			}
-// 			else
-// 			{
-// 				DebugLog(L"patch chinese size failed");
-// 			}
-// 		});
-// 	}
-// 	else
-// 	{
-// 		DebugLog(L"patch chinese failed");
-// 	}
-// }
-
-
 HANDLE resources_pak_map = NULL;
 
 typedef HANDLE(WINAPI *pMapViewOfFile)(
@@ -75,8 +34,6 @@ HANDLE WINAPI MyMapViewOfFile(
 
         if (buffer)
         {
-            // EdgeChinese((BYTE*)buffer);
-
             // 遍历gzip文件
             TraversalGZIPFile((BYTE*)buffer, [=](uint8_t *begin, uint32_t size, uint32_t &new_len) {
                 bool changed = false;
