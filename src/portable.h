@@ -97,8 +97,8 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--shuax");
 
-            args.push_back(L"--disable-crash-reporter");
-            // args.push_back(L"--disable-background-networking");
+            
+            rgs.push_back(L"--disable-background-networking");
 
 
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
