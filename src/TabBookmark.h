@@ -2,8 +2,11 @@
 #pragma comment(lib,"oleacc.lib")
 
 #include <thread>
+#include <wrl/client.h>
 
 HHOOK mouse_hook = NULL;
+
+using NodePtr = Microsoft::WRL::ComPtr<IAccessible>;
 
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key)
@@ -11,7 +14,7 @@ bool IsPressed(int key)
     return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
 }
 
-long GetAccessibleRole(IAccessible *node)
+long GetAccessibleRole(NodePtr node)
 {
     VARIANT self;
     self.vt = VT_I4;
@@ -28,7 +31,7 @@ long GetAccessibleRole(IAccessible *node)
     return 0;
 }
 
-long GetAccessibleState(IAccessible *node)
+long GetAccessibleState(NodePtr node)
 {
     VARIANT self;
     self.vt = VT_I4;
@@ -46,33 +49,30 @@ long GetAccessibleState(IAccessible *node)
 }
 
 template<typename Function>
-void TraversalAccessible(IAccessible *node, Function f)
+void TraversalAccessible(NodePtr node, Function f)
 {
     long childCount = 0;
     if (node && S_OK == node->get_accChildCount(&childCount) && childCount)
     {
         VARIANT* varChildren = (VARIANT*)malloc(sizeof(VARIANT) * childCount);
-        if (S_OK == AccessibleChildren(node, 0, childCount, varChildren, &childCount))
+        if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren, &childCount))
         {
             for (int i = 0; i < childCount; i++)
             {
                 if (varChildren[i].vt == VT_DISPATCH)
                 {
-                    IDispatch* dispatch = varChildren[i].pdispVal;
-                    IAccessible* child = NULL;
+                    Microsoft::WRL::ComPtr<IDispatch> dispatch = varChildren[i].pdispVal;
+                    NodePtr child = nullptr;
                     if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&child))
                     {
-                        if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // ÷ª±È¿˙ø…º˚Ω⁄µ„
+                        if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // Âè™ÈÅçÂéÜÂèØËßÅËäÇÁÇπ
                         {
                             if (f(child))
                             {
-                                dispatch->Release();
                                 break;
                             }
-                            child->Release();
                         }
                     }
-                    dispatch->Release();
                 }
             }
         }
@@ -81,33 +81,30 @@ void TraversalAccessible(IAccessible *node, Function f)
 }
 
 template<typename Function>
-void TraversalRawAccessible(IAccessible *node, Function f)
+void TraversalRawAccessible(NodePtr node, Function f)
 {
     long childCount = 0;
     if (node && S_OK == node->get_accChildCount(&childCount) && childCount)
     {
         VARIANT* varChildren = (VARIANT*)malloc(sizeof(VARIANT) * childCount);
-        if (S_OK == AccessibleChildren(node, 0, childCount, varChildren, &childCount))
+        if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren, &childCount))
         {
             for (int i = 0; i < childCount; i++)
             {
                 if (varChildren[i].vt == VT_DISPATCH)
                 {
-                    IDispatch* dispatch = varChildren[i].pdispVal;
-                    IAccessible* child = NULL;
+                    Microsoft::WRL::ComPtr<IDispatch> dispatch = varChildren[i].pdispVal;
+                    NodePtr child = nullptr;
                     if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&child))
                     {
-                        //if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // ÷ª±È¿˙ø…º˚Ω⁄µ„
+                        //if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // Âè™ÈÅçÂéÜÂèØËßÅËäÇÁÇπ
                         {
                             if (f(child))
                             {
-                                dispatch->Release();
                                 break;
                             }
-                            child->Release();
                         }
                     }
-                    dispatch->Release();
                 }
             }
         }
@@ -115,13 +112,13 @@ void TraversalRawAccessible(IAccessible *node, Function f)
     }
 }
 
-IAccessible* FindPageTabList(IAccessible *node)
+NodePtr FindPageTabList(NodePtr node)
 {
-    IAccessible *PageTabList = NULL;
+    NodePtr PageTabList = nullptr;
     if (node)
     {
         TraversalAccessible(node, [&]
-                            (IAccessible * child)
+                            (NodePtr  child)
         {
             long role = GetAccessibleRole(child);
             if (role == ROLE_SYSTEM_PAGETABLIST)
@@ -139,13 +136,13 @@ IAccessible* FindPageTabList(IAccessible *node)
 }
 
 
-IAccessible* FindPageTab(IAccessible* node)
+NodePtr FindPageTab(NodePtr node)
 {
-    IAccessible* PageTab = NULL;
+    NodePtr PageTab = nullptr;
     if (node)
     {
         TraversalAccessible(node, [&]
-        (IAccessible* child)
+        (NodePtr child)
             {
                 long role = GetAccessibleRole(child);
                 if (role == ROLE_SYSTEM_PAGETAB)
@@ -162,36 +159,34 @@ IAccessible* FindPageTab(IAccessible* node)
     return PageTab;
 }
 
-IAccessible* GetParentElement(IAccessible *child)
+NodePtr GetParentElement(NodePtr child)
 {
-    IAccessible* element = NULL;
-    IDispatch* dispatch = NULL;
+    NodePtr element = nullptr;
+    Microsoft::WRL::ComPtr<IDispatch> dispatch = nullptr;
     if (S_OK == child->get_accParent(&dispatch) && dispatch)
     {
-        IAccessible* parent = NULL;
+        NodePtr parent = nullptr;
         if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&parent))
         {
             element = parent;
         }
-        dispatch->Release();
     }
     return element;
 }
 
-IAccessible* GetTopContainerView(HWND hwnd)
+NodePtr GetTopContainerView(HWND hwnd)
 {
-    IAccessible *TopContainerView = NULL;
+    NodePtr TopContainerView = nullptr;
     wchar_t name[MAX_PATH];
     if (GetClassName(hwnd, name, MAX_PATH) && wcscmp(name, L"Chrome_WidgetWin_1") == 0)
     {
-        IAccessible *paccMainWindow = NULL;
-        if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_IAccessible, (void**)&paccMainWindow))
+        NodePtr paccMainWindow = nullptr;
+        if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_PPV_ARGS(&paccMainWindow)))
         {
-            IAccessible *PageTabList = FindPageTabList(paccMainWindow);
+            NodePtr PageTabList = FindPageTabList(paccMainWindow);
             if (PageTabList)
             {
                 TopContainerView = GetParentElement(PageTabList);
-                PageTabList->Release();
             }
             if (!TopContainerView)
             {
@@ -202,16 +197,16 @@ IAccessible* GetTopContainerView(HWND hwnd)
     return TopContainerView;
 }
 
-IAccessible* FindChildElement(IAccessible *parent, long role, int skipcount = 0)
+NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
 {
-    IAccessible* element = NULL;
+    NodePtr element = nullptr;
     if (parent)
     {
         int i = 0;
         TraversalAccessible(parent, [&element, &role, &i, &skipcount]
-                            (IAccessible * child)
+                            (NodePtr  child)
         {
-            //DebugLog(L"µ±«∞ %d,%d", i, skipcount);
+            //DebugLog(L"ÂΩìÂâç %d,%d", i, skipcount);
             if (GetAccessibleRole(child) == role)
             {
                 if (i == skipcount)
@@ -220,14 +215,14 @@ IAccessible* FindChildElement(IAccessible *parent, long role, int skipcount = 0)
                 }
                 i++;
             }
-            return element != NULL;
+            return element != nullptr;
         });
     }
     return element;
 }
 
 template<typename Function>
-void GetAccessibleSize(IAccessible *node, Function f)
+void GetAccessibleSize(NodePtr node, Function f)
 {
     VARIANT self;
     self.vt = VT_I4;
@@ -248,21 +243,21 @@ void GetAccessibleSize(IAccessible *node, Function f)
     }
 }
 
-//  Û±Í «∑Ò‘⁄ƒ≥∏ˆ±Í«©…œ
-bool IsOnOneTab(IAccessible* top, POINT pt)
+// Èº†Ê†áÊòØÂê¶Âú®Êüê‰∏™Ê†áÁ≠æ‰∏ä
+bool IsOnOneTab(NodePtr top, POINT pt)
 {
     bool flag = false;
-    IAccessible* PageTabList = FindPageTabList(top);
+    NodePtr PageTabList = FindPageTabList(top);
     if (PageTabList)
     {
-        IAccessible* PageTab = FindPageTab(PageTabList);
+        NodePtr PageTab = FindPageTab(PageTabList);
         if (PageTab)
         {
-            IAccessible* PageTabPane = GetParentElement(PageTab);
+            NodePtr PageTabPane = GetParentElement(PageTab);
             if (PageTabPane)
             {
                 TraversalAccessible(PageTabPane, [&flag, &pt]
-                (IAccessible* child)
+                (NodePtr child)
                     {
                         if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
                         {
@@ -275,14 +270,10 @@ bool IsOnOneTab(IAccessible* top, POINT pt)
                                     }
                                 });
                         }
-                        if (flag) child->Release();
                         return flag;
                     });
-                PageTabPane->Release();
             }
-            PageTab->Release();
         }
-        PageTabList->Release();
     }
     else
     {
@@ -291,23 +282,23 @@ bool IsOnOneTab(IAccessible* top, POINT pt)
     return flag;
 }
 
-//  «∑Ò÷ª”–“ª∏ˆ±Í«©
-bool IsOnlyOneTab(IAccessible* top)
+// ÊòØÂê¶Âè™Êúâ‰∏Ä‰∏™Ê†áÁ≠æ
+bool IsOnlyOneTab(NodePtr top)
 {
-    IAccessible* PageTabList = FindPageTabList(top);
+    NodePtr PageTabList = FindPageTabList(top);
     if (PageTabList)
     {
         //DebugLog(L"IsOnlyOneTab");
         long tab_count = 0;
 
-        IAccessible* PageTab = FindPageTab(PageTabList);
+        NodePtr PageTab = FindPageTab(PageTabList);
         if (PageTab)
         {
-            IAccessible* PageTabPane = GetParentElement(PageTab);
+            NodePtr PageTabPane = GetParentElement(PageTab);
             if (PageTabPane)
             {
                 TraversalAccessible(PageTabPane, [&tab_count]
-                (IAccessible* child)
+                (NodePtr child)
                     {
                         //if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB && GetChildCount(child))
                         if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
@@ -316,12 +307,9 @@ bool IsOnlyOneTab(IAccessible* top)
                         }
                         return false;
                     });
-                PageTabPane->Release();
             }
-            PageTab->Release();
         }
         //DebugLog(L"closing %d,%d", closing, tab_count);
-        PageTabList->Release();
         return tab_count <= 1;
     }
     else
@@ -331,11 +319,11 @@ bool IsOnlyOneTab(IAccessible* top)
     return false;
 }
 
-//  Û±Í «∑Ò‘⁄±Í«©¿∏…œ
-bool IsOnTheTab(IAccessible* top, POINT pt)
+// Èº†Ê†áÊòØÂê¶Âú®Ê†áÁ≠æÊ†è‰∏ä
+bool IsOnTheTab(NodePtr top, POINT pt)
 {
     bool flag = false;
-    IAccessible* PageTabList = FindPageTabList(top);
+    NodePtr PageTabList = FindPageTabList(top);
     if (PageTabList)
     {
         GetAccessibleSize(PageTabList, [&flag, &pt]
@@ -346,7 +334,6 @@ bool IsOnTheTab(IAccessible* top, POINT pt)
                     flag = true;
                 }
             });
-        PageTabList->Release();
     }
     else
     {
@@ -403,7 +390,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (wParam == WM_MOUSEWHEEL)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
-            IAccessible* TopContainerView = GetTopContainerView(hwnd);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
 
             PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
             int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
@@ -423,7 +410,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 wheel_tab_ing = true;
                 if (TopContainerView)
                 {
-                    TopContainerView->Release();
                 }
                 //DebugLog(L"WM_MOUSEWHEEL");
                 return 1;
@@ -433,17 +419,16 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (wParam == WM_LBUTTONDBLCLK)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
-            IAccessible* TopContainerView = GetTopContainerView(hwnd);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
 
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
 
             if (TopContainerView)
             {
-                TopContainerView->Release();
             }
 
-            // À´ª˜πÿ±’
+            // ÂèåÂáªÂÖ≥Èó≠
             if (isOnOneTab)
             {
                 if (isOnlyOneTab)
@@ -464,14 +449,13 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (wParam == WM_MBUTTONUP)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
-            IAccessible* TopContainerView = GetTopContainerView(hwnd);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
 
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
 
             if (TopContainerView)
             {
-                TopContainerView->Release();
             }
 
             if (isOnOneTab && isOnlyOneTab)
@@ -493,7 +477,7 @@ bool IsNeedKeep()
 {
     bool keep_tab = false;
 
-    IAccessible* TopContainerView = GetTopContainerView(GetForegroundWindow());
+    NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
     if (IsOnlyOneTab(TopContainerView))
     {
         keep_tab = true;
@@ -501,7 +485,6 @@ bool IsNeedKeep()
 
     if (TopContainerView)
     {
-        TopContainerView->Release();
     }
 
     return keep_tab;

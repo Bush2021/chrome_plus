@@ -65,7 +65,7 @@ std::wstring GetDiskCacheDir()
     return temp;
 }
 
-// ¹¹ÔìĞÂÃüÁîĞĞ
+// æ„é€ æ–°å‘½ä»¤è¡Œ
 std::wstring GetCommand(LPWSTR param)
 {
     std::vector <std::wstring> args;
@@ -88,17 +88,14 @@ std::wstring GetCommand(LPWSTR param)
     }
     for (int i = 0; i < argc; i++)
     {
-        // ±£ÁôÔ­À´²ÎÊı
+        // ä¿ç•™åŸæ¥å‚æ•°
         if(i)
             args.push_back(argv[i]);
 
-        // ×·¼Ó²ÎÊı
+        // è¿½åŠ å‚æ•°
         if (i == insert_pos)
         {
-            args.push_back(L"--shuax");
-
-            
-            rgs.push_back(L"--disable-background-networking");
+            args.push_back(L"--portable");
 
 
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");

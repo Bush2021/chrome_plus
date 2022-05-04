@@ -22,22 +22,22 @@ Startup ExeMain = NULL;
 
 void ChromePlus()
 {
-    // ¿ì½İ·½Ê½
+    // å¿«æ·æ–¹å¼
     SetAppId();
 
-    // ±ãĞ¯»¯²¹¶¡
+    // ä¾¿æºåŒ–è¡¥ä¸
     MakeGreen();
 
-    // ±êÇ©Ò³£¬ÊéÇ©£¬µØÖ·À¸ÔöÇ¿
+    // æ ‡ç­¾é¡µï¼Œä¹¦ç­¾ï¼Œåœ°å€æ å¢å¼º
     TabBookmark();
 
-    // ¸øpakÎÄ¼ş´ò²¹¶¡
+    // ç»™pakæ–‡ä»¶æ‰“è¡¥ä¸
     PakPatch();
 }
 
 void ChromePlusCommand(LPWSTR param)
 {
-    if (!wcsstr(param, L"--shuax"))
+    if (!wcsstr(param, L"--portable"))
     {
         Portable(param);
     }
@@ -49,7 +49,7 @@ void ChromePlusCommand(LPWSTR param)
 
 int Loader()
 {
-    // Ö»¹Ø×¢Ö÷½çÃæ
+    // åªå…³æ³¨ä¸»ç•Œé¢
     LPWSTR param = GetCommandLineW();
     //DebugLog(L"param %s", param);
     if (!wcsstr(param, L"-type="))
@@ -57,19 +57,19 @@ int Loader()
         ChromePlusCommand(param);
     }
 
-    //·µ»Øµ½Ö÷³ÌĞò
+    //è¿”å›åˆ°ä¸»ç¨‹åº
     return ExeMain();
 }
 
 
 void InstallLoader()
 {
-    //»ñÈ¡³ÌĞòÈë¿Úµã
+    //è·å–ç¨‹åºå…¥å£ç‚¹
     MODULEINFO mi;
     GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(MODULEINFO));
     PBYTE entry = (PBYTE)mi.EntryPoint;
 
-    // Èë¿ÚµãÌø×ªµ½Loader
+    // å…¥å£ç‚¹è·³è½¬åˆ°Loader
     MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID*)&ExeMain);
     if (status == MH_OK)
     {
@@ -83,7 +83,7 @@ void InstallLoader()
 #define EXTERNC extern "C"
 
 // 
-EXTERNC __declspec(dllexport) void shuax()
+EXTERNC __declspec(dllexport) void portable()
 {
 }
 
@@ -94,10 +94,10 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
         DisableThreadLibraryCalls(hModule);
         hInstance = hModule;
 
-        // ±£³ÖÏµÍ³dllÔ­ÓĞ¹¦ÄÜ
+        // ä¿æŒç³»ç»ŸdllåŸæœ‰åŠŸèƒ½
         LoadSysDll(hModule);
 
-        // ³õÊ¼»¯HOOK¿â³É¹¦ÒÔºó°²×°¼ÓÔØÆ÷
+        // åˆå§‹åŒ–HOOKåº“æˆåŠŸä»¥åå®‰è£…åŠ è½½å™¨
         MH_STATUS status = MH_Initialize();
         if (status == MH_OK)
         {

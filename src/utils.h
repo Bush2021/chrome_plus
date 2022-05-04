@@ -43,7 +43,7 @@ void DebugLog(const wchar_t* format, ...)
     OutputDebugStringW(str.c_str());
 }
 
-// ËÑË÷ÄÚ´æ
+// æœç´¢å†…å­˜
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m)
 {
     return (uint8_t*)FastSearch(src, n, sub, m);
@@ -89,7 +89,7 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m)
 #include <Shlwapi.h>
 #pragma comment(lib,"Shlwapi.lib")
 
-// »ñµÃ³ÌĞòËùÔÚÎÄ¼ş¼Ğ
+// è·å¾—ç¨‹åºæ‰€åœ¨æ–‡ä»¶å¤¹
 std::wstring GetAppDir()
 {
     wchar_t path[MAX_PATH];
@@ -132,7 +132,7 @@ void ExecuteCommand(int id, HWND hwnd = 0)
     ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
 }
 
-// ·¢ËÍ°´¼ü
+// å‘é€æŒ‰é”®
 template<typename ... T>
 void SendKey(T ... keys)
 {
@@ -146,7 +146,7 @@ void SendKey(T ... keys)
         input.ki.wVk = (WORD)key;
         input.ki.dwExtraInfo = MAGIC_CODE;
 
-        // ĞŞÕıÊó±êÏûÏ¢
+        // ä¿®æ­£é¼ æ ‡æ¶ˆæ¯
         switch (input.ki.wVk)
         {
         case VK_RBUTTON:
@@ -177,7 +177,7 @@ void SendKey(T ... keys)
         input.ki.wVk = (WORD)key;
         input.ki.dwExtraInfo = MAGIC_CODE;
 
-        // ĞŞÕıÊó±êÏûÏ¢
+        // ä¿®æ­£é¼ æ ‡æ¶ˆæ¯
         switch (input.ki.wVk)
         {
         case VK_RBUTTON:
@@ -208,10 +208,10 @@ void SendKey(T ... keys)
 }
 
 
-//·¢ËÍÊó±êÏûÏ¢
+//å‘é€é¼ æ ‡æ¶ˆæ¯
 void SendOneMouse(int mouse)
 {
-    // ½»»»×óÓÒ¼ü
+    // äº¤æ¢å·¦å³é”®
     if (::GetSystemMetrics(SM_SWAPBUTTON) == TRUE)
     {
         if (mouse == MOUSEEVENTF_RIGHTDOWN) mouse = MOUSEEVENTF_LEFTDOWN;
@@ -237,7 +237,7 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
     return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
-// Ñ¹ËõHTML
+// å‹ç¼©HTML
 std::string &ltrim(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {return !std::isspace(ch); }));
     return s;
@@ -275,7 +275,7 @@ void compression_html(std::string& html)
     }
 }
 
-// Ìæ»»×Ö·û´®
+// æ›¿æ¢å­—ç¬¦ä¸²
 bool ReplaceStringInPlace(std::string& subject, const std::string& search, const std::string& replace)
 {
     bool find = false;

@@ -24,17 +24,17 @@ HANDLE WINAPI MyMapViewOfFile(
 {
     if (hFileMappingObject == resources_pak_map)
     {
-        // ĞŞ¸ÄÊôĞÔÎª¿ÉĞŞ¸Ä
+        // ä¿®æ”¹å±æ€§ä¸ºå¯ä¿®æ”¹
         LPVOID buffer = RawMapViewOfFile(hFileMappingObject, FILE_MAP_COPY, dwFileOffsetHigh,
             dwFileOffsetLow, dwNumberOfBytesToMap);
 
-        // ²»ÔÙĞèÒªhook
+        // ä¸å†éœ€è¦hook
         resources_pak_map = NULL;
         MH_DisableHook(MapViewOfFile);
 
         if (buffer)
         {
-            // ±éÀúgzipÎÄ¼ş
+            // éå†gzipæ–‡ä»¶
             TraversalGZIPFile((BYTE*)buffer, [=](uint8_t *begin, uint32_t size, uint32_t &new_len) {
                 bool changed = false;
 
@@ -43,7 +43,7 @@ HANDLE WINAPI MyMapViewOfFile(
                 if (pos)
                 {
 
-                    // Ñ¹ËõHTMLÒÔ±¸Ğ´Èë²¹¶¡ĞÅÏ¢
+                    // å‹ç¼©HTMLä»¥å¤‡å†™å…¥è¡¥ä¸ä¿¡æ¯
                     std::string html((char*)begin, size);
                     compression_html(html);
 
@@ -54,15 +54,15 @@ HANDLE WINAPI MyMapViewOfFile(
 						ReplaceStringInPlace(html, R"(hidden="[[!shouldShowIcons_(showUpdateStatus_)]]")", R"(hidden="true")");
 					}
 
-                    const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR u8R"( modified version</div>)";
+                    const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR u8R"( modified by Bush</div>)";
                     ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)", prouct_title);
 
                     if (html.length() <= size)
                     {
-                        // Ğ´ÈëĞŞ¸Ä
+                        // å†™å…¥ä¿®æ”¹
                         memcpy(begin, html.c_str(), html.length());
 
-                        // ĞŞ¸Ä³¤¶È
+                        // ä¿®æ”¹é•¿åº¦
                         new_len = html.length();
                         changed = true;
                     }
@@ -104,11 +104,11 @@ HANDLE WINAPI MyCreateFileMapping(
 {
     if (hFile == resources_pak_file)
     {
-        // ĞŞ¸ÄÊôĞÔÎª¿ÉĞŞ¸Ä
+        // ä¿®æ”¹å±æ€§ä¸ºå¯ä¿®æ”¹
         resources_pak_map = RawCreateFileMapping(hFile, lpAttributes, PAGE_WRITECOPY,
             dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
 
-        // ²»ÔÙĞèÒªhook
+        // ä¸å†éœ€è¦hook
         resources_pak_file = NULL;
         MH_DisableHook(CreateFileMappingW);
 
@@ -159,7 +159,7 @@ HANDLE WINAPI MyCreateFile(
             MH_EnableHook(CreateFileMappingW);
         }
 
-        // ²»ÔÙĞèÒªhook
+        // ä¸å†éœ€è¦hook
         MH_DisableHook(CreateFileW);
     }
 
