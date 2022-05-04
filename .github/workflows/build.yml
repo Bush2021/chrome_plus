@@ -11,13 +11,13 @@ jobs:
     strategy:
       matrix:
         include: [
-            { name: windows_x86, os: windows-latest, arch: x86 },
-            { name: windows_x64, os: windows-latest, arch: x64 },
+            { name: windows_x86, arch: x86 },
+            { name: windows_x64, arch: x64 },
         ]
 
     name: ${{ matrix.name }}
 
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
     - name: checkout
@@ -26,7 +26,6 @@ jobs:
         submodules: 'true'
 
     - name: setup VC-LTL
-      if: matrix.os == 'windows-latest'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget install VC-LTL
 
