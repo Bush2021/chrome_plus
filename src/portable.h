@@ -99,8 +99,6 @@ std::wstring GetCommand(LPWSTR param)
 
             args.push_back(L"--no-first-run");
 
-            args.push_back(L"--portable");
-
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
 
             // if (IsNeedPortable())
