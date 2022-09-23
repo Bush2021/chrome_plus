@@ -1,5 +1,5 @@
 #include <oleacc.h>
-#pragma comment(lib,"oleacc.lib")
+#pragma comment(lib, "oleacc.lib")
 
 #include <thread>
 #include <wrl/client.h>
@@ -48,13 +48,13 @@ long GetAccessibleState(NodePtr node)
     return 0;
 }
 
-template<typename Function>
+template <typename Function>
 void TraversalAccessible(NodePtr node, Function f)
 {
     long childCount = 0;
     if (node && S_OK == node->get_accChildCount(&childCount) && childCount)
     {
-        VARIANT* varChildren = (VARIANT*)malloc(sizeof(VARIANT) * childCount);
+        VARIANT *varChildren = (VARIANT *)malloc(sizeof(VARIANT) * childCount);
         if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren, &childCount))
         {
             for (int i = 0; i < childCount; i++)
@@ -63,7 +63,7 @@ void TraversalAccessible(NodePtr node, Function f)
                 {
                     Microsoft::WRL::ComPtr<IDispatch> dispatch = varChildren[i].pdispVal;
                     NodePtr child = nullptr;
-                    if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&child))
+                    if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void **)&child))
                     {
                         if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // 只遍历可见节点
                         {
@@ -80,13 +80,13 @@ void TraversalAccessible(NodePtr node, Function f)
     }
 }
 
-template<typename Function>
+template <typename Function>
 void TraversalRawAccessible(NodePtr node, Function f)
 {
     long childCount = 0;
     if (node && S_OK == node->get_accChildCount(&childCount) && childCount)
     {
-        VARIANT* varChildren = (VARIANT*)malloc(sizeof(VARIANT) * childCount);
+        VARIANT *varChildren = (VARIANT *)malloc(sizeof(VARIANT) * childCount);
         if (S_OK == AccessibleChildren(node.Get(), 0, childCount, varChildren, &childCount))
         {
             for (int i = 0; i < childCount; i++)
@@ -95,9 +95,9 @@ void TraversalRawAccessible(NodePtr node, Function f)
                 {
                     Microsoft::WRL::ComPtr<IDispatch> dispatch = varChildren[i].pdispVal;
                     NodePtr child = nullptr;
-                    if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&child))
+                    if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void **)&child))
                     {
-                        //if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // 只遍历可见节点
+                        // if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // 只遍历可见节点
                         {
                             if (f(child))
                             {
@@ -117,9 +117,7 @@ NodePtr FindPageTabList(NodePtr node)
     NodePtr PageTabList = nullptr;
     if (node)
     {
-        TraversalAccessible(node, [&]
-                            (NodePtr  child)
-        {
+        TraversalAccessible(node, [&](NodePtr child) {
             long role = GetAccessibleRole(child);
             if (role == ROLE_SYSTEM_PAGETABLIST)
             {
@@ -135,26 +133,23 @@ NodePtr FindPageTabList(NodePtr node)
     return PageTabList;
 }
 
-
 NodePtr FindPageTab(NodePtr node)
 {
     NodePtr PageTab = nullptr;
     if (node)
     {
-        TraversalAccessible(node, [&]
-        (NodePtr child)
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_PAGETAB)
             {
-                long role = GetAccessibleRole(child);
-                if (role == ROLE_SYSTEM_PAGETAB)
-                {
-                    PageTab = child;
-                }
-                else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR)
-                {
-                    PageTab = FindPageTab(child);
-                }
-                return PageTab;
-            });
+                PageTab = child;
+            }
+            else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR)
+            {
+                PageTab = FindPageTab(child);
+            }
+            return PageTab;
+        });
     }
     return PageTab;
 }
@@ -166,7 +161,7 @@ NodePtr GetParentElement(NodePtr child)
     if (S_OK == child->get_accParent(&dispatch) && dispatch)
     {
         NodePtr parent = nullptr;
-        if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&parent))
+        if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void **)&parent))
         {
             element = parent;
         }
@@ -203,10 +198,8 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
     if (parent)
     {
         int i = 0;
-        TraversalAccessible(parent, [&element, &role, &i, &skipcount]
-                            (NodePtr  child)
-        {
-            //DebugLog(L"当前 %d,%d", i, skipcount);
+        TraversalAccessible(parent, [&element, &role, &i, &skipcount](NodePtr child) {
+            // DebugLog(L"当前 %d,%d", i, skipcount);
             if (GetAccessibleRole(child) == role)
             {
                 if (i == skipcount)
@@ -221,7 +214,7 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
     return element;
 }
 
-template<typename Function>
+template <typename Function>
 void GetAccessibleSize(NodePtr node, Function f)
 {
     VARIANT self;
@@ -231,10 +224,10 @@ void GetAccessibleSize(NodePtr node, Function f)
     RECT rect;
     if (S_OK == node->accLocation(&rect.left, &rect.top, &rect.right, &rect.bottom, self))
     {
-        //rect.left = (int)((float)rect.left);
-        //rect.top = (int)((float)rect.top);
-        //rect.right = (int)((float)rect.right);
-        //rect.bottom = (int)((float)rect.bottom);
+        // rect.left = (int)((float)rect.left);
+        // rect.top = (int)((float)rect.top);
+        // rect.right = (int)((float)rect.right);
+        // rect.bottom = (int)((float)rect.bottom);
 
         rect.right += rect.left;
         rect.bottom += rect.top;
@@ -256,22 +249,18 @@ bool IsOnOneTab(NodePtr top, POINT pt)
             NodePtr PageTabPane = GetParentElement(PageTab);
             if (PageTabPane)
             {
-                TraversalAccessible(PageTabPane, [&flag, &pt]
-                (NodePtr child)
+                TraversalAccessible(PageTabPane, [&flag, &pt](NodePtr child) {
+                    if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
                     {
-                        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-                        {
-                            GetAccessibleSize(child, [&flag, &pt]
-                            (RECT rect)
-                                {
-                                    if (PtInRect(&rect, pt))
-                                    {
-                                        flag = true;
-                                    }
-                                });
-                        }
-                        return flag;
-                    });
+                        GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+                            if (PtInRect(&rect, pt))
+                            {
+                                flag = true;
+                            }
+                        });
+                    }
+                    return flag;
+                });
             }
         }
     }
@@ -288,7 +277,7 @@ bool IsOnlyOneTab(NodePtr top)
     NodePtr PageTabList = FindPageTabList(top);
     if (PageTabList)
     {
-        //DebugLog(L"IsOnlyOneTab");
+        // DebugLog(L"IsOnlyOneTab");
         long tab_count = 0;
 
         NodePtr PageTab = FindPageTab(PageTabList);
@@ -297,19 +286,17 @@ bool IsOnlyOneTab(NodePtr top)
             NodePtr PageTabPane = GetParentElement(PageTab);
             if (PageTabPane)
             {
-                TraversalAccessible(PageTabPane, [&tab_count]
-                (NodePtr child)
+                TraversalAccessible(PageTabPane, [&tab_count](NodePtr child) {
+                    // if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB && GetChildCount(child))
+                    if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
                     {
-                        //if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB && GetChildCount(child))
-                        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-                        {
-                            tab_count++;
-                        }
-                        return false;
-                    });
+                        tab_count++;
+                    }
+                    return false;
+                });
             }
         }
-        //DebugLog(L"closing %d,%d", closing, tab_count);
+        // DebugLog(L"closing %d,%d", closing, tab_count);
         return tab_count <= 1;
     }
     else
@@ -326,14 +313,12 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     NodePtr PageTabList = FindPageTabList(top);
     if (PageTabList)
     {
-        GetAccessibleSize(PageTabList, [&flag, &pt]
-        (RECT rect)
+        GetAccessibleSize(PageTabList, [&flag, &pt](RECT rect) {
+            if (PtInRect(&rect, pt))
             {
-                if (PtInRect(&rect, pt))
-                {
-                    flag = true;
-                }
-            });
+                flag = true;
+            }
+        });
     }
     else
     {
@@ -363,29 +348,28 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
         if (pmouse->dwExtraInfo == MAGIC_CODE)
         {
-            //DebugLog(L"MAGIC_CODE %x", wParam);
+            // DebugLog(L"MAGIC_CODE %x", wParam);
             goto next;
         }
 
         if (wParam == WM_RBUTTONUP && wheel_tab_ing)
         {
-            //DebugLog(L"wheel_tab_ing");
+            // DebugLog(L"wheel_tab_ing");
             wheel_tab_ing = false;
             return 1;
         }
 
-
-        //if (wParam == WM_MBUTTONDOWN)
+        // if (wParam == WM_MBUTTONDOWN)
         //{
-        //    //DebugLog(L"wheel_tab_ing");
-        //    return 1;
-        //}
-        //if (wParam == WM_LBUTTONUP && double_click_ing)
+        //     //DebugLog(L"wheel_tab_ing");
+        //     return 1;
+        // }
+        // if (wParam == WM_LBUTTONUP && double_click_ing)
         //{
-        //    //DebugLog(L"double_click_ing");
-        //    double_click_ing = false;
-        //    return 1;
-        //}
+        //     //DebugLog(L"double_click_ing");
+        //     double_click_ing = false;
+        //     return 1;
+        // }
 
         if (wParam == WM_MOUSEWHEEL)
         {
@@ -411,7 +395,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 if (TopContainerView)
                 {
                 }
-                //DebugLog(L"WM_MOUSEWHEEL");
+                // DebugLog(L"WM_MOUSEWHEEL");
                 return 1;
             }
         }
@@ -433,8 +417,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             {
                 if (isOnlyOneTab)
                 {
-                    //DebugLog(L"keep_tab");
-                    //ExecuteCommand(IDC_NEW_TAB, hwnd);
+                    // DebugLog(L"keep_tab");
+                    // ExecuteCommand(IDC_NEW_TAB, hwnd);
                     ExecuteCommand(IDC_NEW_TAB);
                     ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                     ExecuteCommand(IDC_CLOSE_TAB);
@@ -460,16 +444,16 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             if (isOnOneTab && isOnlyOneTab)
             {
-                //DebugLog(L"keep_tab");
-                //ExecuteCommand(IDC_NEW_TAB, hwnd);
+                // DebugLog(L"keep_tab");
+                // ExecuteCommand(IDC_NEW_TAB, hwnd);
                 ExecuteCommand(IDC_NEW_TAB);
                 // ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                //ExecuteCommand(IDC_CLOSE_TAB);
+                // ExecuteCommand(IDC_CLOSE_TAB);
             }
         }
     }
 next:
-    //DebugLog(L"CallNextHookEx %X", wParam);
+    // DebugLog(L"CallNextHookEx %X", wParam);
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
 

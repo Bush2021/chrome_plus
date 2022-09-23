@@ -11,13 +11,14 @@ HMODULE hInstance;
 
 #include "hijack.h"
 #include "utils.h"
+#include "patch.h"
 #include "TabBookmark.h"
 #include "portable.h"
 #include "PakPatch.h"
 #include "appid.h"
 #include "green.h"
 
-typedef int(*Startup) ();
+typedef int (*Startup)();
 Startup ExeMain = NULL;
 
 void ChromePlus()
@@ -49,9 +50,12 @@ void ChromePlusCommand(LPWSTR param)
 
 int Loader()
 {
+    // 硬补丁
+    MakePatch();
+
     // 只关注主界面
     LPWSTR param = GetCommandLineW();
-    //DebugLog(L"param %s", param);
+    // DebugLog(L"param %s", param);
     if (!wcsstr(param, L"-type="))
     {
         ChromePlusCommand(param);
@@ -61,7 +65,6 @@ int Loader()
     return ExeMain();
 }
 
-
 void InstallLoader()
 {
     //获取程序入口点
@@ -70,7 +73,7 @@ void InstallLoader()
     PBYTE entry = (PBYTE)mi.EntryPoint;
 
     // 入口点跳转到Loader
-    MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID*)&ExeMain);
+    MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID *)&ExeMain);
     if (status == MH_OK)
     {
         MH_EnableHook(entry);
@@ -82,8 +85,8 @@ void InstallLoader()
 }
 #define EXTERNC extern "C"
 
-// 
-EXTERNC __declspec(dllexport) void portable()
+//
+EXTERNC __declspec(dllexport) void shuax()
 {
 }
 

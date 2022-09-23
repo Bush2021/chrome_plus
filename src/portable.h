@@ -68,10 +68,10 @@ std::wstring GetDiskCacheDir()
 // 构造新命令行
 std::wstring GetCommand(LPWSTR param)
 {
-    std::vector <std::wstring> args;
+    std::vector<std::wstring> args;
 
     int argc;
-    LPWSTR* argv = CommandLineToArgvW(param, &argc);
+    LPWSTR *argv = CommandLineToArgvW(param, &argc);
 
     int insert_pos = 0;
     for (int i = 0; i < argc; i++)
@@ -89,7 +89,7 @@ std::wstring GetCommand(LPWSTR param)
     for (int i = 0; i < argc; i++)
     {
         // 保留原来参数
-        if(i)
+        if (i)
             args.push_back(argv[i]);
 
         // 追加参数
@@ -97,10 +97,13 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--portable");
 
+            args.push_back(L"--no-first-run");
+
+            args.push_back(L"--portable");
 
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
 
-            //if (IsNeedPortable())
+            // if (IsNeedPortable())
             {
                 auto diskcache = GetDiskCacheDir();
 
@@ -119,9 +122,8 @@ std::wstring GetCommand(LPWSTR param)
     }
     LocalFree(argv);
 
-    return JoinArgsString(args, L" ");;
+    return JoinArgsString(args, L" ");
 }
-
 
 void Portable(LPWSTR param)
 {
@@ -130,7 +132,7 @@ void Portable(LPWSTR param)
 
     std::wstring args = GetCommand(param);
 
-    SHELLEXECUTEINFO sei = { 0 };
+    SHELLEXECUTEINFO sei = {0};
     sei.cbSize = sizeof(SHELLEXECUTEINFO);
     sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
     sei.lpVerb = L"open";
