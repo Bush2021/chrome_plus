@@ -23,20 +23,18 @@ void Outdated(HMODULE module)
 #ifdef _WIN64
     BYTE search[] = {0x48, 0x89, 0x8C, 0x24, 0xF0, 0x00, 0x00, 0x00, 0x80, 0x3D};
     uint8_t *match = SearchModuleRaw(module, search, sizeof(search));
-    if (match)
-    {
-        BYTE patch[] = {0x90, 0x90};
-        WriteMemory(match + 0xF, patch, sizeof(patch));
-    }
 #else
     BYTE search[] = {0x31, 0xE8, 0x89, 0x45, 0xF0, 0x88, 0x5D, 0xEF, 0x80, 0x3D};
     uint8_t *match = SearchModuleRaw(module, search, sizeof(search));
+#endif
     if (match)
     {
-        BYTE patch[] = {0x90, 0x90};
-        WriteMemory(match + 0xF, patch, sizeof(patch));
+        if (*(match + 0xF) == 0x74)
+        {
+            BYTE patch[] = {0x90, 0x90};
+            WriteMemory(match + 0xF, patch, sizeof(patch));
+        }
     }
-#endif
     else
     {
         DebugLog(L"patch Outdated failed %p", module);
