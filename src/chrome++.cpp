@@ -86,7 +86,7 @@ void InstallLoader()
 #define EXTERNC extern "C"
 
 //
-EXTERNC __declspec(dllexport) void shuax()
+EXTERNC __declspec(dllexport) void portable()
 {
 }
 

@@ -100,6 +100,8 @@ std::wstring GetCommand(LPWSTR param)
             args.push_back(L"--no-first-run");
 
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
+            
+            args.push_back(L"--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'");
 
             // if (IsNeedPortable())
             {
