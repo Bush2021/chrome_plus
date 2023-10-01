@@ -120,27 +120,44 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(
     DWORD level,
     LPBYTE *bufptr)
 {
-    // DebugLog(L"MyNetUserGetInfo %s", username);
-
     NET_API_STATUS ret = RawNetUserGetInfo(servername, username, level, bufptr);
     if (level == 1 && ret == 0)
     {
         LPUSER_INFO_1 user_info = (LPUSER_INFO_1)*bufptr;
-        // DebugLog(L"user_info %d %s", user_info->usri1_password_age, user_info->usri1_name);
         user_info->usri1_password_age = 0;
-        // DebugLog(L"user_info %d", user_info->usri1_password_age);
-
-        // DebugLog(L"User account name: %s\n", user_info->usri1_name);
-        // DebugLog(L"Password: %s\n", user_info->usri1_password);
-        // DebugLog(L"Password age (seconds): %d\n", user_info->usri1_password_age);
-        // DebugLog(L"Privilege level: %d\n", user_info->usri1_priv);
-        // DebugLog(L"Home directory: %s\n", user_info->usri1_home_dir);
-        // DebugLog(L"User comment: %s\n", user_info->usri1_comment);
-        // DebugLog(L"Flags (in hex): %x\n", user_info->usri1_flags);
-        // DebugLog(L"Script path: %s\n", user_info->usri1_script_path);
     }
 
     return ret;
+}
+
+#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON (0x00000001ui64 << 44)
+
+typedef BOOL(WINAPI *pUpdateProcThreadAttribute)(
+    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    DWORD dwFlags,
+    DWORD_PTR Attribute,
+    PVOID lpValue,
+    SIZE_T cbSize,
+    PVOID lpPreviousValue,
+    PSIZE_T lpReturnSize);
+
+pUpdateProcThreadAttribute RawUpdateProcThreadAttribute = nullptr;
+
+BOOL WINAPI MyUpdateProcThreadAttribute(
+    __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    __in DWORD dwFlags,
+    __in DWORD_PTR Attribute,
+    __in_bcount_opt(cbSize) PVOID lpValue,
+    __in SIZE_T cbSize,
+    __out_bcount_opt(cbSize) PVOID lpPreviousValue,
+    __in_opt PSIZE_T lpReturnSize)
+{
+    if (Attribute == PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY && cbSize >= sizeof(DWORD64))
+    {
+        PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
+        *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
+    }
+    return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute, lpValue, cbSize, lpPreviousValue, lpReturnSize);
 }
 
 void MakeGreen()
@@ -172,79 +189,4 @@ void MakeGreen()
     }
 
     // components/os_crypt/os_crypt_win.cc
-    HMODULE Crypt32 = LoadLibraryW(L"Crypt32.dll");
-    if (Crypt32)
-    {
-        PBYTE CryptProtectData = (PBYTE)GetProcAddress(Crypt32, "CryptProtectData");
-        PBYTE CryptUnprotectData = (PBYTE)GetProcAddress(Crypt32, "CryptUnprotectData");
-
-        MH_STATUS status = MH_CreateHook(CryptProtectData, MyCryptProtectData, NULL);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(CryptProtectData);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook CryptProtectData failed:%d", status);
-        }
-        status = MH_CreateHook(CryptUnprotectData, MyCryptUnprotectData, (LPVOID *)&RawCryptUnprotectData);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(CryptUnprotectData);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook CryptUnprotectData failed:%d", status);
-        }
-    }
-
-    HMODULE Advapi32 = LoadLibraryW(L"Advapi32.dll");
-    if (Advapi32)
-    {
-        PBYTE LogonUserW = (PBYTE)GetProcAddress(Advapi32, "LogonUserW");
-
-        MH_STATUS status = MH_CreateHook(LogonUserW, MyLogonUserW, (LPVOID *)&RawLogonUserW);
-        if (status == MH_OK)
-        {
-            // DebugLog(L"MH_EnableHook LogonUserW");
-            MH_EnableHook(LogonUserW);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook LogonUserW failed:%d", status);
-        }
-    }
-
-    HMODULE Shlwapi = LoadLibraryW(L"Shlwapi.dll");
-    if (Shlwapi)
-    {
-        PBYTE IsOS = (PBYTE)GetProcAddress(Shlwapi, "IsOS");
-
-        MH_STATUS status = MH_CreateHook(IsOS, MyIsOS, (LPVOID *)&RawIsOS);
-        if (status == MH_OK)
-        {
-            // DebugLog(L"MH_EnableHook IsOS");
-            MH_EnableHook(IsOS);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook IsOS failed:%d", status);
-        }
-    }
-
-    HMODULE Netapi32 = LoadLibraryW(L"Netapi32.dll");
-    if (Netapi32)
-    {
-        PBYTE NetUserGetInfo = (PBYTE)GetProcAddress(Netapi32, "NetUserGetInfo");
-
-        MH_STATUS status = MH_CreateHook(NetUserGetInfo, MyNetUserGetInfo, (LPVOID *)&RawNetUserGetInfo);
-        if (status == MH_OK)
-        {
-            MH_EnableHook(NetUserGetInfo);
-        }
-        else
-        {
-            DebugLog(L"MH_CreateHook NetUserGetInfo failed:%d", status);
-        }
-    }
-}
+    HMODULE Crypt
