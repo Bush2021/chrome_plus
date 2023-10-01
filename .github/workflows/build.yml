@@ -8,8 +8,8 @@ jobs:
     strategy:
       matrix:
         include: [
-            { name: windows_x86, arch: x86 },
-            { name: windows_x64, arch: x64 },
+            { name: Chrome++_x86, arch: x86 },
+            { name: Chrome++_x64, arch: x64 },
         ]
 
     name: ${{ matrix.name }}
