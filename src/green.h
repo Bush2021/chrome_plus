@@ -189,4 +189,89 @@ void MakeGreen()
     }
 
     // components/os_crypt/os_crypt_win.cc
-    HMODULE Crypt
+    HMODULE Crypt32 = LoadLibraryW(L"Crypt32.dll");
+    if (Crypt32)
+    {
+        PBYTE CryptProtectData = (PBYTE)GetProcAddress(Crypt32, "CryptProtectData");
+        PBYTE CryptUnprotectData = (PBYTE)GetProcAddress(Crypt32, "CryptUnprotectData");
+
+        MH_STATUS status = MH_CreateHook(CryptProtectData, MyCryptProtectData, NULL);
+        if (status == MH_OK)
+        {
+            MH_EnableHook(CryptProtectData);
+        }
+        else
+        {
+            DebugLog(L"MH_CreateHook CryptProtectData failed:%d", status);
+        }
+        status = MH_CreateHook(CryptUnprotectData, MyCryptUnprotectData, (LPVOID *)&RawCryptUnprotectData);
+        if (status == MH_OK)
+        {
+            MH_EnableHook(CryptUnprotectData);
+        }
+        else
+        {
+            DebugLog(L"MH_CreateHook CryptUnprotectData failed:%d", status);
+        }
+    }
+
+    HMODULE Advapi32 = LoadLibraryW(L"Advapi32.dll");
+    if (Advapi32)
+    {
+        PBYTE LogonUserW = (PBYTE)GetProcAddress(Advapi32, "LogonUserW");
+
+        MH_STATUS status = MH_CreateHook(LogonUserW, MyLogonUserW, (LPVOID *)&RawLogonUserW);
+        if (status == MH_OK)
+        {
+            MH_EnableHook(LogonUserW);
+        }
+        else
+        {
+            DebugLog(L"MH_CreateHook LogonUserW failed:%d", status);
+        }
+    }
+
+    HMODULE Shlwapi = LoadLibraryW(L"Shlwapi.dll");
+    if (Shlwapi)
+    {
+        PBYTE IsOS = (PBYTE)GetProcAddress(Shlwapi, "IsOS");
+
+        MH_STATUS status = MH_CreateHook(IsOS, MyIsOS, (LPVOID *)&RawIsOS);
+        if (status == MH_OK)
+        {
+            MH_EnableHook(IsOS);
+        }
+        else
+        {
+            DebugLog(L"MH_CreateHook IsOS failed:%d", status);
+        }
+    }
+
+    HMODULE Netapi32 = LoadLibraryW(L"Netapi32.dll");
+    if (Netapi32)
+    {
+        PBYTE NetUserGetInfo = (PBYTE)GetProcAddress(Netapi32, "NetUserGetInfo");
+
+        MH_STATUS status = MH_CreateHook(NetUserGetInfo, MyNetUserGetInfo, (LPVOID *)&RawNetUserGetInfo);
+        if (status == MH_OK)
+        {
+            MH_EnableHook(NetUserGetInfo);
+        }
+        else
+        {
+            DebugLog(L"MH_CreateHook NetUserGetInfo failed:%d", status);
+        }
+    }
+
+    LPVOID ppUpdateProcThreadAttribute = nullptr;
+    MH_STATUS status = MH_CreateHookApiEx(L"kernel32", "UpdateProcThreadAttribute",
+        &MyUpdateProcThreadAttribute, (LPVOID *)&RawUpdateProcThreadAttribute, &ppUpdateProcThreadAttribute);
+    if (status == MH_OK)
+    {
+        MH_EnableHook(ppUpdateProcThreadAttribute);
+    }
+    else
+    {
+        DebugLog(L"MH_CreateHookApiEx UpdateProcThreadAttribute failed: %d", status);
+    }
+}
