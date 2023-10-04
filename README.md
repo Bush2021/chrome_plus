@@ -1,10 +1,4 @@
-<div align="center">
-<h1 align="center">Chrome++<br><img align='middle' src='https://anay.cosr.eu.org/?text=@Bush2021/chrome_plus'></img></h1>
-<img align='middle' src='https://anay.cosr.eu.org/?repo=Bush2021/chrome_plus'></img>
-<br>
-<img src="https://img.shields.io/github/license/Bush2021/chrome_plus?color=ff69b4">
-<img src="https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=blueviolet">
-</div>
+<center><h1>Chrome++</h1></center>
 
 中文说明: https://github.com/Bush2021/chrome_plus/blob/main/README_CN.md
 

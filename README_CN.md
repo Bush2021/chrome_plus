@@ -1,10 +1,4 @@
-<div align="center">
-<h1 align="center">Chrome++<br><img align='middle' src='https://anay.cosr.eu.org/?text=@Bush2021/chrome_plus'></img></h1>
-<img align='middle' src='https://anay.cosr.eu.org/?repo=Bush2021/chrome_plus'></img>
-<br>
-<img src="https://img.shields.io/github/license/Bush2021/chrome_plus?color=ff69b4">
-<img src="https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=blueviolet">
-</div>
+<center><h1>Chrome++</h1></center>
 
 English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 
@@ -28,4 +22,4 @@ dll 放入 chrome.exe 同一目录即可
 
 # 致谢
 * 原作者 [Shuax](https://github.com/shuax/)
-* 1.5.5 修改代码[提供者]
+* 1.5.5 修改代码[提供者](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1)
