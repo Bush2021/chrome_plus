@@ -150,21 +150,21 @@ void SendKey(T... keys)
         // 修正鼠标消息
         switch (input.ki.wVk)
         {
-        case VK_RBUTTON:
-            input.type = INPUT_MOUSE;
-            input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN;
-            input.mi.dwExtraInfo = MAGIC_CODE;
-            break;
-        case VK_LBUTTON:
-            input.type = INPUT_MOUSE;
-            input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
-            input.mi.dwExtraInfo = MAGIC_CODE;
-            break;
-        case VK_MBUTTON:
-            input.type = INPUT_MOUSE;
-            input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-            input.mi.dwExtraInfo = MAGIC_CODE;
-            break;
+            case VK_RBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN;
+                input.mi.dwExtraInfo = MAGIC_CODE;
+                break;
+            case VK_LBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
+                input.mi.dwExtraInfo = MAGIC_CODE;
+                break;
+            case VK_MBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+                input.mi.dwExtraInfo = MAGIC_CODE;
+                break;
         }
 
         inputs.push_back(input);
@@ -181,21 +181,21 @@ void SendKey(T... keys)
         // 修正鼠标消息
         switch (input.ki.wVk)
         {
-        case VK_RBUTTON:
-            input.type = INPUT_MOUSE;
-            input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP;
-            input.mi.dwExtraInfo = MAGIC_CODE;
-            break;
-        case VK_LBUTTON:
-            input.type = INPUT_MOUSE;
-            input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
-            input.mi.dwExtraInfo = MAGIC_CODE;
-            break;
-        case VK_MBUTTON:
-            input.type = INPUT_MOUSE;
-            input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-            input.mi.dwExtraInfo = MAGIC_CODE;
-            break;
+            case VK_RBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP;
+                input.mi.dwExtraInfo = MAGIC_CODE;
+                break;
+            case VK_LBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
+                input.mi.dwExtraInfo = MAGIC_CODE;
+                break;
+            case VK_MBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+                input.mi.dwExtraInfo = MAGIC_CODE;
+                break;
         }
 
         inputs.push_back(input);
@@ -208,7 +208,7 @@ void SendKey(T... keys)
     ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
 }
 
-//发送鼠标消息
+// 发送鼠标消息
 void SendOneMouse(int mouse)
 {
     // 交换左右键
@@ -239,6 +239,29 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
     if (len2 > len1)
         return false;
     return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
+}
+
+// 展开环境路径比如 %windir%
+std::wstring ExpandEnvironmentPath(const std::wstring &path)
+{
+    std::vector<wchar_t> buffer(MAX_PATH);
+    size_t expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+    if (expandedLength > buffer.size())
+    {
+        buffer.resize(expandedLength);
+        expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+    }
+    return std::wstring(&buffer[0], 0, expandedLength);
+}
+// 替换字符串
+void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
+{
+    size_t pos = 0;
+    while ((pos = subject.find(search, pos)) != std::wstring::npos)
+    {
+        subject.replace(pos, search.length(), replace);
+        pos += replace.length();
+    }
 }
 
 // 压缩HTML
