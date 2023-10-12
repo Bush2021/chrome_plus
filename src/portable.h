@@ -61,8 +61,12 @@ bool IsIniExist()
 // 如果 ini 存在，读取 UserData 并配置，否则使用默认值
 std::wstring GetUserDataDir()
 {
-    if (IsIniExist()) {
+    if (IsIniExist())
+    {
         std::wstring IniDir = GetAppDir() + L"\\chrome++.ini";
+        std::wstring path = GetAppDir() + L"\\..\\Data";
+        TCHAR temp[MAX_PATH];
+        ::PathCanonicalize(temp, path.data());
 
         if (!PathFileExists(IniDir.c_str()))
         {
@@ -70,7 +74,7 @@ std::wstring GetUserDataDir()
         }
 
         TCHAR UserDataBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"DataDir", L"", UserDataBuffer, MAX_PATH, IniDir.c_str());
+        ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniDir.c_str());
         std::wstring expandedPath = ExpandEnvironmentPath(UserDataBuffer);
 
         // 替换 %app%
@@ -78,8 +82,9 @@ std::wstring GetUserDataDir()
         wcscpy(UserDataBuffer, expandedPath.c_str());
 
         return std::wstring(UserDataBuffer);
-
-    } else {
+    }
+    else
+    {
         std::wstring path = GetAppDir() + L"\\..\\Data";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
@@ -90,8 +95,13 @@ std::wstring GetUserDataDir()
 // 如果 ini 存在，读取 DiskCache 并配置，否则使用默认值
 std::wstring GetDiskCacheDir()
 {
-    if (IsIniExist()) {
+    if (IsIniExist())
+    {
         std::wstring IniDir = GetAppDir() + L"\\chrome++.ini";
+        std::wstring path = GetAppDir() + L"\\..\\Cache";
+        TCHAR temp[MAX_PATH];
+        ::PathCanonicalize(temp, path.data());
+        return temp;
 
         if (!PathFileExists(IniDir.c_str()))
         {
@@ -99,7 +109,7 @@ std::wstring GetDiskCacheDir()
         }
 
         TCHAR CacheDirBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"CacheDir", L"", CacheDirBuffer, MAX_PATH, IniDir.c_str());
+        ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniDir.c_str());
         std::wstring expandedPath = ExpandEnvironmentPath(CacheDirBuffer);
 
         // 替换 %app%
@@ -107,8 +117,9 @@ std::wstring GetDiskCacheDir()
         wcscpy(CacheDirBuffer, expandedPath.c_str());
 
         return std::wstring(CacheDirBuffer);
-
-    } else {
+    }
+    else
+    {
         std::wstring path = GetAppDir() + L"\\..\\Cache";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
