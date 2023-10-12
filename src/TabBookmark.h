@@ -340,31 +340,39 @@ bool IsWheelTabFun()
 
 bool IsWheelTab = IsWheelTabFun();
 
+// 是否开启在任何位置按住右键时滚轮切换标签
+bool IsWheelTabWhenPressRButtonFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool IsWheelTabWhenPressRButton = IsWheelTabWhenPressRButtonFun();
+
 // 鼠标是否在标签栏上
 bool IsOnTheTab(NodePtr top, POINT pt)
 {
-    if (!IsWheelTab) {
-        return false;
+    bool flag = false;
+    NodePtr PageTabList = FindPageTabList(top);
+    if (PageTabList)
+    {
+        GetAccessibleSize(PageTabList, [&flag, &pt](RECT rect) {
+            if (PtInRect(&rect, pt))
+            {
+                flag = true;
+            }
+        });
     }
     else
     {
-        bool flag = false;
-        NodePtr PageTabList = FindPageTabList(top);
-        if (PageTabList)
-        {
-            GetAccessibleSize(PageTabList, [&flag, &pt](RECT rect) {
-                if (PtInRect(&rect, pt))
-                {
-                    flag = true;
-                }
-            });
-        }
-        else
-        {
-            // if (top) DebugLog(L"IsOnTheTab failed");
-        }
-        return flag;
+        // if (top) DebugLog(L"IsOnTheTab failed");
     }
+    return flag;
 }
 
 // 是否执行双击关闭
@@ -425,33 +433,44 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         //     return 1;
         // }
 
-        if (wParam == WM_MOUSEWHEEL)
-        {
+        if (wParam == WM_MOUSEWHEEL) {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
 
-            PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
+            PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX) lParam;
             int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
-            if (IsOnTheTab(TopContainerView, pmouse->pt) || IsPressed(VK_RBUTTON))
-            {
-                hwnd = GetTopWnd(hwnd);
-                if (zDelta > 0)
-                {
-                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
-                }
-                else
-                {
-                    ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
-                }
+            // 是否启用鼠标停留在标签栏时滚轮切换标签
+            if (IsWheelTab && IsOnTheTab(TopContainerView, pmouse->pt)) {
+                    hwnd = GetTopWnd(hwnd);
+                    if (zDelta > 0) {
+                        ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
+                    } else {
+                        ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
+                    }
 
-                wheel_tab_ing = true;
-                if (TopContainerView)
-                {
+                    wheel_tab_ing = true;
+                    if (TopContainerView) {
+                    }
+                    // DebugLog(L"WM_MOUSEWHEEL");
+                    return 1;
                 }
-                // DebugLog(L"WM_MOUSEWHEEL");
-                return 1;
-            }
+ 
+            // 是否启用在任何位置按住右键时滚轮切换标签
+            if (IsWheelTabWhenPressRButton && IsPressed(VK_RBUTTON)) {
+                    hwnd = GetTopWnd(hwnd);
+                    if (zDelta > 0) {
+                        ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
+                    } else {
+                        ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
+                    }
+
+                    wheel_tab_ing = true;
+                    if (TopContainerView) {
+                    }
+                    // DebugLog(L"WM_MOUSEWHEEL");
+                    return 1;
+                }
         }
 
         if (IsDblClk && wParam == WM_LBUTTONDBLCLK)
