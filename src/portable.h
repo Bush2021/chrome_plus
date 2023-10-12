@@ -64,6 +64,7 @@ std::wstring GetUserDataDir()
     if (IsIniExist())
     {
         std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+        // 修改 Chrome 默认 Data 路径
         std::wstring path = GetAppDir() + L"\\..\\Data";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
@@ -101,10 +102,10 @@ std::wstring GetDiskCacheDir()
     if (IsIniExist())
     {
         std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+        // 修改 Chrome 默认 Cache 路径
         std::wstring path = GetAppDir() + L"\\..\\Cache";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
-        return temp;
 
         if (!PathFileExists(IniPath.c_str()))
         {
