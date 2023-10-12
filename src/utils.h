@@ -241,17 +241,25 @@ bool isEndWith(const wchar_t *s, const wchar_t *sub)
     return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
+// 获得指定路径的绝对路径
+std::wstring GetAbsolutePath(const std::wstring &path)
+{
+    wchar_t buffer[MAX_PATH];
+    ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, NULL);
+    return buffer;
+}
+
 // 展开环境路径比如 %windir%
 std::wstring ExpandEnvironmentPath(const std::wstring &path)
 {
     std::vector<wchar_t> buffer(MAX_PATH);
-    size_t expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
-    if (expandedLength > buffer.size())
+    size_t ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+    if (ExpandedLength > buffer.size())
     {
-        buffer.resize(expandedLength);
-        expandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
+        buffer.resize(ExpandedLength);
+        ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0], (DWORD)buffer.size());
     }
-    return std::wstring(&buffer[0], 0, expandedLength);
+    return std::wstring(&buffer[0], 0, ExpandedLength);
 }
 // 替换字符串
 void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
