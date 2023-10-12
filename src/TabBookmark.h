@@ -271,39 +271,59 @@ bool IsOnOneTab(NodePtr top, POINT pt)
     return flag;
 }
 
+// 是否保留最后一个标签，是则返回 IsOnlyOneTab 为 True，否则返回 False
+bool IsKeepLastTabFun()
+{
+        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+        if (::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1, IniPath.c_str()) == 0)
+        {
+            return false;
+        }
+
+        return true;
+}
+
+bool IsKeepLastTab = IsKeepLastTabFun();
+
 // 是否只有一个标签
 bool IsOnlyOneTab(NodePtr top)
 {
-    NodePtr PageTabList = FindPageTabList(top);
-    if (PageTabList)
-    {
-        // DebugLog(L"IsOnlyOneTab");
-        long tab_count = 0;
-
-        NodePtr PageTab = FindPageTab(PageTabList);
-        if (PageTab)
-        {
-            NodePtr PageTabPane = GetParentElement(PageTab);
-            if (PageTabPane)
-            {
-                TraversalAccessible(PageTabPane, [&tab_count](NodePtr child) {
-                    // if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB && GetChildCount(child))
-                    if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-                    {
-                        tab_count++;
-                    }
-                    return false;
-                });
-            }
-        }
-        // DebugLog(L"closing %d,%d", closing, tab_count);
-        return tab_count <= 1;
+    if (!IsKeepLastTab) {
+        return false;
     }
     else
     {
-        // if (top) DebugLog(L"IsOnlyOneTab failed");
+        NodePtr PageTabList = FindPageTabList(top);
+        if (PageTabList)
+        {
+            // DebugLog(L"IsOnlyOneTab");
+            long tab_count = 0;
+
+            NodePtr PageTab = FindPageTab(PageTabList);
+            if (PageTab)
+            {
+                NodePtr PageTabPane = GetParentElement(PageTab);
+                if (PageTabPane)
+                {
+                    TraversalAccessible(PageTabPane, [&tab_count](NodePtr child) {
+                        // if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB && GetChildCount(child))
+                        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+                        {
+                            tab_count++;
+                        }
+                        return false;
+                    });
+                }
+            }
+            // DebugLog(L"closing %d,%d", closing, tab_count);
+            return tab_count <= 1;
+        }
+        else
+        {
+            // if (top) DebugLog(L"IsOnlyOneTab failed");
+        }
+        return false;
     }
-    return false;
 }
 
 // 鼠标是否在标签栏上
@@ -328,7 +348,7 @@ bool IsOnTheTab(NodePtr top, POINT pt)
 }
 
 // 是否执行双击关闭
-bool ReadIniConfig()
+bool IsDblClkFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1, IniPath.c_str()) == 0)
@@ -339,7 +359,7 @@ bool ReadIniConfig()
     return true;
 }
 
-bool IsDblClk = ReadIniConfig();
+bool IsDblClk = IsDblClkFun();
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -415,7 +435,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         }
 
         if (IsDblClk && wParam == WM_LBUTTONDBLCLK)
-            {
+        {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
 
@@ -466,7 +486,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
         }
     }
-next:
+    next:
     // DebugLog(L"CallNextHookEx %X", wParam);
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
