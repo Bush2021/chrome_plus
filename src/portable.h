@@ -58,6 +58,22 @@ bool IsIniExist()
     return false;
 }
 
+// 如果 ini 存在，从中读取 CommandLine；如果 ini 不存在，或者存在，但是 CommandLine 为空，则返回空字符串
+std::wstring GetCrCommandLine()
+{
+    if (IsIniExist())
+    {
+        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+        TCHAR CommandLineBuffer[MAX_PATH];
+        ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer, MAX_PATH, IniPath.c_str());
+        return std::wstring(CommandLineBuffer);
+    }
+    else
+    {
+        return std::wstring(L"");
+    }
+}
+
 // 如果 ini 存在，读取 UserData 并配置，否则使用默认值
 std::wstring GetUserDataDir()
 {
@@ -82,7 +98,7 @@ std::wstring GetUserDataDir()
         {
             ::PathCanonicalize(UserDataBuffer, path.data());
         }
-        
+
         std::wstring ExpandedPath = ExpandEnvironmentPath(UserDataBuffer);
 
         // 替换 %app%
@@ -127,7 +143,7 @@ std::wstring GetDiskCacheDir()
         {
             ::PathCanonicalize(CacheDirBuffer, path.data());
         }
-        
+
         std::wstring ExpandedPath = ExpandEnvironmentPath(CacheDirBuffer);
 
         // 替换 %app%
@@ -179,23 +195,30 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--portable");
 
-            args.push_back(L"--no-first-run");
-
             args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
 
+            // 获取命令行，然后追加参数
+            {
+                auto cr_command_line = GetCrCommandLine();
+
+                wchar_t temp[MAX_PATH];
+                wsprintf(temp, L"%s", cr_command_line.c_str());
+                args.push_back(temp);
+            }
+
+            {
+                auto userdata = GetUserDataDir();
+
+                wchar_t temp[MAX_PATH];
+                wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
+                args.push_back(temp);
+            }
             // if (IsNeedPortable())
             {
                 auto diskcache = GetDiskCacheDir();
 
                 wchar_t temp[MAX_PATH];
                 wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
-                args.push_back(temp);
-            }
-            {
-                auto userdata = GetUserDataDir();
-
-                wchar_t temp[MAX_PATH];
-                wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
                 args.push_back(temp);
             }
         }
