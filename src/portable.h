@@ -76,6 +76,12 @@ std::wstring GetUserDataDir()
 
         TCHAR UserDataBuffer[MAX_PATH];
         ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniPath.c_str());
+
+        if (UserDataBuffer[0] == 0)
+        {
+            ::PathCanonicalize(UserDataBuffer, path.data());
+        }
+        
         std::wstring ExpandedPath = ExpandEnvironmentPath(UserDataBuffer);
 
         // 替换 %app%
@@ -114,6 +120,12 @@ std::wstring GetDiskCacheDir()
 
         TCHAR CacheDirBuffer[MAX_PATH];
         ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniPath.c_str());
+
+        if (CacheDirBuffer[0] == 0)
+        {
+            ::PathCanonicalize(CacheDirBuffer, path.data());
+        }
+        
         std::wstring ExpandedPath = ExpandEnvironmentPath(CacheDirBuffer);
 
         // 替换 %app%
