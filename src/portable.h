@@ -77,6 +77,7 @@ std::wstring GetUserDataDir()
         TCHAR UserDataBuffer[MAX_PATH];
         ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniPath.c_str());
 
+        // 若 ini 中 DataDir 留空，则按照默认情况处理
         if (UserDataBuffer[0] == 0)
         {
             ::PathCanonicalize(UserDataBuffer, path.data());
@@ -85,7 +86,7 @@ std::wstring GetUserDataDir()
         std::wstring ExpandedPath = ExpandEnvironmentPath(UserDataBuffer);
 
         // 替换 %app%
-        ReplaceStringInPlace(ExpandedPath, L"%app%", GetAppDir());
+        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
         std::wstring DataDir;
         DataDir = GetAbsolutePath(ExpandedPath);
 
@@ -121,6 +122,7 @@ std::wstring GetDiskCacheDir()
         TCHAR CacheDirBuffer[MAX_PATH];
         ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniPath.c_str());
 
+        // 若 ini 中 CacheDir 留空，则按照默认情况处理
         if (CacheDirBuffer[0] == 0)
         {
             ::PathCanonicalize(CacheDirBuffer, path.data());
@@ -129,7 +131,7 @@ std::wstring GetDiskCacheDir()
         std::wstring ExpandedPath = ExpandEnvironmentPath(CacheDirBuffer);
 
         // 替换 %app%
-        ReplaceStringInPlace(ExpandedPath, L"%app%", GetAppDir());
+        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
         std::wstring CacheDir;
         CacheDir = GetAbsolutePath(ExpandedPath);
         wcscpy(CacheDirBuffer, CacheDir.c_str());

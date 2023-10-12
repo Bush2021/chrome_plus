@@ -261,8 +261,8 @@ std::wstring ExpandEnvironmentPath(const std::wstring &path)
     }
     return std::wstring(&buffer[0], 0, ExpandedLength);
 }
-// 替换字符串
-void ReplaceStringInPlace(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
+// 替换 ini 文件中的字符串（宽字符处理中文路径）
+void ReplaceStringIni(std::wstring &subject, const std::wstring &search, const std::wstring &replace)
 {
     size_t pos = 0;
     while ((pos = subject.find(search, pos)) != std::wstring::npos)
