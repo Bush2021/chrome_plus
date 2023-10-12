@@ -105,7 +105,6 @@ std::wstring GetDiskCacheDir()
         std::wstring path = GetAppDir() + L"\\..\\Cache";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
-        return temp;
 
         if (!PathFileExists(IniDir.c_str()))
         {
