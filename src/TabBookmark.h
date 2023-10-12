@@ -327,6 +327,20 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     return flag;
 }
 
+// 是否执行双击关闭
+bool ReadIniConfig()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool IsDblClk = ReadIniConfig();
+
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
@@ -400,32 +414,35 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
         }
 
-        if (wParam == WM_LBUTTONDBLCLK)
+        if (IsDblClk)
         {
-            HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr TopContainerView = GetTopContainerView(hwnd);
-
-            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
-            if (TopContainerView)
+            if (wParam == WM_LBUTTONDBLCLK)
             {
-            }
+                HWND hwnd = WindowFromPoint(pmouse->pt);
+                NodePtr TopContainerView = GetTopContainerView(hwnd);
 
-            // 双击关闭
-            if (isOnOneTab)
-            {
-                if (isOnlyOneTab)
+                bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+                bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+
+                if (TopContainerView)
                 {
-                    // DebugLog(L"keep_tab");
-                    // ExecuteCommand(IDC_NEW_TAB, hwnd);
-                    ExecuteCommand(IDC_NEW_TAB);
-                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                    ExecuteCommand(IDC_CLOSE_TAB);
                 }
-                else
+
+                // 双击关闭
+                if (isOnOneTab)
                 {
-                    ExecuteCommand(IDC_CLOSE_TAB);
+                    if (isOnlyOneTab)
+                    {
+                        // DebugLog(L"keep_tab");
+                        // ExecuteCommand(IDC_NEW_TAB, hwnd);
+                        ExecuteCommand(IDC_NEW_TAB);
+                        ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                        ExecuteCommand(IDC_CLOSE_TAB);
+                    }
+                    else
+                    {
+                        ExecuteCommand(IDC_CLOSE_TAB);
+                    }
                 }
             }
         }
