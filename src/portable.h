@@ -30,22 +30,22 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines, const std::wstring 
 }
 
 // 这段代码应该可以废弃了……
-bool IsExistsPortable()
-{
-    std::wstring path = GetAppDir() + L"\\portable";
-    if (PathFileExists(path.data()))
-    {
-        return true;
-    }
-    return false;
-}
+//bool IsExistsPortable()
+//{
+//    std::wstring path = GetAppDir() + L"\\portable";
+//    if (PathFileExists(path.data()))
+//    {
+//        return true;
+//    }
+//    return false;
+//}
 
-bool IsNeedPortable()
-{
-    return true;
-    static bool need_portable = IsExistsPortable();
-    return need_portable;
-}
+//bool IsNeedPortable()
+//{
+//    return true;
+//    static bool need_portable = IsExistsPortable();
+//    return need_portable;
+//}
 
 // 尝试读取 ini 文件
 bool IsIniExist()
