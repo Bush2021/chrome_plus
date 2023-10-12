@@ -12,7 +12,7 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 - 移除更新错误警告（因为是绿色版没有自动更新功能）
 
 # 获取
-采用 GitHub Actions 自动编译发布，下载地址：https://github.com//actions/ 或 https://github.com/Bush2021/chrome_plus/releases/
+采用 GitHub Actions 自动编译发布，下载地址：https://github.com/Bush2021/chrome_plus/actions 或 https://github.com/Bush2021/chrome_plus/releases/
 
 # 安装
 dll 放入 chrome.exe 同一目录即可
