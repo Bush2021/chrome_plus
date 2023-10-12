@@ -326,25 +326,45 @@ bool IsOnlyOneTab(NodePtr top)
     }
 }
 
+// 是否开启鼠标停留在标签栏时滚轮切换标签
+bool IsWheelTabFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool IsWheelTab = IsWheelTabFun();
+
 // 鼠标是否在标签栏上
 bool IsOnTheTab(NodePtr top, POINT pt)
 {
-    bool flag = false;
-    NodePtr PageTabList = FindPageTabList(top);
-    if (PageTabList)
-    {
-        GetAccessibleSize(PageTabList, [&flag, &pt](RECT rect) {
-            if (PtInRect(&rect, pt))
-            {
-                flag = true;
-            }
-        });
+    if (!IsWheelTab) {
+        return false;
     }
     else
     {
-        // if (top) DebugLog(L"IsOnTheTab failed");
+        bool flag = false;
+        NodePtr PageTabList = FindPageTabList(top);
+        if (PageTabList)
+        {
+            GetAccessibleSize(PageTabList, [&flag, &pt](RECT rect) {
+                if (PtInRect(&rect, pt))
+                {
+                    flag = true;
+                }
+            });
+        }
+        else
+        {
+            // if (top) DebugLog(L"IsOnTheTab failed");
+        }
+        return flag;
     }
-    return flag;
 }
 
 // 是否执行双击关闭
