@@ -40,3 +40,9 @@ jobs:
       with:
         name: ${{ matrix.name }}
         path: build/release
+
+    - name: upload
+      uses: actions/upload-artifact@v3.1.3
+      with:
+        name: chrome++.ini
+        path: src
