@@ -63,23 +63,26 @@ std::wstring GetUserDataDir()
 {
     if (IsIniExist())
     {
-        std::wstring IniDir = GetAppDir() + L"\\chrome++.ini";
+        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         std::wstring path = GetAppDir() + L"\\..\\Data";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
 
-        if (!PathFileExists(IniDir.c_str()))
+        if (!PathFileExists(IniPath.c_str()))
         {
             return GetAppDir() + L"\\..\\Data";
         }
 
         TCHAR UserDataBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniDir.c_str());
-        std::wstring expandedPath = ExpandEnvironmentPath(UserDataBuffer);
+        ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniPath.c_str());
+        std::wstring ExpandedPath = ExpandEnvironmentPath(UserDataBuffer);
 
         // 替换 %app%
-        ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
-        wcscpy(UserDataBuffer, expandedPath.c_str());
+        ReplaceStringInPlace(ExpandedPath, L"%app%", GetAppDir());
+        std::wstring DataDir;
+        DataDir = GetAbsolutePath(ExpandedPath);
+
+        wcscpy(UserDataBuffer, DataDir.c_str());
 
         return std::wstring(UserDataBuffer);
     }
@@ -97,24 +100,26 @@ std::wstring GetDiskCacheDir()
 {
     if (IsIniExist())
     {
-        std::wstring IniDir = GetAppDir() + L"\\chrome++.ini";
+        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         std::wstring path = GetAppDir() + L"\\..\\Cache";
         TCHAR temp[MAX_PATH];
         ::PathCanonicalize(temp, path.data());
         return temp;
 
-        if (!PathFileExists(IniDir.c_str()))
+        if (!PathFileExists(IniPath.c_str()))
         {
             return GetAppDir() + L"\\..\\Cache";
         }
 
         TCHAR CacheDirBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniDir.c_str());
-        std::wstring expandedPath = ExpandEnvironmentPath(CacheDirBuffer);
+        ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniPath.c_str());
+        std::wstring ExpandedPath = ExpandEnvironmentPath(CacheDirBuffer);
 
         // 替换 %app%
-        ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
-        wcscpy(CacheDirBuffer, expandedPath.c_str());
+        ReplaceStringInPlace(ExpandedPath, L"%app%", GetAppDir());
+        std::wstring CacheDir;
+        CacheDir = GetAbsolutePath(ExpandedPath);
+        wcscpy(CacheDirBuffer, CacheDir.c_str());
 
         return std::wstring(CacheDirBuffer);
     }

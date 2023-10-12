@@ -414,35 +414,32 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
         }
 
-        if (IsDblClk)
-        {
-            if (wParam == WM_LBUTTONDBLCLK)
+        if (IsDblClk && wParam == WM_LBUTTONDBLCLK)
             {
-                HWND hwnd = WindowFromPoint(pmouse->pt);
-                NodePtr TopContainerView = GetTopContainerView(hwnd);
+            HWND hwnd = WindowFromPoint(pmouse->pt);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
 
-                bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-                bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
 
-                if (TopContainerView)
+            if (TopContainerView)
+            {
+            }
+
+            // 双击关闭
+            if (isOnOneTab)
+            {
+                if (isOnlyOneTab)
                 {
+                    // DebugLog(L"keep_tab");
+                    // ExecuteCommand(IDC_NEW_TAB, hwnd);
+                    ExecuteCommand(IDC_NEW_TAB);
+                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                    ExecuteCommand(IDC_CLOSE_TAB);
                 }
-
-                // 双击关闭
-                if (isOnOneTab)
+                else
                 {
-                    if (isOnlyOneTab)
-                    {
-                        // DebugLog(L"keep_tab");
-                        // ExecuteCommand(IDC_NEW_TAB, hwnd);
-                        ExecuteCommand(IDC_NEW_TAB);
-                        ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                        ExecuteCommand(IDC_CLOSE_TAB);
-                    }
-                    else
-                    {
-                        ExecuteCommand(IDC_CLOSE_TAB);
-                    }
+                    ExecuteCommand(IDC_CLOSE_TAB);
                 }
             }
         }
