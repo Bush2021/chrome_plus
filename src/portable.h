@@ -29,6 +29,7 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines, const std::wstring 
     return text;
 }
 
+// 这段代码应该可以废弃了……
 bool IsExistsPortable()
 {
     std::wstring path = GetAppDir() + L"\\portable";
@@ -46,23 +47,73 @@ bool IsNeedPortable()
     return need_portable;
 }
 
+// 尝试读取 ini 文件
+bool IsIniExist()
+{
+    std::wstring path = GetAppDir() + L"\\chrome++.ini";
+    if (PathFileExists(path.data()))
+    {
+        return true;
+    }
+    return false;
+}
+
+// 如果 ini 存在，读取 UserData 并配置，否则使用默认值
 std::wstring GetUserDataDir()
 {
-    std::wstring path = GetAppDir() + L"\\..\\Data";
+    if (IsIniExist()) {
+        std::wstring IniDir = GetAppDir() + L"\\chrome++.ini";
 
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
+        if (!PathFileExists(IniDir.c_str()))
+        {
+            return GetAppDir() + L"\\..\\Data";
+        }
 
-    return temp;
+        TCHAR UserDataBuffer[MAX_PATH];
+        ::GetPrivateProfileStringW(L"General", L"DataDir", L"", UserDataBuffer, MAX_PATH, IniDir.c_str());
+        std::wstring expandedPath = ExpandEnvironmentPath(UserDataBuffer);
+
+        // 替换 %app%
+        ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
+        wcscpy(UserDataBuffer, expandedPath.c_str());
+
+        return std::wstring(UserDataBuffer);
+
+    } else {
+        std::wstring path = GetAppDir() + L"\\..\\Data";
+        TCHAR temp[MAX_PATH];
+        ::PathCanonicalize(temp, path.data());
+        return temp;
+    }
 }
+
+// 如果 ini 存在，读取 DiskCache 并配置，否则使用默认值
 std::wstring GetDiskCacheDir()
 {
-    std::wstring path = GetAppDir() + L"\\..\\Cache";
+    if (IsIniExist()) {
+        std::wstring IniDir = GetAppDir() + L"\\chrome++.ini";
 
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
+        if (!PathFileExists(IniDir.c_str()))
+        {
+            return GetAppDir() + L"\\..\\Cache";
+        }
 
-    return temp;
+        TCHAR CacheDirBuffer[MAX_PATH];
+        ::GetPrivateProfileStringW(L"General", L"CacheDir", L"", CacheDirBuffer, MAX_PATH, IniDir.c_str());
+        std::wstring expandedPath = ExpandEnvironmentPath(CacheDirBuffer);
+
+        // 替换 %app%
+        ReplaceStringInPlace(expandedPath, L"%app%", GetAppDir());
+        wcscpy(CacheDirBuffer, expandedPath.c_str());
+
+        return std::wstring(CacheDirBuffer);
+
+    } else {
+        std::wstring path = GetAppDir() + L"\\..\\Cache";
+        TCHAR temp[MAX_PATH];
+        ::PathCanonicalize(temp, path.data());
+        return temp;
+    }
 }
 
 // 构造新命令行
