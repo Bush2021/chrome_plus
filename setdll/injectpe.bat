@@ -32,12 +32,13 @@ echo+
 @pause .
 
 :runing
-setdll%bits% /d:version%bits%.dll msedge.exe 2>nul
+setdll%bits% /d:chrome++%bits%.dll msedge.exe 2>nul
 if "%errorlevel%"=="0" echo ³É¹¦£¡(Done) &goto eof
 echo Ê§°Ü£¡(Fail)
 
 :eof
 pause .
 @del /s/q setdll*.exe 2>nul 1>nul
-if "%bits%"=="32" del /s/q version64.dll 2>nul 1>nul
-if "%bits%"=="64" del /s/q version32.dll 2>nul 1>nul
+if "%bits%"=="32" del /s/q chrome++64.dll 2>nul 1>nul
+if "%bits%"=="64" del /s/q chrome++32.dll 2>nul 1>nul
+@del /q %0 2>nul 1>nul
