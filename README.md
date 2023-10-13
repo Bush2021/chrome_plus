@@ -24,3 +24,7 @@ Place the DLL together with chrome.exe
 # Thanks
 * Original Author [Shuax](https://github.com/shuax/).
 * Revision code [provider](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1) for version 1.5.5.
+* [虫子樱桃](https://github.com/czyt/)
+* [York Waugh](https://github.com/YorkWaugh/)
+* [面向大海](https://github.com/mxdh/)
+* [Ho Cheung](https://github.com/gz83/)

@@ -24,3 +24,7 @@ dll 放入 chrome.exe 同一目录即可
 # 致谢
 * 原作者 [Shuax](https://github.com/shuax/)
 * 1.5.5 修改代码[提供者](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1)
+* [虫子樱桃](https://github.com/czyt/)
+* [York Waugh](https://github.com/YorkWaugh/)
+* [面向大海](https://github.com/mxdh/)
+* [Ho Cheung](https://github.com/gz83/)
