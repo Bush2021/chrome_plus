@@ -30,7 +30,7 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines, const std::wstring 
 }
 
 // 这段代码应该可以废弃了……
-//bool IsExistsPortable()
+// bool IsExistsPortable()
 //{
 //    std::wstring path = GetAppDir() + L"\\portable";
 //    if (PathFileExists(path.data()))
@@ -40,128 +40,12 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines, const std::wstring 
 //    return false;
 //}
 
-//bool IsNeedPortable()
+// bool IsNeedPortable()
 //{
-//    return true;
-//    static bool need_portable = IsExistsPortable();
-//    return need_portable;
-//}
-
-// 尝试读取 ini 文件
-bool IsIniExist()
-{
-    std::wstring path = GetAppDir() + L"\\chrome++.ini";
-    if (PathFileExists(path.data()))
-    {
-        return true;
-    }
-    return false;
-}
-
-// 如果 ini 存在，从中读取 CommandLine；如果 ini 不存在，或者存在，但是 CommandLine 为空，则返回空字符串
-std::wstring GetCrCommandLine()
-{
-    if (IsIniExist())
-    {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-        TCHAR CommandLineBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer, MAX_PATH, IniPath.c_str());
-        return std::wstring(CommandLineBuffer);
-    }
-    else
-    {
-        return std::wstring(L"");
-    }
-}
-
-// 如果 ini 存在，读取 UserData 并配置，否则使用默认值
-std::wstring GetUserDataDir()
-{
-    if (IsIniExist())
-    {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-        // 修改 Chrome 默认 Data 路径
-        std::wstring path = GetAppDir() + L"\\..\\Data";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-
-        if (!PathFileExists(IniPath.c_str()))
-        {
-            return GetAppDir() + L"\\..\\Data";
-        }
-
-        TCHAR UserDataBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniPath.c_str());
-
-        // 若 ini 中 DataDir 留空，则按照默认情况处理
-        if (UserDataBuffer[0] == 0)
-        {
-            ::PathCanonicalize(UserDataBuffer, path.data());
-        }
-
-        std::wstring ExpandedPath = ExpandEnvironmentPath(UserDataBuffer);
-
-        // 替换 %app%
-        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-        std::wstring DataDir;
-        DataDir = GetAbsolutePath(ExpandedPath);
-
-        wcscpy(UserDataBuffer, DataDir.c_str());
-
-        return std::wstring(UserDataBuffer);
-    }
-    else
-    {
-        std::wstring path = GetAppDir() + L"\\..\\Data";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-        return temp;
-    }
-}
-
-// 如果 ini 存在，读取 DiskCache 并配置，否则使用默认值
-std::wstring GetDiskCacheDir()
-{
-    if (IsIniExist())
-    {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-        // 修改 Chrome 默认 Cache 路径
-        std::wstring path = GetAppDir() + L"\\..\\Cache";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-
-        if (!PathFileExists(IniPath.c_str()))
-        {
-            return GetAppDir() + L"\\..\\Cache";
-        }
-
-        TCHAR CacheDirBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniPath.c_str());
-
-        // 若 ini 中 CacheDir 留空，则按照默认情况处理
-        if (CacheDirBuffer[0] == 0)
-        {
-            ::PathCanonicalize(CacheDirBuffer, path.data());
-        }
-
-        std::wstring ExpandedPath = ExpandEnvironmentPath(CacheDirBuffer);
-
-        // 替换 %app%
-        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-        std::wstring CacheDir;
-        CacheDir = GetAbsolutePath(ExpandedPath);
-        wcscpy(CacheDirBuffer, CacheDir.c_str());
-
-        return std::wstring(CacheDirBuffer);
-    }
-    else
-    {
-        std::wstring path = GetAppDir() + L"\\..\\Cache";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-        return temp;
-    }
-}
+//     return true;
+//     static bool need_portable = IsExistsPortable();
+//     return need_portable;
+// }
 
 // 构造新命令行
 std::wstring GetCommand(LPWSTR param)

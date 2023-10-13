@@ -12,6 +12,7 @@ HMODULE hInstance;
 #include "hijack.h"
 #include "utils.h"
 #include "patch.h"
+#include "config.h"
 #include "TabBookmark.h"
 #include "portable.h"
 #include "PakPatch.h"
@@ -61,13 +62,13 @@ int Loader()
         ChromePlusCommand(param);
     }
 
-    //返回到主程序
+    // 返回到主程序
     return ExeMain();
 }
 
 void InstallLoader()
 {
-    //获取程序入口点
+    // 获取程序入口点
     MODULEINFO mi;
     GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(MODULEINFO));
     PBYTE entry = (PBYTE)mi.EntryPoint;
