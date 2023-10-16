@@ -79,7 +79,7 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--portable");
 
-            args.push_back(L"--disable-features=RendererCodeIntegrity,FlashDeprecationWarning");
+            args.push_back(L"--disable-features=RendererCodeIntegrity");
 
             // 获取命令行，然后追加参数
             // 如果存在 = 号，参数会被识别成值
@@ -89,6 +89,8 @@ std::wstring GetCommand(LPWSTR param)
             // 然后再把提取出来的部分从原有的字符串中删除，再 push_back 剩下的部分
             // 重复上述过程，直到字符串中不再存在 = 号
             // 这样就可以保证参数不会被识别成值了
+            // 似乎必须特殊处理等号，暂时不知道怎么一起处理
+            if (GetCrCommandLine().length() > 0)
             {
                 auto cr_command_line = GetCrCommandLine();
                 std::wstring temp = cr_command_line;
@@ -115,7 +117,7 @@ std::wstring GetCommand(LPWSTR param)
                         }
                     }
                 }
-
+                // 单独处理剩余参数
                 while (true)
                 {
                     auto pos1 = temp.find(L"--");
