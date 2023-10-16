@@ -92,12 +92,12 @@ std::wstring GetCommand(LPWSTR param)
             {
                 auto cr_command_line = GetCrCommandLine();
                 std::wstring temp = cr_command_line;
+                temp = temp + L" ";
                 while (true)
                 {
                     auto pos = temp.find(L"=");
                     if (pos == std::wstring::npos)
                     {
-                        args.push_back(temp);
                         break;
                     }
                     else
@@ -106,13 +106,35 @@ std::wstring GetCommand(LPWSTR param)
                         auto pos2 = temp.find(L" ", pos);
                         if (pos1 == std::wstring::npos || pos2 == std::wstring::npos)
                         {
-                            args.push_back(temp);
                             break;
                         }
                         else
                         {
                             args.push_back(temp.substr(pos1, pos2 - pos1));
                             temp = temp.substr(0, pos1) + temp.substr(pos2);
+                        }
+                    }
+                }
+
+                while (true)
+                {
+                    auto pos1 = temp.find(L"--");
+                    if (pos1 == std::wstring::npos)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        auto pos2 = temp.find(L"--", pos1 + 2);
+                        if (pos2 == std::wstring::npos)
+                        {
+                            args.push_back(temp);
+                            break;
+                        }
+                        else
+                        {
+                            args.push_back(temp.substr(pos1, pos2 - pos1));
+                            temp = temp.substr(pos2);
                         }
                     }
                 }
