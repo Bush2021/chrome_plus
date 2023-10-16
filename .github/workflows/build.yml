@@ -1,4 +1,4 @@
-name: build
+name: Automatically Build Chrome++
 
 on:
   workflow_dispatch:
@@ -17,31 +17,31 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: checkout
+    - name: Checkout Repo
       uses: actions/checkout@v4.1.0
       with:
         submodules: 'true'
 
-    - name: setup VC-LTL
+    - name: Setup VC-LTL
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: nuget install VC-LTL
 
-    - name: setup xmake
+    - name: Setup Xmake
       uses: xmake-io/github-action-setup-xmake@v1
 
-    - name: configure
+    - name: Configure Xmake
       run: xmake f -a ${{ matrix.arch }}
 
-    - name: build
+    - name: Build Chrome++
       run: xmake
 
-    - name: upload
+    - name: Upload DLL
       uses: actions/upload-artifact@v3.1.3
       with:
         name: ${{ matrix.name }}
         path: build/release
 
-    - name: upload
+    - name: Upload INI
       uses: actions/upload-artifact@v3.1.3
       with:
         name: chrome++.ini
