@@ -9,14 +9,14 @@ bool IsIniExist()
     return false;
 }
 
-// 如果 ini 存在，修改为从 ini 中读取整个名为 CommandLine 的 section 的内容，否则返回空字符串
+// 如果 ini 存在，从中读取 CommandLine；如果 ini 不存在，或者存在，但是 CommandLine 为空，则返回空字符串
 std::wstring GetCrCommandLine()
 {
     if (IsIniExist())
     {
         std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         TCHAR CommandLineBuffer[MAX_PATH];
-        ::GetPrivateProfileSectionW(L"CommandLine", CommandLineBuffer, MAX_PATH, IniPath.c_str());
+        ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer, MAX_PATH, IniPath.c_str());
         return std::wstring(CommandLineBuffer);
     }
     else
@@ -24,7 +24,6 @@ std::wstring GetCrCommandLine()
         return std::wstring(L"");
     }
 }
-
 
 // 如果 ini 存在，读取 UserData 并配置，否则使用默认值
 std::wstring GetUserDataDir()

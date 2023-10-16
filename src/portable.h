@@ -84,32 +84,59 @@ std::wstring GetCommand(LPWSTR param)
             // 获取命令行，然后追加参数
             // 如果存在 = 号，参数会被识别成值
             // 修改方法是截取拆分，然后多次 args.push_back
-            // 首先检测获取到的多行数据长度是否大于 0
-            // 若大于0，以每行为单位，把一整行提取出来，单独 push_back
-            // 重复上述过程，直到字符串长度为 0
-            // 这样就可以保证参数正常追加
-            std::wstring command = GetCrCommandLine();
-            if (command.length() > 0)
+            // 首先检测是否存在 =，不存在按照原有方法处理
+            // 若存在，以匹配到的第一个 = 为中心，向前匹配 -- 为开头，向后匹配空格为结尾，把这整一段提取出来，单独 push_back
+            // 然后再把提取出来的部分从原有的字符串中删除，再 push_back 剩下的部分
+            // 重复上述过程，直到字符串中不再存在 = 号
+            // 这样就可以保证参数不会被识别成值了
             {
-                std::vector<std::wstring> lines;
-                std::wstring line;
-                for (auto c : command)
+                auto cr_command_line = GetCrCommandLine();
+                std::wstring temp = cr_command_line;
+                temp = temp + L" ";
+                while (true)
                 {
-                    if (c == L'\r')
-                        continue;
-                    if (c == L'\n')
+                    auto pos = temp.find(L"=");
+                    if (pos == std::wstring::npos)
                     {
-                        lines.push_back(line);
-                        line.clear();
-                        continue;
+                        break;
                     }
-                    line += c;
+                    else
+                    {
+                        auto pos1 = temp.rfind(L"--", pos);
+                        auto pos2 = temp.find(L" ", pos);
+                        if (pos1 == std::wstring::npos || pos2 == std::wstring::npos)
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            args.push_back(temp.substr(pos1, pos2 - pos1));
+                            temp = temp.substr(0, pos1) + temp.substr(pos2);
+                        }
+                    }
                 }
-                if (line.length() > 0)
-                    lines.push_back(line);
-                for (auto &line : lines)
+
+                while (true)
                 {
-                    args.push_back(line);
+                    auto pos1 = temp.find(L"--");
+                    if (pos1 == std::wstring::npos)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        auto pos2 = temp.find(L"--", pos1 + 2);
+                        if (pos2 == std::wstring::npos)
+                        {
+                            args.push_back(temp);
+                            break;
+                        }
+                        else
+                        {
+                            args.push_back(temp.substr(pos1, pos2 - pos1));
+                            temp = temp.substr(pos2);
+                        }
+                    }
                 }
             }
 
