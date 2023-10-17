@@ -79,8 +79,6 @@ std::wstring GetCommand(LPWSTR param)
         {
             args.push_back(L"--portable");
 
-            args.push_back(L"--disable-features=RendererCodeIntegrity");
-
             {
                 auto userdata = GetUserDataDir();
 
@@ -96,6 +94,8 @@ std::wstring GetCommand(LPWSTR param)
                 wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
                 args.push_back(temp);
             }
+
+            args.push_back(L"--disable-features=RendererCodeIntegrity");
 
             // 获取命令行，然后追加参数
             // 如果存在 = 号，参数会被识别成值
