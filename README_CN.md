@@ -17,7 +17,7 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 采用 GitHub Actions 自动编译发布，下载地址：https://github.com/Bush2021/chrome_plus/actions 或 https://github.com/Bush2021/chrome_plus/releases/
 
 # 安装
-dll 放入 chrome.exe 同一目录即可
+将 version.dll 放入 chrome.exe 同一目录即可
 
 # 兼容性
 * 理论上支持所有基于 Chromium 最新稳定分支的浏览器。

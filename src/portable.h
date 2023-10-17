@@ -86,7 +86,7 @@ std::wstring GetCommand(LPWSTR param)
                 wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
                 args.push_back(temp);
             }
-
+            // if (IsNeedPortable())
             {
                 auto diskcache = GetDiskCacheDir();
 
@@ -98,16 +98,11 @@ std::wstring GetCommand(LPWSTR param)
             args.push_back(L"--disable-features=RendererCodeIntegrity");
 
             // 获取命令行，然后追加参数
-            // 如果存在 = 号，参数会被识别成值
-            // 修改方法是截取拆分，然后多次 args.push_back
-            // 首先检测是否存在 =，不存在按照原有方法处理
-            // 若存在，以匹配到的第一个 = 为中心，向前匹配 -- 为开头，向后匹配空格为结尾，把这整一段提取出来，单独 push_back
-            // 然后再把提取出来的部分从原有的字符串中删除，再 push_back 剩下的部分
-            // 重复上述过程，直到字符串中不再存在 = 号
-            if (GetCrCommandLine().length() > 0)
+            // 截取拆分每个--开头的参数，然后多次 args.push_back
+            // 重复上述过程，直到字串中不再存在 -- 号
+            // 这样就可以保证每个参数生效
             {
                 auto cr_command_line = GetCrCommandLine();
-
                 std::wstring temp = cr_command_line;
                 while (true)
                 {
@@ -132,7 +127,6 @@ std::wstring GetCommand(LPWSTR param)
                     }
                 }
             }
-
         }
     }
     LocalFree(argv);

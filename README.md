@@ -17,7 +17,7 @@
 Built and released automatically using GitHub Actions. Download link: https://github.com/Bush2021/chrome_plus/actions or https://github.com/Bush2021/chrome_plus/releases/.
 
 # Installation
-Place the DLL together with chrome.exe
+Place version.dll in the same directory as chrome.exe.
 
 # Compatibility
 * All browsers based on the latest stable branches of Chromium are theoretically supported.
