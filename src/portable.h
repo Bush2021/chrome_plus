@@ -81,67 +81,6 @@ std::wstring GetCommand(LPWSTR param)
 
             args.push_back(L"--disable-features=RendererCodeIntegrity");
 
-            // 获取命令行，然后追加参数
-            // 如果存在 = 号，参数会被识别成值
-            // 修改方法是截取拆分，然后多次 args.push_back
-            // 首先检测是否存在 =，不存在按照原有方法处理
-            // 若存在，以匹配到的第一个 = 为中心，向前匹配 -- 为开头，向后匹配空格为结尾，把这整一段提取出来，单独 push_back
-            // 然后再把提取出来的部分从原有的字符串中删除，再 push_back 剩下的部分
-            // 重复上述过程，直到字符串中不再存在 = 号
-            // 这样就可以保证参数不会被识别成值了
-            // 似乎必须特殊处理等号，暂时不知道怎么一起处理
-            if (GetCrCommandLine().length() > 0)
-            {
-                auto cr_command_line = GetCrCommandLine();
-                std::wstring temp = cr_command_line;
-                temp = temp + L" ";
-                while (true)
-                {
-                    auto pos = temp.find(L"=");
-                    if (pos == std::wstring::npos)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        auto pos1 = temp.rfind(L"--", pos);
-                        auto pos2 = temp.find(L" ", pos);
-                        if (pos1 == std::wstring::npos || pos2 == std::wstring::npos)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            args.push_back(temp.substr(pos1, pos2 - pos1));
-                            temp = temp.substr(0, pos1) + temp.substr(pos2);
-                        }
-                    }
-                }
-                // 单独处理剩余参数
-                while (true)
-                {
-                    auto pos1 = temp.find(L"--");
-                    if (pos1 == std::wstring::npos)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        auto pos2 = temp.find(L"--", pos1 + 2);
-                        if (pos2 == std::wstring::npos)
-                        {
-                            args.push_back(temp);
-                            break;
-                        }
-                        else
-                        {
-                            args.push_back(temp.substr(pos1, pos2 - pos1));
-                            temp = temp.substr(pos2);
-                        }
-                    }
-                }
-            }
-
             {
                 auto userdata = GetUserDataDir();
 
@@ -149,7 +88,7 @@ std::wstring GetCommand(LPWSTR param)
                 wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
                 args.push_back(temp);
             }
-            // if (IsNeedPortable())
+
             {
                 auto diskcache = GetDiskCacheDir();
 
@@ -157,6 +96,43 @@ std::wstring GetCommand(LPWSTR param)
                 wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
                 args.push_back(temp);
             }
+
+            // 获取命令行，然后追加参数
+            // 如果存在 = 号，参数会被识别成值
+            // 修改方法是截取拆分，然后多次 args.push_back
+            // 首先检测是否存在 =，不存在按照原有方法处理
+            // 若存在，以匹配到的第一个 = 为中心，向前匹配 -- 为开头，向后匹配空格为结尾，把这整一段提取出来，单独 push_back
+            // 然后再把提取出来的部分从原有的字符串中删除，再 push_back 剩下的部分
+            // 重复上述过程，直到字符串中不再存在 = 号
+            if (GetCrCommandLine().length() > 0)
+            {
+                auto cr_command_line = GetCrCommandLine();
+
+                std::wstring temp = cr_command_line;
+                while (true)
+                {
+                    auto pos = temp.find(L"--");
+                    if (pos == std::wstring::npos)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        auto pos2 = temp.find(L" --", pos);
+                        if (pos2 == std::wstring::npos)
+                        {
+                            args.push_back(temp);
+                            break;
+                        }
+                        else
+                        {
+                            args.push_back(temp.substr(pos, pos2 - pos));
+                            temp = temp.substr(0, pos) + temp.substr(pos2 + 1);
+                        }
+                    }
+                }
+            }
+
         }
     }
     LocalFree(argv);

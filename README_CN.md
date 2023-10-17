@@ -9,6 +9,8 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 - 鼠标悬停标签栏滚动
 - 按住右键时滚轮滚动标签栏
 - 便携设计，程序放在 App 目录，数据放在 Data 目录（不兼容原版数据，可以重装系统换电脑不丢数据）
+- 可以使用 ini 文件配置功能
+- 可以自定义 Chromium 启动参数
 - 移除更新错误警告（因为是绿色版没有自动更新功能）
 
 # 获取

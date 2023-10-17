@@ -9,6 +9,8 @@
 * Mouse hover to scroll the tab bar.
 * Right-click and scroll the tab bar.
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
+* Allow configuration of features using ini files.
+* Allow custom Chromium startup parameters.
 * Remove update error warnings (since it's a green version without automatic update functionality).
 
 # Download
