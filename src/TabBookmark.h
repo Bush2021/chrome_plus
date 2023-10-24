@@ -271,7 +271,7 @@ bool IsOnOneTab(NodePtr top, POINT pt)
     return flag;
 }
 
-// 获取到在第几个 Tab 上
+// 获取鼠标点击在第几个 Tab 上
 int GetTabIndex(IAccessible *node, POINT pt)
 {
     std::vector <RECT> tab_rects;
@@ -315,7 +315,7 @@ int GetTabIndex(IAccessible *node, POINT pt)
     return index;
 }
 
-// 鼠标是否在某个未激活标签上
+// 鼠标是否在某个未激活标签上（似乎没有正确实现）
 bool IsOnOneInactiveTab(NodePtr top, POINT pt, int &index)
 {
     bool flag = false;
@@ -396,7 +396,7 @@ bool IsOnlyOneTab(NodePtr top)
 }
 
 // 鼠标是否在标签栏上
-bool IsOnTheTab(NodePtr top, POINT pt)
+bool IsOnTheTabBar(NodePtr top, POINT pt)
 {
     bool flag = false;
     NodePtr PageTabList = FindPageTabList(top);
@@ -411,7 +411,7 @@ bool IsOnTheTab(NodePtr top, POINT pt)
     }
     else
     {
-        // if (top) DebugLog(L"IsOnTheTab failed");
+        // if (top) DebugLog(L"IsOnTheTabBar failed");
     }
     return flag;
 }
@@ -474,7 +474,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
             // 是否启用鼠标停留在标签栏时滚轮切换标签
-            if (IsWheelTab && IsOnTheTab(TopContainerView, pmouse->pt))
+            if (IsWheelTab && IsOnTheTabBar(TopContainerView, pmouse->pt))
             {
                 hwnd = GetTopWnd(hwnd);
                 if (zDelta > 0)
@@ -551,6 +551,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
 
+            // 吞掉原来的右键消息
             SendOneMouse(MOUSEEVENTF_LEFTDOWN);
             SendOneMouse(MOUSEEVENTF_LEFTUP);
             std::thread th([]() {
@@ -560,12 +561,14 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+            bool IsOnOneInactiveTab = IsOnOneInactiveTab(TopContainerView, pmouse->pt, index);
 
             if (TopContainerView)
             {
             }
 
             // 右键关闭
+            int index = 0;
             if (isOnOneTab)
             {
                 if (isOnlyOneTab)
@@ -576,26 +579,20 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                     ExecuteCommand(IDC_CLOSE_TAB);
                 }
-                else
+                else if (IsOnOneInactiveTab)
                 {
-                    // 要先切换到当前标签，所以需要修改代码
+                    // 下面代码没有处理大于 9 个标签的情况，需要改进
+                    // 要先切换到需要关闭的标签，所以需要修改代码
                     // 首先从之前的代码中获取当前标签的 index
                     // 然后 IDC_SELECT_TAB_* 时传入 * 为 index 的值（0-9）
                     // 然后把这个整体储存到一个变量 cur_tab 中
                     // 然后 ExecuteCommand(cur_tab);
                     // 最后执行 IDC_CLOSE_TAB
-                    int index = 0;
-                    int cur_tab = -1; // 默认值为 -1，可能需要改成其他值
-                    if (index >= 0 && index <= 9)
+                    if (index >= 0 && index <= 7)
                     {
-                        cur_tab = IDC_SELECT_TAB_0 + index;
-                    }
-
-                    if (cur_tab != -1)
-                    {
-                        ExecuteCommand(cur_tab);
+                        ExecuteCommand(IDC_SELECT_TAB_0 + index);
                         ExecuteCommand(IDC_CLOSE_TAB);
-                        ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                        // 是否要回到原来的标签？如果要的话还需要确认当前标签的位置
                     }
                     else
                     {
@@ -603,6 +600,10 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                         ExecuteCommand(IDC_CLOSE_TAB);
                     }
 
+                }
+                else
+                {
+                    ExecuteCommand(IDC_CLOSE_TAB);
                 }
             }
         }

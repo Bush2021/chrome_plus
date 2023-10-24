@@ -1,5 +1,5 @@
 # Chrome++
-[![LICENSE](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
+[![LICENSE](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
 
 English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 
@@ -26,9 +26,9 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 * 已知 Microsoft Edge 这类浏览器需要注入 DLL 才能使用，参见: https://github.com/Bush2021/chrome_plus/blob/main/setdll/
 
 # 许可证
-1.5.4 及以前的版本使用 MIT 许可证，版权所有者为 [Shuax](https://github.com/shuax/)。
-1.5.5 - 1.5.9 版本使用 MIT 许可证，由本仓库贡献者在 Shuax 版本上进行修改。
-1.6.0 以后的版本使用 GPL-3.0 许可证。
+* 1.5.4 及以前的版本使用 MIT 许可证，版权所有者为 [Shuax](https://github.com/shuax/)。
+* 1.5.5 - 1.5.9 版本使用 MIT 许可证，由本仓库贡献者在 Shuax 版本上进行修改。
+* 1.6.0 以后的版本使用 GPL-3.0 许可证。
 
 # 致谢
 * 原作者 [Shuax](https://github.com/shuax/)

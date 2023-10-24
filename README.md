@@ -1,5 +1,5 @@
 # Chrome++
-[![LICENSE](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
+[![LICENSE](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
 
 中文说明: https://github.com/Bush2021/chrome_plus/blob/main/README_CN.md
 
@@ -26,9 +26,9 @@ Place version.dll in the same directory as chrome.exe.
 * Browsers such as Microsoft Edge are known to require injection of DLL to use. See: https://github.com/Bush2021/chrome_plus/blob/main/setdll/.
 
 # License
-Versions 1.5.4 and earlier use the MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
-Version 1.5.5 - 1.5.9 use the MIT license, with modifications made by contributors to this repository based on Shuax's version.
-Versions 1.6.0 and later use the GPL-3.0 license.
+* Versions 1.5.4 and earlier use the MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
+* Version 1.5.5 - 1.5.9 use the MIT license, with modifications made by contributors to this repository based on Shuax's version.
+* Versions 1.6.0 and later use the GPL-3.0 license.
 
 # Thanks
 * Original Author [Shuax](https://github.com/shuax/).
