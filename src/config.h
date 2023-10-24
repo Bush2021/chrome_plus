@@ -121,8 +121,8 @@ std::wstring GetBosskey()
     if (IsIniExist())
     {
         std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-        TCHAR BosskeyBuffer[256];
-        ::GetPrivateProfileStringW(L"General", L"Bosskey", L"", BosskeyBuffer, 256, IniPath.c_str());
+        TCHAR BosskeyBuffer[100];
+        ::GetPrivateProfileStringW(L"General", L"Bosskey", L"", BosskeyBuffer, 100, IniPath.c_str());
         return std::wstring(BosskeyBuffer);
     }
     else
@@ -136,30 +136,6 @@ bool IsKeepLastTabFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1, IniPath.c_str()) == 0)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-// 是否开启鼠标停留在标签栏时滚轮切换标签
-bool IsWheelTabFun()
-{
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-    if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) == 0)
-    {
-        return false;
-    }
-
-    return true;
-}
-
-// 是否开启在任何位置按住右键时滚轮切换标签
-bool IsWheelTabWhenPressRButtonFun()
-{
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-    if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1, IniPath.c_str()) == 0)
     {
         return false;
     }
@@ -184,6 +160,30 @@ bool IsRClkFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// 是否开启鼠标停留在标签栏时滚轮切换标签
+bool IsWheelTabFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// 是否开启在任何位置按住右键时滚轮切换标签
+bool IsWheelTabWhenPressRButtonFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1, IniPath.c_str()) == 0)
     {
         return false;
     }

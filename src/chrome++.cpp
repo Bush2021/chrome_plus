@@ -36,6 +36,9 @@ void ChromePlus()
 
     // 给pak文件打补丁
     PakPatch();
+
+    // 老板键
+    Bosskey();
 }
 
 void ChromePlusCommand(LPWSTR param)
