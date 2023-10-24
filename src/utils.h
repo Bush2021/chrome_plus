@@ -30,25 +30,6 @@ std::wstring Format(const wchar_t *format, ...)
     return str;
 }
 
-void DebugLog(const wchar_t *format, ...)
-{
-//    va_list args;
-//
-//    va_start(args, format);
-//    auto str = Format(format, args);
-//    va_end(args);
-//
-//    str = Format(L"[chrome++]%s\n", str.c_str());
-//
-//    FILE *fp = nullptr;
-//    _wfopen_s(&fp, L"Chrome++_Debug.log", L"a+");
-//    if (fp)
-//    {
-//        fwrite(str.c_str(), str.size() * sizeof(wchar_t), 1, fp);
-//        fclose(fp);
-//    }
-}
-
 // 搜索内存
 uint8_t *memmem(uint8_t *src, int n, const uint8_t *sub, int m)
 {
@@ -102,6 +83,26 @@ std::wstring GetAppDir()
     ::GetModuleFileName(NULL, path, MAX_PATH);
     ::PathRemoveFileSpec(path);
     return path;
+}
+
+void DebugLog(const wchar_t *format, ...)
+{
+//    va_list args;
+//
+//    va_start(args, format);
+//    auto str = Format(format, args);
+//    va_end(args);
+//
+//    str = Format(L"[chrome++]%s\n", str.c_str());
+//
+//    FILE *fp = nullptr;
+//    std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+//    _wfopen_s(&fp, logPath.c_str(), L"a+");
+//    if (fp)
+//    {
+//        fwrite(str.c_str(), str.size() * sizeof(wchar_t), 1, fp);
+//        fclose(fp);
+//    }
 }
 
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
