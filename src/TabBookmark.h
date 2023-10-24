@@ -300,22 +300,21 @@ int GetTabIndex(IAccessible *node, POINT pt)
         }
     }
 
-    if (index >= 9)
+    if (index >= 8)
     {
         if (index == tab_rects.size())
         {
-            index = 9;
+            index = 8;
         }
         else
         {
             index = 0;
         }
-
     }
     return index;
 }
 
-// 鼠标是否在某个未激活标签上（似乎没有正确实现）
+// 鼠标是否在某个未激活标签上
 bool IsOnOneInactiveTab(NodePtr top, POINT pt, int &index)
 {
     bool flag = false;
@@ -326,33 +325,28 @@ bool IsOnOneInactiveTab(NodePtr top, POINT pt, int &index)
         TraversalAccessible(PageTabList, [&](NodePtr child) {
             if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
             {
-                if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED)
+                if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // 只遍历可见节点
                 {
-                    // 跳过已经选中标签
-                    return false;
+                    GetAccessibleSize(child, [&](RECT rect) {
+                        if (PtInRect(&rect, pt))
+                        {
+                            flag = true;
+                            index = GetTabIndex(child.Get(), pt);
+                        }
+                    });
                 }
-                GetAccessibleSize(child, [&](RECT rect) {
-                    if (PtInRect(&rect, pt))
-                    {
-                        flag = true;
-                        index = GetTabIndex(child.Get(), pt);
-                    }
-                });
-            }
-            if (flag)
-            {
-                return true;
             }
             return flag;
         });
     }
     else
     {
+        // if (top) DebugLog(L"IsOnOneTab failed");
     }
     return flag;
 }
 
-// 是否只有一个标签
+    // 是否只有一个标签
 bool IsKeepLastTab = IsKeepLastTabFun();
 bool IsOnlyOneTab(NodePtr top)
 {
@@ -547,6 +541,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         }
 
         if (IsRClk && wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))
+
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
@@ -559,16 +554,16 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             });
             th.detach();
 
+            int index = 0;
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-            bool IsOnOneInactiveTab = IsOnOneInactiveTab(TopContainerView, pmouse->pt, index);
+            bool isOnOneInactiveTab = IsOnOneInactiveTab(TopContainerView, pmouse->pt, index);
 
             if (TopContainerView)
             {
             }
 
             // 右键关闭
-            int index = 0;
             if (isOnOneTab)
             {
                 if (isOnlyOneTab)
@@ -579,31 +574,16 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                     ExecuteCommand(IDC_CLOSE_TAB);
                 }
-                else if (IsOnOneInactiveTab)
-                {
-                    // 下面代码没有处理大于 9 个标签的情况，需要改进
-                    // 要先切换到需要关闭的标签，所以需要修改代码
-                    // 首先从之前的代码中获取当前标签的 index
-                    // 然后 IDC_SELECT_TAB_* 时传入 * 为 index 的值（0-9）
-                    // 然后把这个整体储存到一个变量 cur_tab 中
-                    // 然后 ExecuteCommand(cur_tab);
-                    // 最后执行 IDC_CLOSE_TAB
-                    if (index >= 0 && index <= 7)
-                    {
-                        ExecuteCommand(IDC_SELECT_TAB_0 + index);
-                        ExecuteCommand(IDC_CLOSE_TAB);
-                        // 是否要回到原来的标签？如果要的话还需要确认当前标签的位置
-                    }
-                    else
-                    {
-                        // 可能需要处理 index 不在有效范围内的情况
-                        ExecuteCommand(IDC_CLOSE_TAB);
-                    }
-
-                }
+//                else if (isOnOneInactiveTab) // 判断失效，暂时只能不特别处理
+//                {
+//                    //                    SendKey(VK_LBUTTON);
+//                    //                    ExecuteCommand(IDC_CLOSE_TAB);
+//                    SendKey(VK_MBUTTON);
+//                }
                 else
                 {
-                    ExecuteCommand(IDC_CLOSE_TAB);
+                    //                    ExecuteCommand(IDC_CLOSE_TAB);
+                    SendKey(VK_MBUTTON);
                 }
             }
         }

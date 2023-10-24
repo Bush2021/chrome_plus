@@ -5,7 +5,7 @@
 
 # Features
 * Double-click to close tabs.
-* Right-click to close tabs. (Hold Shift to prevent closing.)
+* Right-click to close tabs. (Hold Shift to show the original menu.)
 * Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the 'X' won't work).
 * Mouse hover to scroll the tab bar.
 * Right-click and scroll the tab bar.

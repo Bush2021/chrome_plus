@@ -5,7 +5,7 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 
 # 功能
 - 双击关闭标签页
-- 右键关闭标签页（按住 Shift 阻止）
+- 右键关闭标签页（按住 Shift 弹出原有菜单）
 - 保留最后标签页（防止关闭最后一个标签页时关闭浏览器，点X不行）
 - 鼠标悬停标签栏滚动
 - 按住右键时滚轮滚动标签栏
