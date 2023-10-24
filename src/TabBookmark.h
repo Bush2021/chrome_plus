@@ -14,6 +14,56 @@ bool IsPressed(int key)
     return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
 }
 
+class SendKeys
+{
+  public:
+    template <typename... T>
+    SendKeys(T... keys)
+    {
+        std::vector<int> keys_ = {keys...};
+        for (auto &key : keys_)
+        {
+            INPUT input = {0};
+            input.type = INPUT_KEYBOARD;
+            input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+            input.ki.wVk = key;
+
+            // 修正鼠标消息
+            switch (key)
+            {
+            case VK_MBUTTON:
+                input.type = INPUT_MOUSE;
+                input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+                break;
+            }
+
+            inputs_.push_back(input);
+        }
+
+        SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
+    }
+    ~SendKeys()
+    {
+        for (auto &input : inputs_)
+        {
+            input.ki.dwFlags |= KEYEVENTF_KEYUP;
+
+            // 修正鼠标消息
+            switch (input.ki.wVk)
+            {
+            case VK_MBUTTON:
+                input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+                break;
+            }
+        }
+
+        SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
+    }
+
+  private:
+    std::vector<INPUT> inputs_;
+};
+
 long GetAccessibleRole(NodePtr node)
 {
     VARIANT self;
@@ -274,18 +324,16 @@ bool IsOnOneTab(NodePtr top, POINT pt)
 // 获取鼠标点击在第几个 Tab 上
 int GetTabIndex(IAccessible *node, POINT pt)
 {
-    std::vector <RECT> tab_rects;
-    TraversalAccessible(node, [&]
-                        (NodePtr child) {
-                            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-                            {
-                                GetAccessibleSize(child, [&]
-                                                  (RECT rect) {
-                                                      tab_rects.push_back(rect);
-                                                  });
-                            }
-                            return false;
-                        });
+    std::vector<RECT> tab_rects;
+    TraversalAccessible(node, [&](NodePtr child) {
+        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+        {
+            GetAccessibleSize(child, [&](RECT rect) {
+                tab_rects.push_back(rect);
+            });
+        }
+        return false;
+    });
     std::sort(tab_rects.begin(), tab_rects.end(), [](auto &a, auto &b) {
         return a.left < b.left;
     });
@@ -346,7 +394,7 @@ bool IsOnOneInactiveTab(NodePtr top, POINT pt, int &index)
     return flag;
 }
 
-    // 是否只有一个标签
+// 是否只有一个标签
 bool IsKeepLastTab = IsKeepLastTabFun();
 bool IsOnlyOneTab(NodePtr top)
 {
@@ -574,16 +622,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                     ExecuteCommand(IDC_CLOSE_TAB);
                 }
-//                else if (isOnOneInactiveTab) // 判断失效，暂时只能不特别处理
-//                {
-//                    //                    SendKey(VK_LBUTTON);
-//                    //                    ExecuteCommand(IDC_CLOSE_TAB);
-//                    SendKey(VK_MBUTTON);
-//                }
                 else
                 {
-                    //                    ExecuteCommand(IDC_CLOSE_TAB);
-                    SendKey(VK_MBUTTON);
+                    SendKeys(VK_MBUTTON);
                 }
             }
         }
