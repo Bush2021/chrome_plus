@@ -271,9 +271,89 @@ bool IsOnOneTab(NodePtr top, POINT pt)
     return flag;
 }
 
-bool IsKeepLastTab = IsKeepLastTabFun();
+// 获取到在第几个 Tab 上
+int GetTabIndex(IAccessible *node, POINT pt)
+{
+    std::vector <RECT> tab_rects;
+    TraversalAccessible(node, [&]
+                        (NodePtr child) {
+                            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+                            {
+                                GetAccessibleSize(child, [&]
+                                                  (RECT rect) {
+                                                      tab_rects.push_back(rect);
+                                                  });
+                            }
+                            return false;
+                        });
+    std::sort(tab_rects.begin(), tab_rects.end(), [](auto &a, auto &b) {
+        return a.left < b.left;
+    });
+
+    int index = 0;
+    for (auto rect : tab_rects)
+    {
+        index++;
+        if (PtInRect(&rect, pt))
+        {
+            break;
+        }
+    }
+
+    if (index >= 9)
+    {
+        if (index == tab_rects.size())
+        {
+            index = 9;
+        }
+        else
+        {
+            index = 0;
+        }
+
+    }
+    return index;
+}
+
+// 鼠标是否在某个未激活标签上
+bool IsOnOneInactiveTab(NodePtr top, POINT pt, int &index)
+{
+    bool flag = false;
+    index = 0;
+    NodePtr PageTabList = FindPageTabList(top);
+    if (PageTabList)
+    {
+        TraversalAccessible(PageTabList, [&](NodePtr child) {
+            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+            {
+                if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED)
+                {
+                    // 跳过已经选中标签
+                    return false;
+                }
+                GetAccessibleSize(child, [&](RECT rect) {
+                    if (PtInRect(&rect, pt))
+                    {
+                        flag = true;
+                        index = GetTabIndex(child.Get(), pt);
+                    }
+                });
+            }
+            if (flag)
+            {
+                return true;
+            }
+            return flag;
+        });
+    }
+    else
+    {
+    }
+    return flag;
+}
 
 // 是否只有一个标签
+bool IsKeepLastTab = IsKeepLastTabFun();
 bool IsOnlyOneTab(NodePtr top)
 {
     if (!IsKeepLastTab)
@@ -315,10 +395,6 @@ bool IsOnlyOneTab(NodePtr top)
     }
 }
 
-bool IsWheelTab = IsWheelTabFun();
-
-bool IsWheelTabWhenPressRButton = IsWheelTabWhenPressRButtonFun();
-
 // 鼠标是否在标签栏上
 bool IsOnTheTab(NodePtr top, POINT pt)
 {
@@ -341,6 +417,9 @@ bool IsOnTheTab(NodePtr top, POINT pt)
 }
 
 bool IsDblClk = IsDblClkFun();
+bool IsRClk = IsRClkFun();
+bool IsWheelTab = IsWheelTabFun();
+bool IsWheelTabWhenPressRButton = IsWheelTabWhenPressRButtonFun();
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -463,6 +542,67 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 else
                 {
                     ExecuteCommand(IDC_CLOSE_TAB);
+                }
+            }
+        }
+
+        if (IsRClk && wParam == WM_RBUTTONUP && !IsPressed(VK_SHIFT))
+        {
+            HWND hwnd = WindowFromPoint(pmouse->pt);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
+
+            SendOneMouse(MOUSEEVENTF_LEFTDOWN);
+            SendOneMouse(MOUSEEVENTF_LEFTUP);
+            std::thread th([]() {
+                Sleep(500);
+            });
+            th.detach();
+
+            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+
+            if (TopContainerView)
+            {
+            }
+
+            // 右键关闭
+            if (isOnOneTab)
+            {
+                if (isOnlyOneTab)
+                {
+                    // DebugLog(L"keep_tab");
+                    // ExecuteCommand(IDC_NEW_TAB, hwnd);
+                    ExecuteCommand(IDC_NEW_TAB);
+                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                    ExecuteCommand(IDC_CLOSE_TAB);
+                }
+                else
+                {
+                    // 要先切换到当前标签，所以需要修改代码
+                    // 首先从之前的代码中获取当前标签的 index
+                    // 然后 IDC_SELECT_TAB_* 时传入 * 为 index 的值（0-9）
+                    // 然后把这个整体储存到一个变量 cur_tab 中
+                    // 然后 ExecuteCommand(cur_tab);
+                    // 最后执行 IDC_CLOSE_TAB
+                    int index = 0;
+                    int cur_tab = -1; // 默认值为 -1，可能需要改成其他值
+                    if (index >= 0 && index <= 9)
+                    {
+                        cur_tab = IDC_SELECT_TAB_0 + index;
+                    }
+
+                    if (cur_tab != -1)
+                    {
+                        ExecuteCommand(cur_tab);
+                        ExecuteCommand(IDC_CLOSE_TAB);
+                        ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                    }
+                    else
+                    {
+                        // 可能需要处理 index 不在有效范围内的情况
+                        ExecuteCommand(IDC_CLOSE_TAB);
+                    }
+
                 }
             }
         }

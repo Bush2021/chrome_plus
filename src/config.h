@@ -115,6 +115,22 @@ std::wstring GetDiskCacheDir()
     }
 }
 
+// 如果启用老板键，则读取 ini 文件中的老板键设置；如果 ini 不存在或者该值为空，则返回空字符串
+std::wstring GetBosskey()
+{
+    if (IsIniExist())
+    {
+        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+        TCHAR BosskeyBuffer[256];
+        ::GetPrivateProfileStringW(L"General", L"Bosskey", L"", BosskeyBuffer, 256, IniPath.c_str());
+        return std::wstring(BosskeyBuffer);
+    }
+    else
+    {
+        return std::wstring(L"");
+    }
+}
+
 // 是否保留最后一个标签，是则返回 IsOnlyOneTab 为 True，否则返回 False
 bool IsKeepLastTabFun()
 {
@@ -156,6 +172,18 @@ bool IsDblClkFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// 是否执行单击右键关闭
+bool IsRClkFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0, IniPath.c_str()) == 0)
     {
         return false;
     }

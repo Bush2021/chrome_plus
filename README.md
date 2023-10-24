@@ -5,9 +5,11 @@
 
 # Features
 * Double-click to close tabs.
+* Right-click to close tabs. (Hold Shift to prevent closing.)
 * Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the 'X' won't work).
 * Mouse hover to scroll the tab bar.
 * Right-click and scroll the tab bar.
+* Use hotkeys to quickly hide the browser window (boss key).
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow configuration of features using ini files.
 * Allow custom Chromium startup parameters.
@@ -22,6 +24,11 @@ Place version.dll in the same directory as chrome.exe.
 # Compatibility
 * All browsers based on the latest stable branches of Chromium are theoretically supported.
 * Browsers such as Microsoft Edge are known to require injection of DLL to use. See: https://github.com/Bush2021/chrome_plus/blob/main/setdll/.
+
+# License
+Versions 1.5.4 and earlier use the MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
+Version 1.5.5 - 1.5.9 use the MIT license, with modifications made by contributors to this repository based on Shuax's version.
+Versions 1.6.0 and later use the GPL-3.0 license.
 
 # Thanks
 * Original Author [Shuax](https://github.com/shuax/).

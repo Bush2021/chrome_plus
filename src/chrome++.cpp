@@ -14,6 +14,7 @@ HMODULE hInstance;
 #include "patch.h"
 #include "config.h"
 #include "TabBookmark.h"
+#include "Bosskey.h"
 #include "portable.h"
 #include "PakPatch.h"
 #include "appid.h"

@@ -98,6 +98,7 @@ std::wstring GetAppDir()
     return path;
 }
 
+// https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
 #define IDC_NEW_TAB 34014
 #define IDC_CLOSE_TAB 34015
 #define IDC_SELECT_NEXT_TAB 34016
@@ -131,6 +132,33 @@ void ExecuteCommand(int id, HWND hwnd = 0)
     // hwnd = GetForegroundWindow();
     // PostMessage(hwnd, WM_SYSCOMMAND, id, 0);
     ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
+}
+
+template<typename String, typename Char, typename Function>
+void StringSplit(String *str, Char delim, Function f)
+{
+    String *ptr = str;
+    while (*str)
+    {
+        if (*str == delim)
+        {
+            *str = 0;           // 截断字符串
+
+            if (str - ptr)      // 非空字符串
+            {
+                f(ptr);
+            }
+
+            *str = delim;       // 还原字符串
+            ptr = str + 1;      // 移动下次结果指针
+        }
+        str++;
+    }
+
+    if (str - ptr)  // 非空字符串
+    {
+        f(ptr);
+    }
 }
 
 // 发送按键

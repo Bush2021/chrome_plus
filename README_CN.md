@@ -5,9 +5,11 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 
 # 功能
 - 双击关闭标签页
+- 右键关闭标签页（按住 Shift 阻止）
 - 保留最后标签页（防止关闭最后一个标签页时关闭浏览器，点X不行）
 - 鼠标悬停标签栏滚动
 - 按住右键时滚轮滚动标签栏
+- 使用快捷键快速隐藏浏览器窗口（老板键）
 - 便携设计，程序放在 App 目录，数据放在 Data 目录（不兼容原版数据，可以重装系统换电脑不丢数据）
 - 可以使用 ini 文件配置功能
 - 可以自定义 Chromium 启动参数
@@ -22,6 +24,11 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 # 兼容性
 * 理论上支持所有基于 Chromium 最新稳定分支的浏览器。
 * 已知 Microsoft Edge 这类浏览器需要注入 DLL 才能使用，参见: https://github.com/Bush2021/chrome_plus/blob/main/setdll/
+
+# 许可证
+1.5.4 及以前的版本使用 MIT 许可证，版权所有者为 [Shuax](https://github.com/shuax/)。
+1.5.5 - 1.5.9 版本使用 MIT 许可证，由本仓库贡献者在 Shuax 版本上进行修改。
+1.6.0 以后的版本使用 GPL-3.0 许可证。
 
 # 致谢
 * 原作者 [Shuax](https://github.com/shuax/)
