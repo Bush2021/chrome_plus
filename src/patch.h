@@ -17,6 +17,8 @@ typedef NTSTATUS(WINAPI *pLdrLoadDll)(IN PWCHAR PathToFile OPTIONAL, IN ULONG Fl
 
 pLdrLoadDll RawLdrLoadDll = nullptr;
 
+// https://source.chromium.org/chromium/chromium/src/+/main:chrome/browser/ui/dialogs/outdated_upgrade_bubble.cc?q=outdated_upgrade_bubble&ss=chromium%2Fchromium%2Fsrc
+// 该功能失效，需要修改
 void Outdated(HMODULE module)
 {
     // "OutdatedUpgradeBubble.Show"

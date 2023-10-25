@@ -321,79 +321,6 @@ bool IsOnOneTab(NodePtr top, POINT pt)
     return flag;
 }
 
-// 获取鼠标点击在第几个 Tab 上
-int GetTabIndex(IAccessible *node, POINT pt)
-{
-    std::vector<RECT> tab_rects;
-    TraversalAccessible(node, [&](NodePtr child) {
-        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-        {
-            GetAccessibleSize(child, [&](RECT rect) {
-                tab_rects.push_back(rect);
-            });
-        }
-        return false;
-    });
-    std::sort(tab_rects.begin(), tab_rects.end(), [](auto &a, auto &b) {
-        return a.left < b.left;
-    });
-
-    int index = 0;
-    for (auto rect : tab_rects)
-    {
-        index++;
-        if (PtInRect(&rect, pt))
-        {
-            break;
-        }
-    }
-
-    if (index >= 8)
-    {
-        if (index == tab_rects.size())
-        {
-            index = 8;
-        }
-        else
-        {
-            index = 0;
-        }
-    }
-    return index;
-}
-
-// 鼠标是否在某个未激活标签上
-bool IsOnOneInactiveTab(NodePtr top, POINT pt, int &index)
-{
-    bool flag = false;
-    index = 0;
-    NodePtr PageTabList = FindPageTabList(top);
-    if (PageTabList)
-    {
-        TraversalAccessible(PageTabList, [&](NodePtr child) {
-            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-            {
-                if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // 只遍历可见节点
-                {
-                    GetAccessibleSize(child, [&](RECT rect) {
-                        if (PtInRect(&rect, pt))
-                        {
-                            flag = true;
-                            index = GetTabIndex(child.Get(), pt);
-                        }
-                    });
-                }
-            }
-            return flag;
-        });
-    }
-    else
-    {
-        // if (top) DebugLog(L"IsOnOneTab failed");
-    }
-    return flag;
-}
-
 // 是否只有一个标签
 bool IsKeepLastTab = IsKeepLastTabFun();
 bool IsOnlyOneTab(NodePtr top)
@@ -594,7 +521,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
 
-            // 吞掉原来的右键消息
+            // 吞掉原来的鼠标消息
             SendOneMouse(MOUSEEVENTF_LEFTDOWN);
             SendOneMouse(MOUSEEVENTF_LEFTUP);
             std::thread th([]() {
@@ -602,10 +529,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             });
             th.detach();
 
-            int index = 0;
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-            bool isOnOneInactiveTab = IsOnOneInactiveTab(TopContainerView, pmouse->pt, index);
 
             if (TopContainerView)
             {
