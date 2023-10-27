@@ -521,14 +521,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
 
-            // 吞掉原来的鼠标消息
-            SendOneMouse(MOUSEEVENTF_LEFTDOWN);
-            SendOneMouse(MOUSEEVENTF_LEFTUP);
-            std::thread th([]() {
-                Sleep(500);
-            });
-            th.detach();
-
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
 
@@ -539,6 +531,15 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             // 右键关闭
             if (isOnOneTab)
             {
+
+                // 吞掉原来的鼠标消息
+                SendOneMouse(MOUSEEVENTF_LEFTDOWN);
+                SendOneMouse(MOUSEEVENTF_LEFTUP);
+                std::thread th([]() {
+                    Sleep(500);
+                });
+                th.detach();
+
                 if (isOnlyOneTab)
                 {
                     // DebugLog(L"keep_tab");
