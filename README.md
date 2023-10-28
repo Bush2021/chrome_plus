@@ -9,11 +9,11 @@
 * Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the 'X' won't work).
 * Mouse hover to scroll the tab bar.
 * Right-click and scroll the tab bar.
+* New foreground tab opens the contents entered in address bar.
 * Use hotkeys to quickly hide the browser window (boss key).
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow configuration of features using ini files.
 * Allow custom Chromium startup parameters.
-* Remove update error warnings (since it's a green version without automatic update functionality).
 
 # Download
 Built and released automatically using GitHub Actions. Download link: https://github.com/Bush2021/chrome_plus/actions or https://github.com/Bush2021/chrome_plus/releases/.

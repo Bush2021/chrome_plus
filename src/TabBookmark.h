@@ -64,6 +64,26 @@ class SendKeys
     std::vector<INPUT> inputs_;
 };
 
+template <typename Function>
+void GetAccessibleName(NodePtr node, Function f)
+{
+    VARIANT self;
+    self.vt = VT_I4;
+    self.lVal = CHILDID_SELF;
+
+    BSTR bstr = NULL;
+    if (S_OK == node->get_accName(self, &bstr))
+    {
+        f(bstr);
+        SysFreeString(bstr);
+        DebugLog(L"GetAccessibleName succeeded");
+    }
+    else
+    {
+        DebugLog(L"GetAccessibleName failed");
+    }
+}
+
 long GetAccessibleRole(NodePtr node)
 {
     VARIANT self;
@@ -264,6 +284,48 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
     return element;
 }
 
+NodePtr FindToolBar(NodePtr node)
+{
+    NodePtr ToolBar = nullptr;
+    if (node)
+    {
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_TOOLBAR)
+            {
+                ToolBar = child;
+            }
+            else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_PAGETAB)
+            {
+                ToolBar = FindToolBar(child);
+            }
+            return ToolBar;
+        });
+    }
+    return ToolBar;
+}
+
+NodePtr FindOmniboxEdit(NodePtr node)
+{
+    NodePtr OmniboxEdit = nullptr;
+    if (node)
+    {
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_TEXT)
+            {
+                OmniboxEdit = child;
+            }
+            else if (role == ROLE_SYSTEM_GROUPING || role == ROLE_SYSTEM_PANE)
+            {
+                OmniboxEdit = FindOmniboxEdit(child);
+            }
+            return OmniboxEdit;
+        });
+    }
+    return OmniboxEdit;
+}
+
 template <typename Function>
 void GetAccessibleSize(NodePtr node, Function f)
 {
@@ -381,6 +443,84 @@ bool IsOnTheTabBar(NodePtr top, POINT pt)
     else
     {
         // if (top) DebugLog(L"IsOnTheTabBar failed");
+    }
+    return flag;
+}
+
+// 当前激活标签是否是新标签页
+//bool IsBlankTab(NodePtr top)
+//{
+//    bool flag = false;
+//    NodePtr PageTabList = FindPageTabList(top);
+//    if (PageTabList)
+//    {
+//        wchar_t *new_tab_title = NULL;
+//        TraversalAccessible(PageTabList, [&new_tab_title](NodePtr child) {
+//            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+//            {
+//                if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED)
+//                {
+//                    GetAccessibleName(child, [&new_tab_title](BSTR bstr) {
+//                        new_tab_title = _wcsdup(bstr);
+//                    });
+//                }
+//            }
+//            return false;
+//        });
+//        if (new_tab_title)
+//        {
+//            TraversalAccessible(PageTabList, [&flag, &new_tab_title](NodePtr child) {
+//                if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+//                {
+//                    GetAccessibleName(child, [&flag, &new_tab_title](BSTR bstr) {
+//                        if (wcscmp(bstr, new_tab_title) == 0)
+//                        {
+//                            flag = true;
+//                        }
+//                    });
+//                }
+//                return false;
+//            });
+//            free(new_tab_title);
+//        }
+//    }
+//    else
+//    {
+//        DebugLog(L"IsBlankTab failed");
+//    }
+//    DebugLog(L"IsBlankTab %d", flag);
+//    return flag;
+//}
+
+// 地址栏是否已经获得焦点
+bool IsOmniboxFocus(NodePtr top)
+{
+    bool flag = false;
+    NodePtr ToolBar = FindToolBar(top);
+    if (ToolBar)
+    {
+        NodePtr OmniboxEdit = FindOmniboxEdit(ToolBar);
+        if (OmniboxEdit)
+        {
+            NodePtr ToolBarGroup = GetParentElement(OmniboxEdit);
+            if (ToolBarGroup)
+            {
+                TraversalAccessible(ToolBarGroup,[&flag](NodePtr child){
+                    if (GetAccessibleRole(child) == ROLE_SYSTEM_TEXT)
+                    {
+                        if (GetAccessibleState(child) & STATE_SYSTEM_FOCUSED)
+                        {
+                            flag = true;
+                        }
+                    }
+                    return flag;
+                });
+            }
+        }
+    }
+    else
+    {
+        if (top) DebugLog(L"IsOmniboxFocus failed");
     }
     return flag;
 }
@@ -599,6 +739,24 @@ bool IsNeedKeep()
     return keep_tab;
 }
 
+bool IsNeedOpenUrlInNewTab()
+{
+    bool open_url_ing = false;
+
+    NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
+    if (IsOmniboxFocus(TopContainerView))
+    {
+        // if(!NotBlankTab || !IsBlankTab(TopContainerView))
+        open_url_ing = true;
+    }
+
+    if (TopContainerView)
+    {
+    }
+
+    return open_url_ing;
+}
+
 HHOOK keyboard_hook = NULL;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -620,6 +778,20 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             ExecuteCommand(IDC_NEW_TAB);
             ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
             ExecuteCommand(IDC_CLOSE_TAB);
+            return 1;
+        }
+
+        bool open_url_ing = false;
+        bool IsOpenUrlNewTab = IsOpenUrlNewTabFun();
+
+        if (IsOpenUrlNewTab && wParam == VK_RETURN && !IsPressed(VK_MENU))
+        {
+            open_url_ing = IsNeedOpenUrlInNewTab();
+        }
+
+        if (open_url_ing)
+        {
+            SendKeys(VK_MENU, VK_RETURN);
             return 1;
         }
     }

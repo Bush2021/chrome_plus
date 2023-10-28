@@ -190,3 +190,15 @@ bool IsWheelTabWhenPressRButtonFun()
 
     return true;
 }
+
+// 是否开启地址栏输入网址在新标签页打开
+bool IsOpenUrlNewTabFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
