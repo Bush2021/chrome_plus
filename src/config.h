@@ -131,7 +131,7 @@ std::wstring GetBosskey()
     }
 }
 
-// 是否保留最后一个标签，是则返回 IsOnlyOneTab 为 True，否则返回 False
+// 保留最后一个标签
 bool IsKeepLastTabFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
@@ -143,7 +143,7 @@ bool IsKeepLastTabFun()
     return true;
 }
 
-// 是否执行双击关闭
+// 双击关闭
 bool IsDblClkFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
@@ -155,7 +155,7 @@ bool IsDblClkFun()
     return true;
 }
 
-// 是否执行单击右键关闭
+// 单击右键关闭
 bool IsRClkFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
@@ -167,7 +167,7 @@ bool IsRClkFun()
     return true;
 }
 
-// 是否开启鼠标停留在标签栏时滚轮切换标签
+// 鼠标停留在标签栏时滚轮切换标签
 bool IsWheelTabFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
@@ -179,7 +179,7 @@ bool IsWheelTabFun()
     return true;
 }
 
-// 是否开启在任何位置按住右键时滚轮切换标签
+// 在任何位置按住右键时滚轮切换标签
 bool IsWheelTabWhenPressRButtonFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
@@ -191,11 +191,35 @@ bool IsWheelTabWhenPressRButtonFun()
     return true;
 }
 
-// 是否开启地址栏输入网址在新标签页打开
+// 地址栏输入网址在新标签页打开
 bool IsOpenUrlNewTabFun()
 {
     std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// 书签在新标签页打开
+bool IsBookmarkNewTabFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"open_bookmark_new_tab", 0, IniPath.c_str()) == 0)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// 新标签页不生效
+bool IsNewTabDisableFun()
+{
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    if (::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1, IniPath.c_str()) == 0)
     {
         return false;
     }

@@ -224,6 +224,90 @@ NodePtr FindPageTab(NodePtr node)
     return PageTab;
 }
 
+NodePtr FindToolBar(NodePtr node)
+{
+    NodePtr ToolBar = nullptr;
+    if (node)
+    {
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_TOOLBAR)
+            {
+                ToolBar = child;
+            }
+            else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_PAGETAB)
+            {
+                ToolBar = FindToolBar(child);
+            }
+            return ToolBar;
+        });
+    }
+    return ToolBar;
+}
+
+NodePtr FindPushButton(NodePtr node)
+{
+    NodePtr PushButton = nullptr;
+    if (node)
+    {
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_PUSHBUTTON)
+            {
+                PushButton = child;
+            }
+            else // if (role == ROLE_SYSTEM_BUTTONMENU)
+            {
+                PushButton = FindPushButton(child);
+            }
+            return PushButton;
+        });
+    }
+    return PushButton;
+}
+
+NodePtr FindMenuBar(NodePtr node)
+{
+    NodePtr MenuBar = nullptr;
+    if (node)
+    {
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_MENUBAR)
+            {
+                MenuBar = child;
+            }
+            else // if (role == ROLE_SYSTEM_PANE)
+            {
+                MenuBar = FindMenuBar(child);
+            }
+            return MenuBar;
+        });
+    }
+    return MenuBar;
+}
+
+NodePtr FindMenuItem(NodePtr node)
+{
+    NodePtr MenuItem = nullptr;
+    if (node)
+    {
+        TraversalAccessible(node, [&](NodePtr child) {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_MENUITEM)
+            {
+                MenuItem = child;
+            }
+            else // if (role == ROLE_SYSTEM_PANE)
+            {
+                MenuItem = FindMenuItem(child);
+            }
+            return MenuItem;
+        });
+    }
+    return MenuItem;
+}
+
 NodePtr GetParentElement(NodePtr child)
 {
     NodePtr element = nullptr;
@@ -255,11 +339,34 @@ NodePtr GetTopContainerView(HWND hwnd)
             }
             if (!TopContainerView)
             {
-                DebugLog(L"FindTopContainerView failed");
+                DebugLog(L"GetTopContainerView failed");
             }
         }
     }
     return TopContainerView;
+}
+
+NodePtr GetBookmarkView(HWND hwnd)
+{
+    NodePtr BookmarkView = nullptr;
+    wchar_t name[MAX_PATH];
+    if (GetClassName(hwnd, name, MAX_PATH) && wcscmp(name, L"Chrome_WidgetWin_1") == 0)
+    {
+        NodePtr paccMainWindow = nullptr;
+        if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_PPV_ARGS(&paccMainWindow)))
+        {
+            NodePtr MenuBar = FindMenuBar(paccMainWindow);
+            if (MenuBar)
+            {
+                BookmarkView = GetParentElement(MenuBar);
+            }
+            if (!BookmarkView)
+            {
+                DebugLog(L"GetBookmarkView failed");
+            }
+        }
+    }
+    return BookmarkView;
 }
 
 NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
@@ -282,27 +389,6 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
         });
     }
     return element;
-}
-
-NodePtr FindToolBar(NodePtr node)
-{
-    NodePtr ToolBar = nullptr;
-    if (node)
-    {
-        TraversalAccessible(node, [&](NodePtr child) {
-            long role = GetAccessibleRole(child);
-            if (role == ROLE_SYSTEM_TOOLBAR)
-            {
-                ToolBar = child;
-            }
-            else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_PAGETAB)
-            {
-                ToolBar = FindToolBar(child);
-            }
-            return ToolBar;
-        });
-    }
-    return ToolBar;
 }
 
 NodePtr FindOmniboxEdit(NodePtr node)
@@ -448,49 +534,114 @@ bool IsOnTheTabBar(NodePtr top, POINT pt)
 }
 
 // 当前激活标签是否是新标签页
-//bool IsBlankTab(NodePtr top)
-//{
-//    bool flag = false;
-//    NodePtr PageTabList = FindPageTabList(top);
-//    if (PageTabList)
-//    {
-//        wchar_t *new_tab_title = NULL;
-//        TraversalAccessible(PageTabList, [&new_tab_title](NodePtr child) {
-//            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-//            {
-//                if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED)
-//                {
-//                    GetAccessibleName(child, [&new_tab_title](BSTR bstr) {
-//                        new_tab_title = _wcsdup(bstr);
-//                    });
-//                }
-//            }
-//            return false;
-//        });
-//        if (new_tab_title)
-//        {
-//            TraversalAccessible(PageTabList, [&flag, &new_tab_title](NodePtr child) {
-//                if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-//                {
-//                    GetAccessibleName(child, [&flag, &new_tab_title](BSTR bstr) {
-//                        if (wcscmp(bstr, new_tab_title) == 0)
-//                        {
-//                            flag = true;
-//                        }
-//                    });
-//                }
-//                return false;
-//            });
-//            free(new_tab_title);
-//        }
-//    }
-//    else
-//    {
-//        DebugLog(L"IsBlankTab failed");
-//    }
-//    DebugLog(L"IsBlankTab %d", flag);
-//    return flag;
-//}
+bool IsNewTabDisable = IsNewTabDisableFun();
+bool IsOnNewTab(NodePtr top)
+{
+    if (!IsNewTabDisable)
+    {
+        return false;
+    }
+    else
+    {
+        bool flag = false;
+        NodePtr PageTabList = FindPageTabList(top);
+        if (PageTabList)
+        {
+            NodePtr PageTab = FindPageTab(PageTabList);
+            if (PageTab)
+            {
+                NodePtr PageTabPane = GetParentElement(PageTab);
+                if (PageTabPane)
+                {
+                    TraversalAccessible(PageTabPane, [&flag](NodePtr child) {
+                        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+                        {
+                            GetAccessibleName(child, [&flag](BSTR bstr) {
+                                if (wcscmp(bstr, L"New Tab") == 0 || wcscmp(bstr, L"Новая вкладка") == 0 || wcscmp(bstr, L"新标签页") == 0)
+                                {
+                                    DebugLog(L"IsOnNewTab");
+                                    flag = true;
+                                }
+                            });
+                        }
+                        return flag;
+                    });
+                }
+            }
+        }
+        else
+        {
+            if (top)
+                DebugLog(L"IsOnNewTab failed");
+        }
+        return flag;
+    }
+}
+
+// 鼠标是否在菜单栏的书签文件（夹）上
+bool IsOnOneMenuBookmark(NodePtr top, POINT pt)
+{
+    bool flag = false;
+    NodePtr MenuBar = FindMenuBar(top);
+    if (MenuBar)
+    {
+        NodePtr MenuItem = FindMenuItem(MenuBar);
+        if (MenuItem)
+        {
+            NodePtr MenuBarPane = GetParentElement(MenuItem);
+            if (MenuBarPane)
+            {
+                TraversalAccessible(MenuBarPane, [&flag, &pt](NodePtr child) {
+                    if (GetAccessibleRole(child) == ROLE_SYSTEM_MENUITEM)
+                    {
+                        GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+                            if (PtInRect(&rect, pt))
+                            {
+                                DebugLog(L"OnOneMenuBookmark");
+                                flag = true;
+                            }
+                        });
+                    }
+                    return flag;
+                });
+            }
+        }
+
+    }
+    else
+    {
+        if (top) DebugLog(L"IsOnOneMenuBookmark failed");
+    }
+    return flag;
+}
+
+// 鼠标是否在书签栏的书签上（有问题，还需要改进）
+bool IsOnOneBookmark(NodePtr top)
+{
+    bool flag = false;
+    NodePtr ToolBar = FindToolBar(top);
+    if (ToolBar)
+    {
+        NodePtr PushButton = FindPushButton(ToolBar);
+        if (PushButton)
+        {
+            GetAccessibleName(PushButton, [&flag](BSTR bstr) {
+                if (wcscmp(bstr, L"Bookmarks") == 0)
+                {
+                    DebugLog(L"OnOneBookmark");
+                    flag = true;
+                }
+            });
+        }
+        return flag;
+    }
+    else
+    {
+        if (top)
+            DebugLog(L"IsOnOneBookmark failed");
+    }
+    return flag;
+}
 
 // 地址栏是否已经获得焦点
 bool IsOmniboxFocus(NodePtr top)
@@ -529,6 +680,7 @@ bool IsDblClk = IsDblClkFun();
 bool IsRClk = IsRClkFun();
 bool IsWheelTab = IsWheelTabFun();
 bool IsWheelTabWhenPressRButton = IsWheelTabWhenPressRButtonFun();
+bool IsBookmarkNewTab = IsBookmarkNewTabFun();
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -672,14 +824,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             if (isOnOneTab)
             {
 
-                // 吞掉原来的鼠标消息
-                SendOneMouse(MOUSEEVENTF_LEFTDOWN);
-                SendOneMouse(MOUSEEVENTF_LEFTUP);
-                std::thread th([]() {
-                    Sleep(500);
-                });
-                th.detach();
-
                 if (isOnlyOneTab)
                 {
                     // DebugLog(L"keep_tab");
@@ -687,10 +831,12 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     ExecuteCommand(IDC_NEW_TAB);
                     ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                     ExecuteCommand(IDC_CLOSE_TAB);
+                    return 1;
                 }
                 else
                 {
                     SendKeys(VK_MBUTTON);
+                    return 1;
                 }
             }
         }
@@ -714,6 +860,40 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 ExecuteCommand(IDC_NEW_TAB);
                 // ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
                 // ExecuteCommand(IDC_CLOSE_TAB);
+            }
+        }
+
+        if (IsBookmarkNewTab && wParam == WM_LBUTTONUP && !IsPressed(VK_MBUTTON))
+        {
+            HWND hwnd = WindowFromPoint(pmouse->pt);
+            NodePtr BookmarkView = GetBookmarkView(hwnd);
+            NodePtr TopContainerView = GetTopContainerView(hwnd);
+
+            bool isOnOneMenuBookmark = IsOnOneMenuBookmark(BookmarkView, pmouse->pt);
+            bool isOnOneBookmark = IsOnOneBookmark(TopContainerView);
+            bool isOnNewTab = IsOnNewTab(TopContainerView);
+
+            if (!isOnNewTab)
+            {
+                if (BookmarkView)
+                {
+                    if (isOnOneMenuBookmark)
+                    {
+                        DebugLog(L"isOnOneMenuBookmark: Shift+MiddleButton");
+                        SendKeys(VK_MBUTTON, VK_SHIFT);
+                        return 1;
+                    }
+                }
+
+                if (TopContainerView)
+                {
+                    if (isOnOneBookmark)
+                    {
+                        DebugLog(L"isOnOneBookmark: Shift+MiddleButton");
+                        SendKeys(VK_MBUTTON, VK_SHIFT);
+                        return 1;
+                    }
+                }
             }
         }
     }
@@ -746,8 +926,10 @@ bool IsNeedOpenUrlInNewTab()
     NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
     if (IsOmniboxFocus(TopContainerView))
     {
-        // if(!NotBlankTab || !IsBlankTab(TopContainerView))
-        open_url_ing = true;
+        if(!IsOnNewTab(TopContainerView))
+        {
+            open_url_ing = true;
+        }
     }
 
     if (TopContainerView)

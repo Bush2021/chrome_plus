@@ -10,6 +10,8 @@
 * Mouse hover to scroll the tab bar.
 * Right-click and scroll the tab bar.
 * New foreground tab opens the contents entered in address bar.
+* New foreground tab opens bookmarks.
+* Disable the above two features when the current tab is a new tab. (Since the identification of new tabs is based on the name, support for the corresponding language is required. If you encounter an unsupported situation, you can submit an issue)
 * Use hotkeys to quickly hide the browser window (boss key).
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow configuration of features using ini files.
@@ -26,9 +28,9 @@ Place version.dll in the same directory as chrome.exe.
 * Browsers such as Microsoft Edge are known to require injection of DLL to use. See: https://github.com/Bush2021/chrome_plus/blob/main/setdll/.
 
 # License
-* Versions 1.5.4 and earlier use the MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
-* Version 1.5.5 - 1.5.9 use the MIT license, with modifications made by contributors to this repository based on Shuax's version.
-* Versions 1.6.0 and later use the GPL-3.0 license.
+* Versions 1.5.4 and earlier are licensed under MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
+* Version 1.5.5 - 1.5.9 are licensed under MIT license, with modifications made by contributors to this repository based on Shuax's version.
+* Versions 1.6.0 and later are licensed under GPL-3.0 license.
 
 # Thanks
 * Original Author [Shuax](https://github.com/shuax/).
