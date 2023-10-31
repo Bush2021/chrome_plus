@@ -880,7 +880,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     if (isOnOneMenuBookmark)
                     {
                         DebugLog(L"isOnOneMenuBookmark: Shift+MiddleButton");
-                        SendKeys(VK_MBUTTON, VK_SHIFT);
+                        SendKeys(VK_LBUTTON, VK_CONTROL, VK_SHIFT); // 因为书签菜单文件夹会被识别为按钮，此操作可以防止误操作以打开所有书签，但仍然会 SendKeys，暂时无法解决
                         return 1;
                     }
                 }
@@ -889,7 +889,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 {
                     if (isOnOneBookmark)
                     {
-                        DebugLog(L"isOnOneBookmark: Shift+MiddleButton");
+                        DebugLog(L"isOnOneBookmark: Ctrl+Shift+LButton");
                         SendKeys(VK_MBUTTON, VK_SHIFT);
                         return 1;
                     }
