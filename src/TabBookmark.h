@@ -578,32 +578,43 @@ bool IsOnNewTab(NodePtr top)
     else
     {
         bool flag = false;
+        wchar_t *new_tab_name = NULL;
         NodePtr PageTabList = FindPageTabList(top);
         if (PageTabList)
         {
-            NodePtr PageTab = FindPageTab(PageTabList);
-            if (PageTab)
             {
-                NodePtr PageTabPane = GetParentElement(PageTab);
-                if (PageTabPane)
+                TraversalAccessible(PageTabList, [&new_tab_name](NodePtr child) {
+                    if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON)
+                    {
+                        GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
+                            new_tab_name = bstr;
+                            DebugLog(L"new_tab_name: %s", bstr);
+                        });
+                    }
+                    return false;
+                });
+            }
+            {
+                NodePtr PageTab = FindPageTab(PageTabList);
+                if (PageTab)
                 {
-                    TraversalAccessible(PageTabPane, [&flag](NodePtr child) {
-                        if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-                        {
-                            GetAccessibleName(child, [&flag](BSTR bstr) {
-                                if (wcscmp(bstr, L"New Tab") == 0 || wcscmp(bstr, L"Новая вкладка") == 0 || wcscmp(bstr, L"新标签页") == 0)
-                                {
-                                    DebugLog(L"NewTab bstr: %s", bstr);
-                                    flag = true;
-                                }
-                                else
-                                {
-                                    DebugLog(L"NotNewTab bstr: %s", bstr);
-                                }
-                            });
-                        }
-                        return flag;
-                    });
+                    NodePtr PageTabPane = GetParentElement(PageTab);
+                    if (PageTabPane)
+                    {
+                        TraversalAccessible(PageTabPane, [&flag, &new_tab_name](NodePtr child) {
+                            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
+                            {
+                                GetAccessibleName(child, [&flag, &new_tab_name](BSTR bstr) {
+                                    if (wcscmp(bstr, new_tab_name) == 0)
+                                    {
+                                        DebugLog(L"Found PageTab with name: %s", bstr);
+                                        flag = true;
+                                    }
+                                });
+                            }
+                            return flag;
+                        });
+                    }
                 }
             }
         }

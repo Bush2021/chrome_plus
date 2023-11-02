@@ -11,7 +11,7 @@
 * Right-click and scroll the tab bar.
 * New foreground tab opens the contents entered in address bar.
 * New foreground tab opens bookmarks.
-* Disable the above two features when the current tab is a new tab. (Since the identification of new tabs is based on the name, support for the corresponding language is required. If you encounter an unsupported situation, you can submit an issue)
+* Disable the above two features when the current tab is a new tab.
 * Use hotkeys to quickly hide the browser window (boss key).
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow configuration of features using ini files.
