@@ -84,6 +84,26 @@ void GetAccessibleName(NodePtr node, Function f)
     }
 }
 
+template <typename Function>
+void GetAccessibleDescription(NodePtr node, Function f)
+{
+    VARIANT self;
+    self.vt = VT_I4;
+    self.lVal = CHILDID_SELF;
+
+    BSTR bstr = NULL;
+    if (S_OK == node->get_accDescription(self, &bstr))
+    {
+        f(bstr);
+        SysFreeString(bstr);
+        DebugLog(L"GetAccessibleDescription succeeded");
+    }
+    else
+    {
+        DebugLog(L"GetAccessibleDescription failed");
+    }
+}
+
 long GetAccessibleRole(NodePtr node)
 {
     VARIANT self;
@@ -150,6 +170,7 @@ void TraversalAccessible(NodePtr node, Function f)
     }
 }
 
+// 遍历所有子节点
 template <typename Function>
 void TraversalRawAccessible(NodePtr node, Function f)
 {
@@ -168,6 +189,7 @@ void TraversalRawAccessible(NodePtr node, Function f)
                     if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void **)&child))
                     {
                         // if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) == 0) // 只遍历可见节点
+                        TraversalRawAccessible(child,f);
                         {
                             if (f(child))
                             {
@@ -346,9 +368,21 @@ NodePtr GetTopContainerView(HWND hwnd)
     return TopContainerView;
 }
 
-NodePtr GetBookmarkView(HWND hwnd)
+NodePtr GetBrowserView(HWND hwnd)
 {
-    NodePtr BookmarkView = nullptr;
+    NodePtr BrowserView = nullptr;
+    NodePtr TopContainerView = GetTopContainerView(hwnd);
+    if (TopContainerView)
+    {
+        BrowserView = GetParentElement(TopContainerView);
+        DebugLog(L"BrowserViewRole: %x", GetAccessibleRole(BrowserView));
+    }
+    return BrowserView;
+}
+
+NodePtr GetMenuBarPane(HWND hwnd)
+{
+    NodePtr MenuBarPane = nullptr;
     wchar_t name[MAX_PATH];
     if (GetClassName(hwnd, name, MAX_PATH) && wcscmp(name, L"Chrome_WidgetWin_1") == 0)
     {
@@ -358,15 +392,15 @@ NodePtr GetBookmarkView(HWND hwnd)
             NodePtr MenuBar = FindMenuBar(paccMainWindow);
             if (MenuBar)
             {
-                BookmarkView = GetParentElement(MenuBar);
+                MenuBarPane = GetParentElement(MenuBar);
             }
-            if (!BookmarkView)
+            if (!MenuBarPane)
             {
                 DebugLog(L"GetBookmarkView failed");
             }
         }
     }
-    return BookmarkView;
+    return MenuBarPane;
 }
 
 NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0)
@@ -559,8 +593,12 @@ bool IsOnNewTab(NodePtr top)
                             GetAccessibleName(child, [&flag](BSTR bstr) {
                                 if (wcscmp(bstr, L"New Tab") == 0 || wcscmp(bstr, L"Новая вкладка") == 0 || wcscmp(bstr, L"新标签页") == 0)
                                 {
-                                    DebugLog(L"IsOnNewTab");
+                                    DebugLog(L"NewTab bstr: %s", bstr);
                                     flag = true;
+                                }
+                                else
+                                {
+                                    DebugLog(L"NotNewTab bstr: %s", bstr);
                                 }
                             });
                         }
@@ -578,6 +616,47 @@ bool IsOnNewTab(NodePtr top)
     }
 }
 
+// 鼠标是否在书签上
+bool IsOnBookmark(NodePtr top, POINT pt)
+{
+    bool flag = false;
+    NodePtr MenuBar = FindMenuBar(top);
+    if (top)
+    {
+        TraversalRawAccessible(top, [&flag, &pt, &top](NodePtr child) {
+            if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON)
+            {
+//                DebugLog(L"child, %x", GetAccessibleRole(child));
+                GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
+//                    DebugLog(L"pt x,y, %d,%d", pt.x, pt.y);
+//                    DebugLog(L"rect left,top,right,bottom, %ld,%ld,%ld,%ld", rect.left, rect.top, rect.right, rect.bottom);
+                    if (PtInRect(&rect, pt))
+                    {
+                        DebugLog(L"PtInPushButton");
+                        GetAccessibleDescription(child, [&flag](BSTR bstr) {
+                            if (bstr)
+                            {
+                                if (wcsstr(bstr, L"http") == bstr)
+                                {
+                                    DebugLog(L"OnBookmark");
+                                    flag = true;
+                                }
+                            }
+                        });
+                    }
+                    return flag;
+                });
+            }
+            return flag;
+        });
+    }
+    else
+    {
+        DebugLog(L"IsOnBookmark failed");
+    }
+    return flag;
+}
+
 // 鼠标是否在菜单栏的书签文件（夹）上
 bool IsOnOneMenuBookmark(NodePtr top, POINT pt)
 {
@@ -591,14 +670,23 @@ bool IsOnOneMenuBookmark(NodePtr top, POINT pt)
             NodePtr MenuBarPane = GetParentElement(MenuItem);
             if (MenuBarPane)
             {
-                TraversalAccessible(MenuBarPane, [&flag, &pt](NodePtr child) {
+                TraversalAccessible(MenuBarPane, [&flag, &pt, &MenuBarPane](NodePtr child) {
                     if (GetAccessibleRole(child) == ROLE_SYSTEM_MENUITEM)
                     {
-                        GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+                        GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
                             if (PtInRect(&rect, pt))
                             {
-                                DebugLog(L"OnOneMenuBookmark");
-                                flag = true;
+                                DebugLog(L"PtInPushButton");
+                                GetAccessibleDescription(child, [&flag](BSTR bstr) {
+                                    if (bstr)
+                                    {
+                                        if (wcsstr(bstr, L"http") == bstr)
+                                        {
+                                            DebugLog(L"OnBookmark");
+                                            flag = true;
+                                        }
+                                    }
+                                });
                             }
                         });
                     }
@@ -611,34 +699,6 @@ bool IsOnOneMenuBookmark(NodePtr top, POINT pt)
     else
     {
         if (top) DebugLog(L"IsOnOneMenuBookmark failed");
-    }
-    return flag;
-}
-
-// 鼠标是否在书签栏的书签上（有问题，还需要改进）
-bool IsOnOneBookmark(NodePtr top)
-{
-    bool flag = false;
-    NodePtr ToolBar = FindToolBar(top);
-    if (ToolBar)
-    {
-        NodePtr PushButton = FindPushButton(ToolBar);
-        if (PushButton)
-        {
-            GetAccessibleName(PushButton, [&flag](BSTR bstr) {
-                if (wcscmp(bstr, L"Bookmarks") == 0)
-                {
-                    DebugLog(L"OnOneBookmark");
-                    flag = true;
-                }
-            });
-        }
-        return flag;
-    }
-    else
-    {
-        if (top)
-            DebugLog(L"IsOnOneBookmark failed");
     }
     return flag;
 }
@@ -866,30 +926,30 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (IsBookmarkNewTab && wParam == WM_LBUTTONUP && !IsPressed(VK_MBUTTON))
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr BookmarkView = GetBookmarkView(hwnd);
+            NodePtr BrowserView = GetBrowserView(hwnd);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
+            NodePtr MenuBarPane = GetMenuBarPane(hwnd);
 
-            bool isOnOneMenuBookmark = IsOnOneMenuBookmark(BookmarkView, pmouse->pt);
-            bool isOnOneBookmark = IsOnOneBookmark(TopContainerView);
+            bool isOnBookmark = IsOnBookmark(BrowserView, pmouse->pt);
+            bool isOnOneMenuBookmark = IsOnOneMenuBookmark(MenuBarPane, pmouse->pt);
             bool isOnNewTab = IsOnNewTab(TopContainerView);
 
             if (!isOnNewTab)
             {
-                if (BookmarkView)
+                if (BrowserView)
                 {
-                    if (isOnOneMenuBookmark)
+                    if (isOnBookmark)
                     {
-                        DebugLog(L"isOnOneMenuBookmark: Shift+MiddleButton");
-                        SendKeys(VK_LBUTTON, VK_CONTROL, VK_SHIFT); // 因为书签菜单文件夹会被识别为按钮，此操作可以防止误操作以打开所有书签，但仍然会 SendKeys，暂时无法解决
+                        DebugLog(L"isOnBookmark: = Shift+MButton");
+                        SendKeys(VK_MBUTTON, VK_SHIFT);
                         return 1;
                     }
                 }
-
-                if (TopContainerView)
+                else if (MenuBarPane)
                 {
-                    if (isOnOneBookmark)
+                    if (isOnOneMenuBookmark)
                     {
-                        DebugLog(L"isOnOneBookmark: Ctrl+Shift+LButton");
+                        DebugLog(L"isOnOneMenuBookmark: = Shift+MButton");
                         SendKeys(VK_MBUTTON, VK_SHIFT);
                         return 1;
                     }
