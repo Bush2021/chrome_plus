@@ -561,7 +561,7 @@ bool IsOnNewTab(NodePtr top)
                     {
                         GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
                             new_tab_name = bstr;
-                            DebugLog(L"new_tab_name: %s", bstr);
+                            // DebugLog(L"new_tab_name: %s", bstr);
                         });
                     }
                     return false;
@@ -578,7 +578,7 @@ bool IsOnNewTab(NodePtr top)
                             if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
                             {
                                 GetAccessibleName(child, [&flag, &new_tab_name](BSTR bstr) {
-                                    if (wcscmp(bstr, new_tab_name) == 0)
+                                    if (_wcsicmp(bstr, new_tab_name) == 0)
                                     {
                                         DebugLog(L"Found PageTab with name: %s", bstr);
                                         flag = true;
@@ -910,34 +910,33 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (IsBookmarkNewTab && wParam == WM_LBUTTONUP && !IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT))
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
-            NodePtr BrowserView = GetBrowserView(hwnd);
             NodePtr TopContainerView = GetTopContainerView(hwnd);
-            NodePtr MenuBarPane = GetMenuBarPane(hwnd);
 
-            bool isOnBookmark = IsOnBookmark(BrowserView, pmouse->pt);
+            bool isOnBookmark = IsOnBookmark(TopContainerView, pmouse->pt);
+            bool isOnNewTab = IsOnNewTab(TopContainerView);
+
+            if (!isOnNewTab && TopContainerView && isOnBookmark)
+            {
+                DebugLog(L"isOnBookmark: = Shift+MButton");
+                SendKeys(VK_MBUTTON, VK_SHIFT);
+                return 1;
+            }
+        }
+        if (IsBookmarkNewTab && wParam == WM_LBUTTONUP && !IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT))
+        {
+            HWND hwnd_p = WindowFromPoint(pmouse->pt);
+            HWND hwnd_k = GetFocus();
+            NodePtr TopContainerView = GetTopContainerView(hwnd_k);
+            NodePtr MenuBarPane = GetMenuBarPane(hwnd_p);
+
             bool isOnOneMenuBookmark = IsOnOneMenuBookmark(MenuBarPane, pmouse->pt);
             bool isOnNewTab = IsOnNewTab(TopContainerView);
 
-            if (!isOnNewTab)
+            if (!isOnNewTab && MenuBarPane && isOnOneMenuBookmark)
             {
-                if (BrowserView)
-                {
-                    if (isOnBookmark)
-                    {
-                        DebugLog(L"isOnBookmark: = Shift+MButton");
-                        SendKeys(VK_MBUTTON, VK_SHIFT);
-                        return 1;
-                    }
-                }
-                else if (MenuBarPane)
-                {
-                    if (isOnOneMenuBookmark)
-                    {
-                        DebugLog(L"isOnOneMenuBookmark: = Shift+MButton");
-                        SendKeys(VK_MBUTTON, VK_SHIFT);
-                        return 1;
-                    }
-                }
+                DebugLog(L"isOnOneMenuBookmark: = Shift+MButton");
+                SendKeys(VK_MBUTTON, VK_SHIFT);
+                return 1;
             }
         }
     }
