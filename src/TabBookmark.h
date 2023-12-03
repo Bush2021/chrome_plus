@@ -349,7 +349,7 @@ NodePtr GetTopContainerView(HWND hwnd)
 {
     NodePtr TopContainerView = nullptr;
     wchar_t name[MAX_PATH];
-    if (GetClassName(hwnd, name, MAX_PATH) && wcscmp(name, L"Chrome_WidgetWin_1") == 0)
+    if (GetClassName(hwnd, name, MAX_PATH) && wcsstr(name, L"Chrome_WidgetWin_") == name)
     {
         NodePtr paccMainWindow = nullptr;
         if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_PPV_ARGS(&paccMainWindow)))
@@ -384,7 +384,7 @@ NodePtr GetMenuBarPane(HWND hwnd)
 {
     NodePtr MenuBarPane = nullptr;
     wchar_t name[MAX_PATH];
-    if (GetClassName(hwnd, name, MAX_PATH) && wcscmp(name, L"Chrome_WidgetWin_1") == 0)
+    if (GetClassName(hwnd, name, MAX_PATH) && wcsstr(name, L"Chrome_WidgetWin_") == name)
     {
         NodePtr paccMainWindow = nullptr;
         if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_PPV_ARGS(&paccMainWindow)))
@@ -818,7 +818,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                     ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
                 }
 
-                wheel_tab_ing = true;
+                // wheel_tab_ing = true;
                 if (TopContainerView)
                 {
                 }
@@ -934,7 +934,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
         }
 
-        if (IsBookmarkNewTab && wParam == WM_LBUTTONUP && !IsPressed(VK_MBUTTON))
+        if (IsBookmarkNewTab && wParam == WM_LBUTTONUP && !IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT))
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             NodePtr BrowserView = GetBrowserView(hwnd);
