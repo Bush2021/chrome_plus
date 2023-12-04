@@ -560,8 +560,8 @@ bool IsOnNewTab(NodePtr top)
                     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON)
                     {
                         GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-                            new_tab_name = bstr;
-                            // DebugLog(L"new_tab_name: %s", bstr);
+                            new_tab_name = _wcsdup(bstr);
+                             DebugLog(L"new_tab_name: %s", bstr);
                         });
                     }
                     return false;
@@ -575,18 +575,22 @@ bool IsOnNewTab(NodePtr top)
                     if (PageTabPane)
                     {
                         TraversalAccessible(PageTabPane, [&flag, &new_tab_name](NodePtr child) {
-                            if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB)
-                            {
-                                GetAccessibleName(child, [&flag, &new_tab_name](BSTR bstr) {
-                                    if (_wcsicmp(bstr, new_tab_name) == 0)
-                                    {
-                                        DebugLog(L"Found PageTab with name: %s", bstr);
-                                        flag = true;
-                                    }
-                                });
-                            }
-                            return flag;
+                                if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED)
+                                {
+                                    GetAccessibleName(child, [&flag, &new_tab_name](BSTR bstr) {
+                                        if (_wcsnicmp(bstr, new_tab_name, wcslen(new_tab_name)) == 0)
+                                        {
+                                            flag = true;
+                                        }
+                                        else
+                                        {
+                                            flag = false;
+                                        }
+                                    });
+                                }
+                            return false;
                         });
+                        free(new_tab_name);
                     }
                 }
             }
