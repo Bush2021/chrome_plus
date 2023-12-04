@@ -25,7 +25,8 @@ English instruction: https://github.com/Bush2021/chrome_plus/blob/main/README.md
 
 # 兼容性
 * 理论上支持所有基于 Chromium 最新稳定分支的浏览器
-* ~~已知 Microsoft Edge 这类浏览器需要注入 DLL 才能使用，参见: https://github.com/Bush2021/chrome_plus/blob/main/setdll/ ~~ 貌似不支持了，待测试
+* 只可能针对 Chrome 最新稳定版进行测试，不保证维护
+* ~~已知 Microsoft Edge 这类浏览器需要注入 DLL 才能使用，参见: https://github.com/Bush2021/chrome_plus/blob/main/setdll/~~  貌似不支持了，待测试
 
 # 许可证
 * 1.5.4 及以前的版本使用 MIT 许可证，版权所有者为 [Shuax](https://github.com/shuax/)

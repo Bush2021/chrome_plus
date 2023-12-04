@@ -9,8 +9,8 @@
 * Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the 'X' won't work).
 * Mouse hover to scroll the tab bar.
 * Right-click and scroll the tab bar.
-* Open new foreground tab to opens the contents entered in address bar.
-* Open bew foreground tab to opens bookmarks.
+* Create new foreground tab to opens the contents entered in address bar.
+* Create bew foreground tab to opens bookmarks.
 * Disable the above two features when the current tab is a new tab.
 * Use hotkeys to quickly hide the browser window (boss key).
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
@@ -25,6 +25,7 @@ Place version.dll in the same directory as chrome.exe.
 
 # Compatibility
 * All browsers based on the latest stable branches of Chromium are theoretically supported.
+* Only the latest stable version of Chrome is tested, and maintenance is not guaranteed.
 * ~~Browsers such as Microsoft Edge are known to require injection of DLL to use. See: https://github.com/Bush2021/chrome_plus/blob/main/setdll/~~ Not supported, to be tested.
 
 # License
