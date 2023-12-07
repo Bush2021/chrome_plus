@@ -582,6 +582,10 @@ bool IsOnNewTab(NodePtr top)
                                         {
                                             flag = true;
                                         }
+                                        else if (wcsstr(bstr, L"about:blank") == bstr)
+                                        {
+                                            flag = true;
+                                        }
                                         else
                                         {
                                             flag = false;
