@@ -10,20 +10,27 @@ bool IsIniExist()
 }
 
 // 如果 ini 存在，从中读取 CommandLine；如果 ini 不存在，或者存在，但是 CommandLine 为空，则返回空字符串
-// 改成最大 1024 个字符
 std::wstring GetCrCommandLine()
 {
-    if (IsIniExist())
+  if (IsIniExist())
+  {
+    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+    std::vector<TCHAR> CommandLineBuffer(1024); // 初始大小为 1024
+    DWORD bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
+
+    // 如果读取的字符数接近缓冲区的大小，可能需要更大的缓冲区
+    while (bytesRead >= CommandLineBuffer.size() - 1)
     {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-        TCHAR CommandLineBuffer[1024];
-        ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer, 1024, IniPath.c_str());
-        return std::wstring(CommandLineBuffer);
+      CommandLineBuffer.resize(CommandLineBuffer.size() * 2);
+      bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
     }
-    else
-    {
-        return std::wstring(L"");
-    }
+
+    return std::wstring(CommandLineBuffer.data());
+  }
+  else
+  {
+    return std::wstring(L"");
+  }
 }
 
 // 如果 ini 存在，读取 UserData 并配置，否则使用默认值
