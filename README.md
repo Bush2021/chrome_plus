@@ -4,11 +4,11 @@
 中文说明: https://github.com/Bush2021/chrome_plus/blob/main/README_CN.md
 
 # Features
-* Double-click to close tabs.
-* Right-click to close tabs. (Hold Shift to show the original menu.)
+* Double-click to close tab.
+* Right-click to close tab. (Hold Shift to show the original menu.)
 * Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the 'X' won't work).
-* Mouse hover to scroll the tab bar.
-* Right-click and scroll the tab bar.
+* Use the mouse wheel to switch tabs when hovering over the tab bar.
+* Use the mouse wheel to switch tabs when holding the right mouse button.
 * Create new foreground tab to opens the contents entered in address bar.
 * Create bew foreground tab to opens bookmarks.
 * Disable the above two features when the current tab is a new tab.
