@@ -1,4 +1,4 @@
-name: Automatically Build Chrome++
+name: Build Chrome++
 
 on:
   workflow_dispatch:
@@ -36,7 +36,7 @@ jobs:
       run: xmake
 
     - name: Upload DLL
-      uses: actions/upload-artifact@v4.0.0
+      uses: actions/upload-artifact@v4.3.1
       with:
         name: ${{ matrix.name }}
         path: build/release
