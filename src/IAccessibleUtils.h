@@ -464,6 +464,12 @@ bool IsOnlyOneTab(NodePtr top)
                         {
                             tab_count++;
                         }
+                        if ((GetAccessibleRole(child) == ROLE_SYSTEM_PAGETABLIST)
+                            && (GetAccessibleState(child) & STATE_SYSTEM_COLLAPSED))
+                            // 判断是否存在折叠的标签组
+                        {
+                            tab_count++;
+                        }
                         return false;
                     });
                 }
