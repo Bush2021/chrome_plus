@@ -627,7 +627,7 @@ bool IsOnBookmark(NodePtr top, POINT pt)
 }
 
 // 鼠标是否在菜单栏的书签文件（夹）上
-bool IsOnOneMenuBookmark(NodePtr top, POINT pt)
+bool IsOnMenuBookmark(NodePtr top, POINT pt)
 {
     bool flag = false;
     NodePtr MenuBar = FindMenuBar(top);
@@ -675,7 +675,7 @@ bool IsOnOneMenuBookmark(NodePtr top, POINT pt)
     else
     {
         if (top)
-            DebugLog(L"IsOnOneMenuBookmark failed");
+            DebugLog(L"IsOnMenuBookmark failed");
     }
     return flag;
 }
