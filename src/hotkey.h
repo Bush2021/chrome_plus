@@ -139,6 +139,13 @@ void HideAndShow()
     is_hide = !is_hide;
 }
 
+void Translate()
+{
+    ExecuteCommand(IDC_SHOW_TRANSLATE);
+    keybd_event(VK_RIGHT, 0, 0, 0);
+    keybd_event(VK_RIGHT, 0, KEYEVENTF_KEYUP, 0);
+}
+
 typedef void (*HotkeyAction)();
 
 void OnHotkey(HotkeyAction action)
@@ -181,5 +188,11 @@ void GetHotkey()
     if (!bossKey.empty())
     {
         Hotkey(bossKey, HideAndShow);
+    }
+
+    std::wstring translateKey = GetTranslateKey();
+    if (!translateKey.empty())
+    {
+        Hotkey(translateKey, Translate);
     }
 }

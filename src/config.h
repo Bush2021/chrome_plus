@@ -1,3 +1,6 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
 // 尝试读取 ini 文件
 bool IsIniExist()
 {
@@ -138,6 +141,22 @@ std::wstring GetBosskey()
     }
 }
 
+// 定义翻译快捷键
+std::wstring GetTranslateKey()
+{
+    if (IsIniExist())
+    {
+        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+        TCHAR TranslateKeyBuffer[100];
+        ::GetPrivateProfileStringW(L"General", L"TranslateKey", L"", TranslateKeyBuffer, 100, IniPath.c_str());
+        return std::wstring(TranslateKeyBuffer);
+    }
+    else
+    {
+        return std::wstring(L"");
+    }
+}
+
 // 保留最后一个标签
 bool IsKeepLastTabFun()
 {
@@ -233,3 +252,5 @@ bool IsNewTabDisableFun()
 
     return true;
 }
+
+#endif // CONFIG_H
