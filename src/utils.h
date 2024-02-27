@@ -168,80 +168,131 @@ void StringSplit(String *str, Char delim, Function f)
     }
 }
 
-// 发送按键
-template <typename... T>
-void SendKey(T... keys)
-{
-    std::vector<INPUT> inputs;
-    std::vector<int> keys_ = {keys...};
-    for (auto &key : keys_)
-    {
-        INPUT input = {0};
-        input.type = INPUT_KEYBOARD;
-        input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
-        input.ki.wVk = (WORD)key;
-        input.ki.dwExtraInfo = MAGIC_CODE;
+// 分别模拟按键按下和释放，适用于模拟单个按键操作
+// template <typename... T>
+// void SendKey(T... keys)
+// {
+//     std::vector<INPUT> inputs;
+//     std::vector<int> keys_ = {keys...};
+//     for (auto &key : keys_)
+//     {
+//         INPUT input = {0};
+//         input.type = INPUT_KEYBOARD;
+//         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+//         input.ki.wVk = (WORD)key;
+//         input.ki.dwExtraInfo = MAGIC_CODE;
+// 
+//         // 修正鼠标消息
+//         switch (input.ki.wVk)
+//         {
+//             case VK_RBUTTON:
+//                 input.type = INPUT_MOUSE;
+//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN;
+//                 input.mi.dwExtraInfo = MAGIC_CODE;
+//                 break;
+//             case VK_LBUTTON:
+//                 input.type = INPUT_MOUSE;
+//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
+//                 input.mi.dwExtraInfo = MAGIC_CODE;
+//                 break;
+//             case VK_MBUTTON:
+//                 input.type = INPUT_MOUSE;
+//                 input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+//                 input.mi.dwExtraInfo = MAGIC_CODE;
+//                 break;
+//         }
+// 
+//         inputs.push_back(input);
+//     }
+//     std::reverse(keys_.begin(), keys_.end());
+//     for (auto &key : keys_)
+//     {
+//         INPUT input = {0};
+//         input.type = INPUT_KEYBOARD;
+//         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
+//         input.ki.wVk = (WORD)key;
+//         input.ki.dwExtraInfo = MAGIC_CODE;
+// 
+//         // 修正鼠标消息
+//         switch (input.ki.wVk)
+//         {
+//             case VK_RBUTTON:
+//                 input.type = INPUT_MOUSE;
+//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP;
+//                 input.mi.dwExtraInfo = MAGIC_CODE;
+//                 break;
+//             case VK_LBUTTON:
+//                 input.type = INPUT_MOUSE;
+//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
+//                 input.mi.dwExtraInfo = MAGIC_CODE;
+//                 break;
+//             case VK_MBUTTON:
+//                 input.type = INPUT_MOUSE;
+//                 input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+//                 input.mi.dwExtraInfo = MAGIC_CODE;
+//                 break;
+//         }
+// 
+//         inputs.push_back(input);
+//     }
+//     // for (auto & key : inputs)
+//     //{
+//     //     DebugLog(L"%X %X", key.ki.wVk, key.mi.dwFlags);
+//     // }
+// 
+//     ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
+// }
 
-        // 修正鼠标消息
-        switch (input.ki.wVk)
+// 发送组合按键操作
+class SendKeys
+{
+  public:
+    template <typename... T>
+    SendKeys(T... keys)
+    {
+        std::vector<int> keys_ = {keys...};
+        for (auto &key : keys_)
         {
-            case VK_RBUTTON:
-                input.type = INPUT_MOUSE;
-                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN;
-                input.mi.dwExtraInfo = MAGIC_CODE;
-                break;
-            case VK_LBUTTON:
-                input.type = INPUT_MOUSE;
-                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
-                input.mi.dwExtraInfo = MAGIC_CODE;
-                break;
+            INPUT input = {0};
+            input.type = INPUT_KEYBOARD;
+            input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+            input.ki.wVk = key;
+
+            // 修正鼠标消息
+            switch (key)
+            {
             case VK_MBUTTON:
                 input.type = INPUT_MOUSE;
                 input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-                input.mi.dwExtraInfo = MAGIC_CODE;
                 break;
+            }
+
+            inputs_.push_back(input);
         }
 
-        inputs.push_back(input);
+        SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
     }
-    std::reverse(keys_.begin(), keys_.end());
-    for (auto &key : keys_)
+    ~SendKeys()
     {
-        INPUT input = {0};
-        input.type = INPUT_KEYBOARD;
-        input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
-        input.ki.wVk = (WORD)key;
-        input.ki.dwExtraInfo = MAGIC_CODE;
-
-        // 修正鼠标消息
-        switch (input.ki.wVk)
+        for (auto &input : inputs_)
         {
-            case VK_RBUTTON:
-                input.type = INPUT_MOUSE;
-                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP;
-                input.mi.dwExtraInfo = MAGIC_CODE;
-                break;
-            case VK_LBUTTON:
-                input.type = INPUT_MOUSE;
-                input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
-                input.mi.dwExtraInfo = MAGIC_CODE;
-                break;
+            input.ki.dwFlags |= KEYEVENTF_KEYUP;
+
+            // 修正鼠标消息
+            switch (input.ki.wVk)
+            {
             case VK_MBUTTON:
-                input.type = INPUT_MOUSE;
                 input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-                input.mi.dwExtraInfo = MAGIC_CODE;
                 break;
+            }
         }
 
-        inputs.push_back(input);
+        SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
     }
-    // for (auto & key : inputs)
-    //{
-    //     DebugLog(L"%X %X", key.ki.wVk, key.mi.dwFlags);
-    // }
 
-    ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
-}
+  private:
+    std::vector<INPUT> inputs_;
+};
 
 // 发送鼠标消息
 void SendOneMouse(int mouse)
