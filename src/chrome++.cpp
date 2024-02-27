@@ -14,7 +14,7 @@ HMODULE hInstance;
 #include "patch.h"
 #include "config.h"
 #include "TabBookmark.h"
-#include "Bosskey.h"
+#include "hotkey.h"
 #include "portable.h"
 #include "PakPatch.h"
 #include "appid.h"
@@ -37,8 +37,8 @@ void ChromePlus()
     // 给pak文件打补丁
     PakPatch();
 
-    // 老板键
-    Bosskey();
+    // 处理热键
+    GetHotkey();
 }
 
 void ChromePlusCommand(LPWSTR param)

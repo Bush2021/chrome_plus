@@ -101,6 +101,7 @@ UINT ParseHotkeys(const TCHAR *keys)
     return MAKELPARAM(mo, vk);
 }
 
+
 static bool is_hide = false;
 
 static std::vector<HWND> hwnd_list;
@@ -121,7 +122,7 @@ BOOL CALLBACK SearchChromeWindow(HWND hWnd, LPARAM lParam)
     return true;
 }
 
-void OnBosskey()
+void HideAndShow()
 {
     if (!is_hide)
     {
@@ -138,25 +139,15 @@ void OnBosskey()
     is_hide = !is_hide;
 }
 
-void HotKeyRegister(LPARAM lParam)
-{
-    RegisterHotKey(NULL, 0, LOWORD(lParam), HIWORD(lParam));
+typedef void (*HotkeyAction)();
 
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
-        if (msg.message == WM_HOTKEY)
-        {
-            OnBosskey();
-        }
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+void OnHotkey(HotkeyAction action)
+{
+    action();
 }
 
-void Bosskey()
+void Hotkey(const std::wstring &keys, HotkeyAction action)
 {
-    std::wstring keys = GetBosskey();
     if (keys.empty())
     {
         return;
@@ -165,7 +156,30 @@ void Bosskey()
     {
         UINT flag = ParseHotkeys(keys.c_str());
 
-        std::thread th(HotKeyRegister, flag);
+        std::thread th([flag, action]() {
+            // 注册热键
+            RegisterHotKey(NULL, 0, LOWORD(flag), HIWORD(flag));
+
+            MSG msg;
+            while (GetMessage(&msg, NULL, 0, 0))
+            {
+                if (msg.message == WM_HOTKEY)
+                {
+                    OnHotkey(action);
+                }
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        });
         th.detach();
+    }
+}
+
+void GetHotkey()
+{
+    std::wstring bossKey = GetBosskey();
+    if (!bossKey.empty())
+    {
+        Hotkey(bossKey, HideAndShow);
     }
 }
