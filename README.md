@@ -6,13 +6,14 @@
 # Features
 * Double-click to close tab.
 * Right-click to close tab. (Hold Shift to show the original menu.)
-* Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the 'X' won't work).
+* Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the close button will not work.)
 * Use the mouse wheel to switch tabs when hovering over the tab bar.
 * Use the mouse wheel to switch tabs when holding the right mouse button.
 * Create new foreground tab to opens the contents entered in address bar.
 * Create bew foreground tab to opens bookmarks.
 * Disable the above two features when the current tab is a new tab.
-* Use hotkeys to quickly hide the browser window (boss key).
+* Customize hotkeys to quickly hide the browser window (boss key).
+* Customize hotkeys to translate web page.
 * Portable design: the program is placed in the App directory, and data is stored in the Data directory (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow configuration of features using ini files.
 * Allow custom Chromium startup parameters.
