@@ -29,24 +29,6 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines, const std::wstring 
     return text;
 }
 
-// 这段代码应该可以废弃了……
-// bool IsExistsPortable()
-//{
-//    std::wstring path = GetAppDir() + L"\\portable";
-//    if (PathFileExists(path.data()))
-//    {
-//        return true;
-//    }
-//    return false;
-//}
-
-// bool IsNeedPortable()
-//{
-//     return true;
-//     static bool need_portable = IsExistsPortable();
-//     return need_portable;
-// }
-
 // 构造新命令行
 std::wstring GetCommand(LPWSTR param)
 {
@@ -86,7 +68,7 @@ std::wstring GetCommand(LPWSTR param)
                 wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
                 args.push_back(temp);
             }
-            // if (IsNeedPortable())
+
             {
                 auto diskcache = GetDiskCacheDir();
 
@@ -94,8 +76,6 @@ std::wstring GetCommand(LPWSTR param)
                 wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
                 args.push_back(temp);
             }
-
-            args.push_back(L"--disable-features=RendererCodeIntegrity");
 
             // 获取命令行，然后追加参数
             // 截取拆分每个--开头的参数，然后多次 args.push_back
