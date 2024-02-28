@@ -1,3 +1,6 @@
+#ifndef PORTABLE_H_
+#define PORTABLE_H_
+
 std::wstring QuoteSpaceIfNeeded(const std::wstring &str)
 {
     if (str.find(L' ') == std::wstring::npos)
@@ -134,3 +137,5 @@ void Portable(LPWSTR param)
         ExitProcess(0);
     }
 }
+
+#endif // PORTABLE_H_

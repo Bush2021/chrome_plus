@@ -1,3 +1,6 @@
+#ifndef PATCH_H_
+#define PATCH_H_
+
 typedef LONG NTSTATUS, *PNTSTATUS;
 
 #ifndef NT_SUCCESS
@@ -92,3 +95,5 @@ void MakePatch()
         }
     }
 }
+
+#endif // PATCH_H_

@@ -1,3 +1,6 @@
+#ifndef HOTKEY_H_
+#define HOTKEY_H_
+
 #include <thread>
 #include <vector>
 
@@ -196,3 +199,5 @@ void GetHotkey()
         Hotkey(translateKey, Translate);
     }
 }
+
+#endif // HOTKEY_H_

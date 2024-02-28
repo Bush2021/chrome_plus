@@ -1,3 +1,6 @@
+#ifndef PAKPATCH_H_
+#define PAKPATCH_H_
+
 #include "PakFile.h"
 
 DWORD resources_pak_size = 0;
@@ -171,3 +174,5 @@ void PakPatch()
         DebugLog(L"MH_CreateHook CreateFileW failed:%d", status);
     }
 }
+
+#endif // PAKPATCH_H_

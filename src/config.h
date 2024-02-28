@@ -1,5 +1,5 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef CONFIG_H_
+#define CONFIG_H_
 
 // 尝试读取 ini 文件
 bool IsIniExist()
@@ -253,4 +253,4 @@ bool IsNewTabDisableFun()
     return true;
 }
 
-#endif // CONFIG_H
+#endif // CONFIG_H_

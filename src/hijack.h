@@ -1,4 +1,7 @@
-﻿#include <windows.h>
+﻿#ifndef HIJACK_H_
+#define HIJACK_H_
+
+#include <windows.h>
 #include <intrin.h>
 #include <stdint.h>
 
@@ -149,3 +152,5 @@ void LoadSysDll(HINSTANCE hModule)
 {
     LoadVersion(hModule);
 }
+
+#endif // HIJACK_H_

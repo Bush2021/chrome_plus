@@ -1,5 +1,5 @@
-#ifndef FAST_SEARCH_H_
-#define FAST_SEARCH_H_
+#ifndef FASTSEARCH_H_
+#define FASTSEARCH_H_
 
 #include <stdint.h>
 
@@ -69,4 +69,4 @@ const uint8_t *FastSearch(const uint8_t *s, int n, const uint8_t *p, int m)
     return SundaySearch(s, n, p, m);
 }
 
-#endif // FAST_SEARCH_H_
+#endif // FASTSEARCH_H_

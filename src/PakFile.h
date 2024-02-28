@@ -1,4 +1,7 @@
-﻿#pragma warning(disable : 4334)
+﻿#ifndef PAKFILE_H_
+#define PAKFILE_H_
+
+#pragma warning(disable : 4334)
 #pragma warning(disable : 4267)
 
 extern "C"
@@ -182,3 +185,5 @@ void TraversalGZIPFile(uint8_t *buffer, Function f)
         pak_entry = next_entry;
     } while (pak_entry->resource_id != 0);
 }
+
+#endif // PAKFILE_H_

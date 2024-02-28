@@ -1,3 +1,6 @@
+#ifndef GREEN_H_
+#define GREEN_H_
+
 #include <lmaccess.h>
 
 BOOL WINAPI FakeGetComputerName(
@@ -275,3 +278,5 @@ void MakeGreen()
         DebugLog(L"MH_CreateHookApiEx UpdateProcThreadAttribute failed: %d", status);
     }
 }
+
+#endif // GREEN_H_

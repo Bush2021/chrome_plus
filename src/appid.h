@@ -1,3 +1,6 @@
+#ifndef APPID_H_
+#define APPID_H_
+
 #include <shobjidl.h>
 #include <propkey.h>
 #include <propvarutil.h>
@@ -40,3 +43,5 @@ void SetAppId()
         DebugLog(L"MH_CreateHook PSStringFromPropertyKey failed:%d", status);
     }
 }
+
+#endif // APPID_H_
