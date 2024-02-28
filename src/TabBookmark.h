@@ -169,7 +169,7 @@ bool handleMiddleClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 // 新标签页打开书签
 bool handleBookmark(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 {
-    if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || config.IsBookmarkNewTab)
+    if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || !config.IsBookmarkNewTab)
     {
         return false;
     }
