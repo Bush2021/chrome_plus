@@ -16,111 +16,74 @@ bool IsIniExist()
 // 如果 ini 存在，从中读取 CommandLine；如果 ini 不存在，或者存在，但是 CommandLine 为空，则返回空字符串
 std::wstring GetCrCommandLine()
 {
-  if (IsIniExist())
-  {
-    std::vector<TCHAR> CommandLineBuffer(1024); // 初始大小为 1024
-    DWORD bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
-
-    // 如果读取的字符数接近缓冲区的大小，可能需要更大的缓冲区
-    while (bytesRead >= CommandLineBuffer.size() - 1)
+    if (IsIniExist())
     {
-      CommandLineBuffer.resize(CommandLineBuffer.size() * 2);
-      bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
-    }
+        std::vector<TCHAR> CommandLineBuffer(1024); // 初始大小为 1024
+        DWORD bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
 
-    return std::wstring(CommandLineBuffer.data());
-  }
-  else
-  {
-    return std::wstring(L"");
-  }
+        // 如果读取的字符数接近缓冲区的大小，可能需要更大的缓冲区
+        while (bytesRead >= CommandLineBuffer.size() - 1)
+        {
+            CommandLineBuffer.resize(CommandLineBuffer.size() * 2);
+            bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
+        }
+
+        return std::wstring(CommandLineBuffer.data());
+    }
+    else
+    {
+        return std::wstring(L"");
+    }
 }
 
-// 如果 ini 存在，读取 UserData 并配置，否则使用默认值
+// 读取 UserData 和 DiskCache
+std::wstring GetDirPath(const std::wstring &dirType)
+{
+    if (IsIniExist())
+    {
+        std::wstring path = GetAppDir() + L"\\..\\" + dirType;
+        TCHAR temp[MAX_PATH];
+        ::PathCanonicalize(temp, path.data());
+
+        if (!PathFileExists(IniPath.c_str()))
+        {
+            return GetAppDir() + L"\\..\\" + dirType;
+        }
+
+        TCHAR DirBuffer[MAX_PATH];
+        ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(), temp, DirBuffer, MAX_PATH, IniPath.c_str());
+
+        if (DirBuffer[0] == 0)
+        {
+            ::PathCanonicalize(DirBuffer, path.data());
+        }
+
+        std::wstring ExpandedPath = ExpandEnvironmentPath(DirBuffer);
+
+        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
+        std::wstring Dir;
+        Dir = GetAbsolutePath(ExpandedPath);
+        wcscpy(DirBuffer, Dir.c_str());
+
+        return std::wstring(DirBuffer);
+    }
+    else
+    {
+        std::wstring path = GetAppDir() + L"\\..\\" + dirType;
+        TCHAR temp[MAX_PATH];
+        ::PathCanonicalize(temp, path.data());
+        return temp;
+    }
+}
+
 std::wstring GetUserDataDir()
 {
-    if (IsIniExist())
-    {
-        // 修改 Chrome 默认 Data 路径
-        std::wstring path = GetAppDir() + L"\\..\\Data";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-
-        if (!PathFileExists(IniPath.c_str()))
-        {
-            return GetAppDir() + L"\\..\\Data";
-        }
-
-        TCHAR UserDataBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"DataDir", temp, UserDataBuffer, MAX_PATH, IniPath.c_str());
-
-        // 若 ini 中 DataDir 留空，则按照默认情况处理
-        if (UserDataBuffer[0] == 0)
-        {
-            ::PathCanonicalize(UserDataBuffer, path.data());
-        }
-
-        std::wstring ExpandedPath = ExpandEnvironmentPath(UserDataBuffer);
-
-        // 替换 %app%
-        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-        std::wstring DataDir;
-        DataDir = GetAbsolutePath(ExpandedPath);
-
-        wcscpy(UserDataBuffer, DataDir.c_str());
-
-        return std::wstring(UserDataBuffer);
-    }
-    else
-    {
-        std::wstring path = GetAppDir() + L"\\..\\Data";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-        return temp;
-    }
+    return GetDirPath(L"Data");
 }
 
-// 如果 ini 存在，读取 DiskCache 并配置，否则使用默认值
 std::wstring GetDiskCacheDir()
 {
-    if (IsIniExist())
-    {
-        // 修改 Chrome 默认 Cache 路径
-        std::wstring path = GetAppDir() + L"\\..\\Cache";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-
-        if (!PathFileExists(IniPath.c_str()))
-        {
-            return GetAppDir() + L"\\..\\Cache";
-        }
-
-        TCHAR CacheDirBuffer[MAX_PATH];
-        ::GetPrivateProfileStringW(L"General", L"CacheDir", temp, CacheDirBuffer, MAX_PATH, IniPath.c_str());
-
-        // 若 ini 中 CacheDir 留空，则按照默认情况处理
-        if (CacheDirBuffer[0] == 0)
-        {
-            ::PathCanonicalize(CacheDirBuffer, path.data());
-        }
-
-        std::wstring ExpandedPath = ExpandEnvironmentPath(CacheDirBuffer);
-
-        // 替换 %app%
-        ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-        std::wstring CacheDir;
-        CacheDir = GetAbsolutePath(ExpandedPath);
-        wcscpy(CacheDirBuffer, CacheDir.c_str());
-
-        return std::wstring(CacheDirBuffer);
-    }
-    else
-    {
-        std::wstring path = GetAppDir() + L"\\..\\Cache";
-        TCHAR temp[MAX_PATH];
-        ::PathCanonicalize(temp, path.data());
-        return temp;
-    }
+    return GetDirPath(L"Cache");
 }
 
 // 如果启用老板键，则读取 ini 文件中的老板键设置；如果 ini 不存在或者该值为空，则返回空字符串
