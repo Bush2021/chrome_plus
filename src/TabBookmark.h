@@ -26,8 +26,8 @@ class IniConfig {
     bool IsRClk;
     bool IsWheelTab;
     bool IsWheelTabWhenPressRButton;
-    bool IsBookmarkNewTab;
-    bool IsOpenUrlNewTab;
+    std::string IsBookmarkNewTab;
+    std::string IsOpenUrlNewTab;
 };
 
 IniConfig config;
@@ -169,7 +169,7 @@ bool handleMiddleClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 // 新标签页打开书签
 bool handleBookmark(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 {
-    if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || !config.IsBookmarkNewTab)
+    if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || config.IsBookmarkNewTab == "disabled")
     {
         return false;
     }
@@ -182,7 +182,14 @@ bool handleBookmark(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 
     if (TopContainerView && isOnBookmark && !isOnNewTab)
     {
-        SendKeys(VK_MBUTTON, VK_SHIFT);
+        if (config.IsBookmarkNewTab == "foreground")
+    	{
+            SendKeys(VK_MBUTTON, VK_SHIFT);
+    	}
+    	else if (config.IsBookmarkNewTab == "background")
+    	{
+            SendKeys(VK_MBUTTON);
+    	}
         return true;
     }
 
@@ -192,7 +199,7 @@ bool handleBookmark(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 // 新标签页打开书签文件夹中的书签
 bool handleBookmarkMenu(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 {
-    if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || !config.IsBookmarkNewTab)
+    if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || config.IsBookmarkNewTab == "disabled")
     {
         return false;
     }
@@ -207,7 +214,14 @@ bool handleBookmarkMenu(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 
     if (TopContainerView && MenuBarPane && isOnMenuBookmark && !isOnNewTab)
     {
-        SendKeys(VK_MBUTTON, VK_SHIFT);
+    	if (config.IsBookmarkNewTab == "foreground")
+    	{
+            SendKeys(VK_MBUTTON, VK_SHIFT);
+    	}
+    	else if (config.IsBookmarkNewTab == "background")
+    	{
+            SendKeys(VK_MBUTTON);
+    	}
         return true;
     }
 
@@ -354,14 +368,21 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
         bool open_url_ing = false;
 
-        if (config.IsOpenUrlNewTab && wParam == VK_RETURN && !IsPressed(VK_MENU))
+        if (config.IsOpenUrlNewTab != "disabled" && wParam == VK_RETURN && !IsPressed(VK_MENU))
         {
             open_url_ing = IsNeedOpenUrlInNewTab();
         }
 
         if (open_url_ing)
         {
-            SendKeys(VK_MENU, VK_RETURN);
+        	if (config.IsOpenUrlNewTab == "foreground")
+        	{
+                SendKeys(VK_MENU, VK_RETURN);
+        	}
+        	else if (config.IsOpenUrlNewTab == "background")
+        	{
+        		SendKeys(VK_SHIFT, VK_MENU, VK_RETURN);
+        	}
             return 1;
         }
     }

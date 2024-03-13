@@ -1,11 +1,12 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
+const std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+
 // 尝试读取 ini 文件
 bool IsIniExist()
 {
-    std::wstring path = GetAppDir() + L"\\chrome++.ini";
-    if (PathFileExists(path.data()))
+    if (PathFileExists(IniPath.data()))
     {
         return true;
     }
@@ -17,7 +18,6 @@ std::wstring GetCrCommandLine()
 {
   if (IsIniExist())
   {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     std::vector<TCHAR> CommandLineBuffer(1024); // 初始大小为 1024
     DWORD bytesRead = ::GetPrivateProfileStringW(L"General", L"CommandLine", L"", CommandLineBuffer.data(), CommandLineBuffer.size(), IniPath.c_str());
 
@@ -41,7 +41,6 @@ std::wstring GetUserDataDir()
 {
     if (IsIniExist())
     {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         // 修改 Chrome 默认 Data 路径
         std::wstring path = GetAppDir() + L"\\..\\Data";
         TCHAR temp[MAX_PATH];
@@ -86,7 +85,6 @@ std::wstring GetDiskCacheDir()
 {
     if (IsIniExist())
     {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         // 修改 Chrome 默认 Cache 路径
         std::wstring path = GetAppDir() + L"\\..\\Cache";
         TCHAR temp[MAX_PATH];
@@ -130,7 +128,6 @@ std::wstring GetBosskey()
 {
     if (IsIniExist())
     {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         TCHAR BosskeyBuffer[100];
         ::GetPrivateProfileStringW(L"General", L"Bosskey", L"", BosskeyBuffer, 100, IniPath.c_str());
         return std::wstring(BosskeyBuffer);
@@ -146,7 +143,6 @@ std::wstring GetTranslateKey()
 {
     if (IsIniExist())
     {
-        std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
         TCHAR TranslateKeyBuffer[100];
         ::GetPrivateProfileStringW(L"General", L"TranslateKey", L"", TranslateKeyBuffer, 100, IniPath.c_str());
         return std::wstring(TranslateKeyBuffer);
@@ -160,7 +156,6 @@ std::wstring GetTranslateKey()
 // 保留最后一个标签
 bool IsKeepLastTabFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1, IniPath.c_str()) == 0)
     {
         return false;
@@ -172,7 +167,6 @@ bool IsKeepLastTabFun()
 // 双击关闭
 bool IsDblClkFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1, IniPath.c_str()) == 0)
     {
         return false;
@@ -184,7 +178,6 @@ bool IsDblClkFun()
 // 单击右键关闭
 bool IsRClkFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0, IniPath.c_str()) == 0)
     {
         return false;
@@ -196,7 +189,6 @@ bool IsRClkFun()
 // 鼠标停留在标签栏时滚轮切换标签
 bool IsWheelTabFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) == 0)
     {
         return false;
@@ -208,7 +200,6 @@ bool IsWheelTabFun()
 // 在任何位置按住右键时滚轮切换标签
 bool IsWheelTabWhenPressRButtonFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1, IniPath.c_str()) == 0)
     {
         return false;
@@ -218,33 +209,38 @@ bool IsWheelTabWhenPressRButtonFun()
 }
 
 // 地址栏输入网址在新标签页打开
-bool IsOpenUrlNewTabFun()
+std::string IsOpenUrlNewTabFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-    if (::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0, IniPath.c_str()) == 0)
+    int value = ::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0, IniPath.c_str());
+    switch (value)
     {
-        return false;
+    case 1:
+        return "foreground";
+    case 2:
+        return "background";
+    default:
+        return "disabled";
     }
-
-    return true;
 }
 
 // 书签在新标签页打开
-bool IsBookmarkNewTabFun()
+std::string IsBookmarkNewTabFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
-    if (::GetPrivateProfileIntW(L"Tabs", L"open_bookmark_new_tab", 0, IniPath.c_str()) == 0)
+    int value = ::GetPrivateProfileIntW(L"Tabs", L"open_bookmark_new_tab", 0, IniPath.c_str());
+    switch (value)
     {
-        return false;
+    case 1:
+        return "foreground";
+    case 2:
+        return "background";
+    default:
+        return "disabled";
     }
-
-    return true;
 }
 
 // 新标签页不生效
 bool IsNewTabDisableFun()
 {
-    std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
     if (::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1, IniPath.c_str()) == 0)
     {
         return false;
