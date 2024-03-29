@@ -35,7 +35,8 @@ IniConfig config;
 // 滚轮切换标签页
 bool handleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
 {
-    if (wParam != WM_MOUSEWHEEL)
+    if (wParam != WM_MOUSEWHEEL ||
+       (!config.IsWheelTab && !config.IsWheelTabWhenPressRButton))
     {
         return false;
     }
@@ -216,6 +217,7 @@ bool handleBookmarkMenu(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse)
     {
     	if (config.IsBookmarkNewTab == "foreground")
     	{
+            DebugLog(L"MButton + Shift");
             SendKeys(VK_MBUTTON, VK_SHIFT);
     	}
     	else if (config.IsBookmarkNewTab == "background")
