@@ -3,7 +3,7 @@
 
 const std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
 
-// 尝试读取 ini 文件
+// 读取 ini 文件
 bool IsIniExist() {
   if (PathFileExists(IniPath.data())) {
     return true;
@@ -11,61 +11,56 @@ bool IsIniExist() {
   return false;
 }
 
-// 如果 ini 存在，从中读取 CommandLine；如果 ini 不存在，或者存在，但是 CommandLine 为空，则返回空字符串
-std::wstring GetCrCommandLine() {
-  if (IsIniExist()) {
-    std::vector<TCHAR> CommandLineBuffer(1024);  // 初始大小为 1024
-    DWORD bytesRead = ::GetPrivateProfileStringW(
-        L"General", L"CommandLine", L"", CommandLineBuffer.data(),
-        CommandLineBuffer.size(), IniPath.c_str());
-
-    // 如果读取的字符数接近缓冲区的大小，可能需要更大的缓冲区
-    while (bytesRead >= CommandLineBuffer.size() - 1) {
-      CommandLineBuffer.resize(CommandLineBuffer.size() * 2);
-      bytesRead = ::GetPrivateProfileStringW(
-          L"General", L"CommandLine", L"", CommandLineBuffer.data(),
-          CommandLineBuffer.size(), IniPath.c_str());
+std::wstring GetIniString(const std::wstring& section, const std::wstring& key, const std::wstring& default_value) {
+  std::vector<TCHAR> buffer(100);
+  DWORD bytesRead = 0;
+  do {
+    bytesRead = ::GetPrivateProfileStringW(section.c_str(), key.c_str(), default_value.c_str(),
+                                           buffer.data(), buffer.size(), IniPath.c_str());
+    // 如果字符串过长，则倍增缓冲区大小
+    if (bytesRead >= buffer.size() - 1) {
+      buffer.resize(buffer.size() * 2);
+    } else {
+      break;
     }
+  } while (true);
 
-    return std::wstring(CommandLineBuffer.data());
-  } else {
-    return std::wstring(L"");
-  }
+  return std::wstring(buffer.data());
+}
+
+// 追加参数
+std::wstring GetCrCommandLine() {
+  return IsIniExist() ? GetIniString(L"General", L"CommandLine", L"") : L"";
 }
 
 // 读取 UserData 和 DiskCache
+std::wstring CanonicalizePath(const std::wstring& path) {
+  TCHAR temp[MAX_PATH];
+  ::PathCanonicalize(temp, path.data());
+  return std::wstring(temp);
+}
+
 std::wstring GetDirPath(const std::wstring& dirType) {
-  if (IsIniExist()) {
-    std::wstring path = GetAppDir() + L"\\..\\" + dirType;
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
+  std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dirType);
 
-    if (!PathFileExists(IniPath.c_str())) {
-      return GetAppDir() + L"\\..\\" + dirType;
-    }
-
-    TCHAR DirBuffer[MAX_PATH];
-    ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(), temp,
-                               DirBuffer, MAX_PATH, IniPath.c_str());
-
-    if (DirBuffer[0] == 0) {
-      ::PathCanonicalize(DirBuffer, path.data());
-    }
-
-    std::wstring ExpandedPath = ExpandEnvironmentPath(DirBuffer);
-
-    ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-    std::wstring Dir;
-    Dir = GetAbsolutePath(ExpandedPath);
-    wcscpy(DirBuffer, Dir.c_str());
-
-    return std::wstring(DirBuffer);
-  } else {
-    std::wstring path = GetAppDir() + L"\\..\\" + dirType;
-    TCHAR temp[MAX_PATH];
-    ::PathCanonicalize(temp, path.data());
-    return temp;
+  if (!IsIniExist()) {
+    return path;
   }
+
+  std::wstring DirBuffer(MAX_PATH, '\0');
+  ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(), path.c_str(),
+                             &DirBuffer[0], MAX_PATH, IniPath.c_str());
+
+  if (DirBuffer[0] == 0) {
+    DirBuffer = path;
+  }
+
+  std::wstring ExpandedPath = ExpandEnvironmentPath(DirBuffer);
+
+  ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
+  std::wstring Dir = GetAbsolutePath(ExpandedPath);
+
+  return Dir;
 }
 
 std::wstring GetUserDataDir() {
@@ -76,77 +71,39 @@ std::wstring GetDiskCacheDir() {
   return GetDirPath(L"Cache");
 }
 
-// 如果启用老板键，则读取 ini 文件中的老板键设置；如果 ini 不存在或者该值为空，则返回空字符串
+// 老板键
 std::wstring GetBosskey() {
-  if (IsIniExist()) {
-    TCHAR BosskeyBuffer[100];
-    ::GetPrivateProfileStringW(L"General", L"Bosskey", L"", BosskeyBuffer, 100,
-                               IniPath.c_str());
-    return std::wstring(BosskeyBuffer);
-  } else {
-    return std::wstring(L"");
-  }
+  return IsIniExist() ? GetIniString(L"General", L"Bosskey", L"") : std::wstring(L"");
 }
 
 // 定义翻译快捷键
 std::wstring GetTranslateKey() {
-  if (IsIniExist()) {
-    TCHAR TranslateKeyBuffer[100];
-    ::GetPrivateProfileStringW(L"General", L"TranslateKey", L"",
-                               TranslateKeyBuffer, 100, IniPath.c_str());
-    return std::wstring(TranslateKeyBuffer);
-  } else {
-    return std::wstring(L"");
-  }
+  return IsIniExist() ? GetIniString(L"General", L"TranslateKey", L"") : std::wstring(L"");
 }
 
 // 保留最后一个标签
 bool IsKeepLastTabFun() {
-  if (::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1, IniPath.c_str()) ==
-      0) {
-    return false;
-  }
-
-  return true;
+  return ::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1, IniPath.c_str()) != 0;
 }
 
 // 双击关闭
 bool IsDblClkFun() {
-  if (::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1,
-                              IniPath.c_str()) == 0) {
-    return false;
-  }
-
-  return true;
+  return ::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1, IniPath.c_str()) != 0;
 }
 
 // 单击右键关闭
 bool IsRClkFun() {
-  if (::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0,
-                              IniPath.c_str()) == 0) {
-    return false;
-  }
-
-  return true;
+  return ::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0, IniPath.c_str()) != 0;
 }
 
 // 鼠标停留在标签栏时滚轮切换标签
 bool IsWheelTabFun() {
-  if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) == 0) {
-    return false;
-  }
-
-  return true;
+  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) != 0;
 }
 
 // 在任何位置按住右键时滚轮切换标签
 bool IsWheelTabWhenPressRButtonFun() {
-  if (::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1,
-                              IniPath.c_str()) == 0) {
-    return false;
-  }
-
-  return true;
+  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1, IniPath.c_str()) != 0;
 }
 
 // 地址栏输入网址在新标签页打开
@@ -179,12 +136,7 @@ std::string IsBookmarkNewTabFun() {
 
 // 新标签页不生效
 bool IsNewTabDisableFun() {
-  if (::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1,
-                              IniPath.c_str()) == 0) {
-    return false;
-  }
-
-  return true;
+  return ::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1, IniPath.c_str()) != 0;
 }
 
 #endif  // CONFIG_H_
