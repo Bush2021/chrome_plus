@@ -38,10 +38,9 @@ std::wstring GetCommand(LPWSTR param) {
 
   int insert_pos = 0;
   for (int i = 0; i < argc; i++) {
-    if (wcscmp(argv[i], L"--") == 0) {
-      break;
-    }
-    if (wcscmp(argv[i], L"--single-argument") == 0) {
+    if (std::wstring(argv[i]).find(L"--") != std::wstring::npos ||
+        std::wstring(argv[i]).find(L"--single-argument") !=
+            std::wstring::npos) {
       break;
     }
     insert_pos = i;
@@ -57,18 +56,12 @@ std::wstring GetCommand(LPWSTR param) {
 
       {
         auto userdata = GetUserDataDir();
-
-        wchar_t temp[MAX_PATH];
-        wsprintf(temp, L"--user-data-dir=%s", userdata.c_str());
-        args.push_back(temp);
+        args.push_back(L"--user-data-dir=" + userdata);
       }
 
       {
         auto diskcache = GetDiskCacheDir();
-
-        wchar_t temp[MAX_PATH];
-        wsprintf(temp, L"--disk-cache-dir=%s", diskcache.c_str());
-        args.push_back(temp);
+        args.push_back(L"--disk-cache-dir=" + diskcache);
       }
 
       // 获取命令行，然后追加参数
