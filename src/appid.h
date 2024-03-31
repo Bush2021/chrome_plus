@@ -1,47 +1,39 @@
 #ifndef APPID_H_
 #define APPID_H_
 
-#include <shobjidl.h>
 #include <propkey.h>
 #include <propvarutil.h>
+#include <shobjidl.h>
 
-typedef HRESULT(WINAPI *pPSStringFromPropertyKey)(
-    REFPROPERTYKEY pkey,
-    LPWSTR psz,
-    UINT cch);
+typedef HRESULT(WINAPI* pPSStringFromPropertyKey)(REFPROPERTYKEY pkey,
+                                                  LPWSTR psz, UINT cch);
 pPSStringFromPropertyKey RawPSStringFromPropertyKey = nullptr;
 
-HRESULT WINAPI MyPSStringFromPropertyKey(
-    REFPROPERTYKEY pkey,
-    LPWSTR psz,
-    UINT cch)
-{
-    HRESULT result = RawPSStringFromPropertyKey(pkey, psz, cch);
-    if (SUCCEEDED(result))
-    {
-        if (pkey == PKEY_AppUserModel_ID)
-        {
-            // DebugLog(L"MyPSStringFromPropertyKey %s", psz);
-            return -1;
-        }
+HRESULT WINAPI MyPSStringFromPropertyKey(REFPROPERTYKEY pkey, LPWSTR psz,
+                                         UINT cch) {
+  HRESULT result = RawPSStringFromPropertyKey(pkey, psz, cch);
+  if (SUCCEEDED(result)) {
+    if (pkey == PKEY_AppUserModel_ID) {
+      // DebugLog(L"MyPSStringFromPropertyKey %s", psz);
+      return -1;
     }
-    return result;
+  }
+  return result;
 }
 
-void SetAppId()
-{
-    HMODULE Propsys = LoadLibrary(L"Propsys.dll");
+void SetAppId() {
+  HMODULE Propsys = LoadLibrary(L"Propsys.dll");
 
-    PBYTE PSStringFromPropertyKey = (PBYTE)GetProcAddress(Propsys, "PSStringFromPropertyKey");
-    MH_STATUS status = MH_CreateHook(PSStringFromPropertyKey, MyPSStringFromPropertyKey, (LPVOID *)&RawPSStringFromPropertyKey);
-    if (status == MH_OK)
-    {
-        MH_EnableHook(PSStringFromPropertyKey);
-    }
-    else
-    {
-        DebugLog(L"MH_CreateHook PSStringFromPropertyKey failed:%d", status);
-    }
+  PBYTE PSStringFromPropertyKey =
+      (PBYTE)GetProcAddress(Propsys, "PSStringFromPropertyKey");
+  MH_STATUS status =
+      MH_CreateHook(PSStringFromPropertyKey, MyPSStringFromPropertyKey,
+                    (LPVOID*)&RawPSStringFromPropertyKey);
+  if (status == MH_OK) {
+    MH_EnableHook(PSStringFromPropertyKey);
+  } else {
+    DebugLog(L"MH_CreateHook PSStringFromPropertyKey failed:%d", status);
+  }
 }
 
-#endif // APPID_H_
+#endif  // APPID_H_
