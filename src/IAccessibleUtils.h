@@ -4,8 +4,8 @@
 #include <oleacc.h>
 #pragma comment(lib, "oleacc.lib")
 
-#include <thread>
 #include <wrl/client.h>
+#include <thread>
 
 using NodePtr = Microsoft::WRL::ComPtr<IAccessible>;
 
@@ -42,10 +42,23 @@ void GetAccessibleValue(NodePtr node, Function f) {
   self.lVal = CHILDID_SELF;
 
   BSTR bstr = nullptr;
-  HRESULT hr = node->get_accValue(self, &bstr);
-  if (S_OK == hr) {
+  if (S_OK == node->get_accValue(self, &bstr)) {
     f(bstr);
     SysFreeString(bstr);
+  }
+}
+
+template <typename Function>
+void GetAccessibleSize(NodePtr node, Function f) {
+  VARIANT self;
+  self.vt = VT_I4;
+  self.lVal = CHILDID_SELF;
+
+  RECT rect;
+  if (S_OK == node->accLocation(&rect.left, &rect.top, &rect.right,
+                                &rect.bottom, self)) {
+    auto [left, top, right, bottom] = rect;
+    f({left, top, right + left, bottom + top});
   }
 }
 
@@ -203,42 +216,38 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
   return element;
 }
 
-template <typename Function>
-void GetAccessibleSize(NodePtr node, Function f) {
-  VARIANT self;
-  self.vt = VT_I4;
-  self.lVal = CHILDID_SELF;
-
-  RECT rect;
-  if (S_OK == node->accLocation(&rect.left, &rect.top, &rect.right,
-                                &rect.bottom, self)) {
-    auto [left, top, right, bottom] = rect;
-    f({left, top, right + left, bottom + top});
-  }
-}
-
 // 鼠标是否在某个标签上
 bool IsOnOneTab(NodePtr top, POINT pt) {
-  bool flag = false;
   NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (PageTabList) {
-    NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
-    if (PageTab) {
-      NodePtr PageTabPane = GetParentElement(PageTab);
-      if (PageTabPane) {
-        TraversalAccessible(PageTabPane, [&flag, &pt](NodePtr child) {
-          if (GetAccessibleRole(child) == ROLE_SYSTEM_PAGETAB) {
-            GetAccessibleSize(child, [&flag, &pt](RECT rect) {
-              if (PtInRect(&rect, pt)) {
-                flag = true;
-              }
-            });
-          }
-          return flag;
-        });
-      }
-    }
+  if (!PageTabList) {
+    return false;
   }
+
+  NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
+  if (!PageTab) {
+    return false;
+  }
+
+  NodePtr PageTabPane = GetParentElement(PageTab);
+  if (!PageTabPane) {
+    return false;
+  }
+
+  bool flag = false;
+  TraversalAccessible(PageTabPane, [&flag, &pt](NodePtr child) {
+    if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
+      return false;
+    }
+
+    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+      if (PtInRect(&rect, pt)) {
+        flag = true;
+      }
+    });
+
+    return flag;
+  });
+
   return flag;
 }
 
@@ -368,83 +377,110 @@ bool IsOnNewTab(NodePtr top) {
 
 // 鼠标是否在书签上
 bool IsOnBookmark(NodePtr top, POINT pt) {
-  bool flag = false;
-  if (top) {
-    TraversalAccessible(
-        top,
-        [&flag, &pt](NodePtr child) {
-          if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-            GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
-              if (PtInRect(&rect, pt)) {
-                GetAccessibleDescription(child, [&flag](BSTR bstr) {
-                  std::wstring_view bstr_view(bstr);
-                  flag = bstr_view.find_first_of(L".:") !=
-                             std::wstring_view::npos &&
-                         bstr_view.substr(0, 11) != L"javascript:";
-                });
-              }
-            });
-          }
-          return flag;
-        },
-        true);  // rawTraversal
+  if (!top) {
+    return false;
   }
+
+  bool flag = false;
+  TraversalAccessible(
+      top,
+      [&flag, &pt](NodePtr child) {
+        if (GetAccessibleRole(child) != ROLE_SYSTEM_PUSHBUTTON) {
+          return false;
+        }
+
+        GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
+          if (!PtInRect(&rect, pt)) {
+            return;
+          }
+
+          GetAccessibleDescription(child, [&flag](BSTR bstr) {
+            std::wstring_view bstr_view(bstr);
+            flag = bstr_view.find_first_of(L".:") != std::wstring_view::npos &&
+                   bstr_view.substr(0, 11) != L"javascript:";
+          });
+        });
+
+        return flag;
+      },
+      true);  // rawTraversal
+
   return flag;
 }
 
 // 鼠标是否在菜单栏的书签文件（夹）上
 bool IsOnMenuBookmark(NodePtr top, POINT pt) {
-  bool flag = false;
   NodePtr MenuBar = FindElementWithRole(top, ROLE_SYSTEM_MENUBAR);
-  if (MenuBar) {
-    NodePtr MenuItem = FindElementWithRole(MenuBar, ROLE_SYSTEM_MENUITEM);
-    if (MenuItem) {
-      NodePtr MenuBarPane = GetParentElement(MenuItem);
-      if (MenuBarPane) {
-        TraversalAccessible(
-            MenuBarPane, [&flag, &pt, &MenuBarPane](NodePtr child) {
-              if (GetAccessibleRole(child) == ROLE_SYSTEM_MENUITEM) {
-                GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
-                  if (PtInRect(&rect, pt)) {
-                    GetAccessibleDescription(child, [&flag](BSTR bstr) {
-                      if (bstr && ((wcsstr(bstr, L".") != nullptr ||
-                                    wcsstr(bstr, L":") != nullptr) &&
-                                   wcsstr(bstr, L"javascript:") != bstr)) {
-                        flag = true;
-                      }
-                    });
-                  }
-                });
-              }
-              return flag;
-            });
-      }
-    }
+  if (!MenuBar) {
+    return false;
   }
+
+  NodePtr MenuItem = FindElementWithRole(MenuBar, ROLE_SYSTEM_MENUITEM);
+  if (!MenuItem) {
+    return false;
+  }
+
+  NodePtr MenuBarPane = GetParentElement(MenuItem);
+  if (!MenuBarPane) {
+    return false;
+  }
+
+  bool flag = false;
+  TraversalAccessible(MenuBarPane, [&flag, &pt](NodePtr child) {
+    if (GetAccessibleRole(child) != ROLE_SYSTEM_MENUITEM) {
+      return false;
+    }
+
+    GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
+      if (!PtInRect(&rect, pt)) {
+        return;
+      }
+
+      GetAccessibleDescription(child, [&flag](BSTR bstr) {
+        std::wstring_view bstr_view(bstr);
+        flag = (bstr_view.find(L".") != std::wstring_view::npos ||
+                bstr_view.find(L":") != std::wstring_view::npos) &&
+               bstr_view.substr(0, 11) != L"javascript:";
+      });
+    });
+
+    return flag;
+  });
+
   return flag;
 }
 
 // 地址栏是否已经获得焦点
 bool IsOmniboxFocus(NodePtr top) {
-  bool flag = false;
   NodePtr ToolBar = FindElementWithRole(top, ROLE_SYSTEM_TOOLBAR);
-  if (ToolBar) {
-    NodePtr OmniboxEdit = FindElementWithRole(ToolBar, ROLE_SYSTEM_TEXT);
-    if (OmniboxEdit) {
-      NodePtr ToolBarGroup = GetParentElement(OmniboxEdit);
-      if (ToolBarGroup) {
-        TraversalAccessible(ToolBarGroup, [&flag](NodePtr child) {
-          if (GetAccessibleRole(child) == ROLE_SYSTEM_TEXT) {
-            if (GetAccessibleState(child) & STATE_SYSTEM_FOCUSED) {
-              flag = true;
-            }
-          }
-          return flag;
-        });
-      }
-    }
+  if (!ToolBar) {
+    return false;
   }
+
+  NodePtr OmniboxEdit = FindElementWithRole(ToolBar, ROLE_SYSTEM_TEXT);
+  if (!OmniboxEdit) {
+    return false;
+  }
+
+  NodePtr ToolBarGroup = GetParentElement(OmniboxEdit);
+  if (!ToolBarGroup) {
+    return false;
+  }
+
+  bool flag = false;
+  TraversalAccessible(ToolBarGroup, [&flag](NodePtr child) {
+    if (GetAccessibleRole(child) != ROLE_SYSTEM_TEXT) {
+      return false;
+    }
+
+    if (GetAccessibleState(child) & STATE_SYSTEM_FOCUSED) {
+      flag = true;
+    }
+
+    return flag;
+  });
+
   return flag;
 }
 
-#endif // IACCESSIBLEUTILS_H_
+#endif  // IACCESSIBLEUTILS_H_
