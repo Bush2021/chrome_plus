@@ -1,9 +1,6 @@
 #ifndef HOTKEY_H_
 #define HOTKEY_H_
 
-#include <thread>
-#include <vector>
-
 #include <tchar.h>
 
 UINT ParseHotkeys(const TCHAR* keys) {
