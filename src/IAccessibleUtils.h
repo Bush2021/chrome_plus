@@ -22,10 +22,6 @@ void GetAccessibleName(NodePtr node, Function f)
         f(bstr);
         SysFreeString(bstr);
     }
-    else
-    {
-        DebugLog(L"GetAccessibleName failed");
-    }
 }
 
 template <typename Function>
@@ -40,11 +36,22 @@ void GetAccessibleDescription(NodePtr node, Function f)
     {
         f(bstr);
         SysFreeString(bstr);
-        DebugLog(L"GetAccessibleDescription succeeded");
     }
-    else
+}
+
+template <typename Function>
+void GetAccessibleValue(NodePtr node, Function f)
+{
+    VARIANT self;
+    self.vt = VT_I4;
+    self.lVal = CHILDID_SELF;
+
+    BSTR bstr = nullptr;
+    HRESULT hr = node->get_accValue(self, &bstr);
+    if (S_OK == hr)
     {
-        DebugLog(L"GetAccessibleDescription failed");
+        f(bstr);
+        SysFreeString(bstr);
     }
 }
 
@@ -337,14 +344,9 @@ bool IsOnTheTabBar(NodePtr top, POINT pt)
     return flag;
 }
 
-// 当前激活标签是否是新标签页
-bool IsOnNewTab(NodePtr top)
+// 从当前标签页的名称判断是否是新标签页
+bool IsNameNewTab(NodePtr top)
 {
-    if (!IsNewTabDisableFun())
-    {
-        return false;
-    }
-
     bool flag = false;
     std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
     NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
@@ -357,7 +359,7 @@ bool IsOnNewTab(NodePtr top)
         if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON)
         {
             GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-                new_tab_name.reset(_wcsdup(bstr));
+                new_tab_name.reset(_wcsdup(bstr)); // 保存从新建标签页按钮获取的名称
             });
         }
         return false;
@@ -382,13 +384,43 @@ bool IsOnNewTab(NodePtr top)
                 GetAccessibleName(child, [&flag, &new_tab_name](BSTR bstr) {
                     std::wstring_view bstr_view(bstr);
                     std::wstring_view new_tab_view(new_tab_name.get());
-                    flag = (bstr_view.compare(0, new_tab_view.size(), new_tab_view) == 0) ||
-                           (bstr_view.substr(0, 11) == L"about:blank");
+                    flag = (bstr_view.find(new_tab_view) != std::wstring::npos) ||
+                           (bstr_view.find(L"about:blank") != std::wstring::npos);
                 });
             }
             return false;
         });
     return flag;
+}
+
+// 从标签页的文档 value 判断是否是新标签页
+bool IsDocNewTab()
+{
+    bool flag = false;
+    HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr, L"Chrome_RenderWidgetHostHWND", nullptr);
+    NodePtr paccMainWindow = nullptr;
+    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW, IID_PPV_ARGS(&paccMainWindow)))
+    {
+        NodePtr Document = FindElementWithRole(paccMainWindow, ROLE_SYSTEM_DOCUMENT);
+        if (Document)
+        {
+            GetAccessibleValue(Document, [&flag](BSTR bstr) {
+                std::wstring_view bstr_view(bstr);
+                flag = bstr_view.find(L"chrome://newtab") != std::wstring_view::npos ||
+                       bstr_view.find(L"chrome://new-tab-page") != std::wstring_view::npos;
+            });
+        }
+    }
+    return flag;
+}
+
+bool IsOnNewTab(NodePtr top)
+{
+    if (!IsNewTabDisableFun())
+    {
+        return false;
+    }
+    return IsNameNewTab(top) || IsDocNewTab();
 }
 
 // 鼠标是否在书签上
