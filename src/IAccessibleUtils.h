@@ -392,6 +392,7 @@ bool IsDocNewTab() {
     NodePtr Document =
         FindElementWithRole(paccMainWindow, ROLE_SYSTEM_DOCUMENT);
     if (Document) {
+      // Document 的 accValue 需要添加启动参数 --force-renderer-accessibility 来获取
       GetAccessibleValue(Document, [&flag](BSTR bstr) {
         std::wstring_view bstr_view(bstr);
         flag =
