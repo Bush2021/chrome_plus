@@ -1,11 +1,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+#include <algorithm>
+#include <cctype>
+#include <functional>
 #include <string>
 #include <vector>
-#include <cctype>
-#include <algorithm>
-#include <functional>
+
+#include <windows.h>
 
 #include "FastSearch.h"
 
@@ -86,23 +88,37 @@ std::wstring GetAppDir() {
   return path;
 }
 
+std::string wstring_to_string(const std::wstring& wstr) {
+  int cbMultiByte =
+      WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+
+  std::string str(cbMultiByte - 1, '\0');
+
+  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], cbMultiByte, NULL,
+                      NULL);
+
+  return str;
+}
+
 void DebugLog(const wchar_t* format, ...) {
-  //    va_list args;
-  //
-  //    va_start(args, format);
-  //    auto str = Format(format, args);
-  //    va_end(args);
-  //
-  //    str = Format(L"[chrome++]%s\n", str.c_str());
-  //
-  //    FILE *fp = nullptr;
-  //    std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
-  //    _wfopen_s(&fp, logPath.c_str(), L"a+");
-  //    if (fp)
-  //    {
-  //        fwrite(str.c_str(), str.size() * sizeof(wchar_t), 1, fp);
-  //        fclose(fp);
-  //    }
+  // va_list args;
+
+  // va_start(args, format);
+  // auto str = Format(format, args);
+  // va_end(args);
+
+  // str = Format(L"[chrome++]%s\n", str.c_str());
+
+  // std::string nstr = wstring_to_string(str);
+  // const char* cstr = nstr.c_str();
+
+  // FILE* fp = nullptr;
+  // std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+  // _wfopen_s(&fp, logPath.c_str(), L"a+");
+  // if (fp) {
+  //   fwrite(cstr, strlen(cstr), 1, fp);
+  //   fclose(fp);
+  // }
 }
 
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc

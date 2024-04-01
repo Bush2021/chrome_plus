@@ -1,2 +1,4 @@
 .xmake/
 build/
+.vscode/
+.idea/
