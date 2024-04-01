@@ -139,4 +139,9 @@ bool IsNewTabDisableFun() {
   return ::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1, IniPath.c_str()) != 0;
 }
 
+// 自定义禁用标签页名称
+std::wstring GetDisableTabName() {
+  return IsIniExist() ? GetIniString(L"Tabs", L"new_tab_disable_name", L"") : L"";
+}
+
 #endif  // CONFIG_H_
