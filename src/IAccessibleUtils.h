@@ -107,76 +107,86 @@ void TraversalAccessible(NodePtr node, Function f, bool rawTraversal = false,
     return;
 
   if (useBFS) {
-    std::queue<NodePtr> queue;
-    for (const auto& varChild : varChildren) {
-      if (varChild.vt != VT_DISPATCH)
-        continue;
+    BFSTraversal(node, f, rawTraversal, varChildren);
+  } else {
+    DFSTraversal(node, f, rawTraversal, varChildren);
+  }
+}
 
-      Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
-      NodePtr child = nullptr;
-      if (S_OK != dispatch->QueryInterface(IID_IAccessible, (void**)&child))
-        continue;
+void BFSTraversal(NodePtr node, std::function<bool(NodePtr)> f,
+                  bool rawTraversal, std::vector<VARIANT> varChildren) {
+  std::queue<NodePtr> queue;
+  for (const auto& varChild : varChildren) {
+    if (varChild.vt != VT_DISPATCH)
+      continue;
 
-      queue.push(child);
-    }
+    Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
+    NodePtr child = nullptr;
+    if (S_OK != dispatch->QueryInterface(IID_IAccessible, (void**)&child))
+      continue;
 
-    while (!queue.empty()) {
-      NodePtr current = queue.front();
-      queue.pop();
+    queue.push(child);
+  }
 
-      if (rawTraversal) {
-        if (f(current))
-          break;
+  while (!queue.empty()) {
+    NodePtr current = queue.front();
+    queue.pop();
 
-        long childCount = 0;
-        if (S_OK == current->get_accChildCount(&childCount) && childCount > 0) {
-          std::vector<VARIANT> varChildren(childCount);
-          if (S_OK == AccessibleChildren(current.Get(), 0, childCount,
-                                         varChildren.data(), &childCount)) {
-            for (const auto& varChild : varChildren) {
-              if (varChild.vt != VT_DISPATCH)
-                continue;
+    if (rawTraversal) {
+      if (f(current))
+        break;
 
-              Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
-              NodePtr child = nullptr;
-              if (S_OK !=
-                  dispatch->QueryInterface(IID_IAccessible, (void**)&child))
-                continue;
+      long childCount = 0;
+      if (S_OK == current->get_accChildCount(&childCount) && childCount > 0) {
+        std::vector<VARIANT> varChildren(childCount);
+        if (S_OK == AccessibleChildren(current.Get(), 0, childCount,
+                                       varChildren.data(), &childCount)) {
+          for (const auto& varChild : varChildren) {
+            if (varChild.vt != VT_DISPATCH)
+              continue;
 
-              queue.push(child);
-            }
+            Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
+            NodePtr child = nullptr;
+            if (S_OK !=
+                dispatch->QueryInterface(IID_IAccessible, (void**)&child))
+              continue;
+
+            queue.push(child);
           }
         }
-      } else {
-        if ((GetAccessibleState(current) & STATE_SYSTEM_INVISIBLE) ==
-            0)  // 只遍历可见节点
-        {
-          if (f(current))
-            break;
-        }
+      }
+    } else {
+      if ((GetAccessibleState(current) & STATE_SYSTEM_INVISIBLE) ==
+          0)  // 只遍历可见节点
+      {
+        if (f(current))
+          break;
       }
     }
-  } else {
-    for (const auto& varChild : varChildren) {
-      if (varChild.vt != VT_DISPATCH)
-        continue;
+  }
+}
 
-      Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
-      NodePtr child = nullptr;
-      if (S_OK != dispatch->QueryInterface(IID_IAccessible, (void**)&child))
-        continue;
+void DFSTraversal(NodePtr node, std::function<bool(NodePtr)> f,
+                  bool rawTraversal, std::vector<VARIANT> varChildren) {
+  for (const auto& varChild : varChildren) {
+    if (varChild.vt != VT_DISPATCH)
+      continue;
 
-      if (rawTraversal) {
-        TraversalAccessible(child, f, true);
+    Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
+    NodePtr child = nullptr;
+    if (S_OK != dispatch->QueryInterface(IID_IAccessible, (void**)&child))
+      continue;
+
+    if (rawTraversal) {
+      TraversalAccessible(child, f, true);
+      if (f(child))
+        break;
+    } else {
+      if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) ==
+          0)  // 只遍历可见节点
+      {
         if (f(child))
           break;
-      } else {
-        if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) ==
-            0)  // 只遍历可见节点
-        {
-          if (f(child))
-            break;
-        }
       }
     }
   }
