@@ -37,7 +37,7 @@ bool handleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
     return false;
   }
 
-  HWND hwnd = WindowFromPoint(pmouse->pt);
+  HWND hwnd = GetFocus();
   NodePtr TopContainerView = GetTopContainerView(hwnd);
 
   PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
