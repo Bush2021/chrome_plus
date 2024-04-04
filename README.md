@@ -41,3 +41,4 @@ Place version.dll in the same directory as chrome.exe.
 * [York Waugh](https://github.com/YorkWaugh/)
 * [面向大海](https://github.com/mxdh/)
 * [Ho Cheung](https://github.com/gz83/)
+* [Ritchie1108](https://github.com/Ritchie1108/)
