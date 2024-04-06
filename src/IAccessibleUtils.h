@@ -113,7 +113,7 @@ void TraversalAccessible(NodePtr node, Function f) {
           continue;
         }
         if (bDone) {
-          arrChildren[j].pdispVal->Release(); // 立刻释放，避免内存泄漏
+          arrChildren[j].pdispVal->Release();  // 立刻释放，避免内存泄漏
           continue;
         }
 
@@ -197,6 +197,23 @@ NodePtr FindElementWithRole(NodePtr node, long role) {
   return element;
 }
 
+NodePtr FindPageTabList(NodePtr node) {
+  NodePtr PageTabList = nullptr;
+  if (node) {
+    TraversalAccessible(node, [&](NodePtr child) {
+      if (auto role = GetAccessibleRole(child);
+          role == ROLE_SYSTEM_PAGETABLIST) {
+        PageTabList = child;
+      } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
+        // 必须保留这两个判断，否则会闪退 (#56)
+        PageTabList = FindPageTabList(child);
+      }
+      return PageTabList;
+    });
+  }
+  return PageTabList;
+}
+
 NodePtr GetParentElement(NodePtr child) {
   NodePtr element = nullptr;
   Microsoft::WRL::ComPtr<IDispatch> dispatch = nullptr;
@@ -217,8 +234,7 @@ NodePtr GetTopContainerView(HWND hwnd) {
     NodePtr paccMainWindow = nullptr;
     if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
                                            IID_PPV_ARGS(&paccMainWindow))) {
-      NodePtr PageTabList =
-          FindElementWithRole(paccMainWindow, ROLE_SYSTEM_PAGETABLIST);
+      NodePtr PageTabList = FindPageTabList(paccMainWindow);
       if (PageTabList) {
         TopContainerView = GetParentElement(PageTabList);
       }
