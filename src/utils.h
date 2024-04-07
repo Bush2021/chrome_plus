@@ -9,6 +9,9 @@
 
 #include <windows.h>
 
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
+
 #include "FastSearch.h"
 
 std::wstring Format(const wchar_t* format, va_list args) {
@@ -55,7 +58,7 @@ uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m) {
       break;
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
@@ -75,50 +78,48 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
       break;
     }
   }
-  return NULL;
+  return nullptr;
 }
-#include <Shlwapi.h>
-#pragma comment(lib, "Shlwapi.lib")
 
 // 获得程序所在文件夹
 std::wstring GetAppDir() {
   wchar_t path[MAX_PATH];
-  ::GetModuleFileName(NULL, path, MAX_PATH);
+  ::GetModuleFileName(nullptr, path, MAX_PATH);
   ::PathRemoveFileSpec(path);
   return path;
 }
 
 std::string wstring_to_string(const std::wstring& wstr) {
-  int cbMultiByte =
-      WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, NULL, 0, NULL, NULL);
+  int cbMultiByte = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, nullptr, 0,
+                                        nullptr, nullptr);
 
   std::string str(cbMultiByte - 1, '\0');
 
-  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], cbMultiByte, NULL,
-                      NULL);
+  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], cbMultiByte,
+                      nullptr, nullptr);
 
   return str;
 }
 
 void DebugLog(const wchar_t* format, ...) {
-//  va_list args;
-//
-//  va_start(args, format);
-//  auto str = Format(format, args);
-//  va_end(args);
-//
-//  str = Format(L"[chrome++] %s\n", str.c_str());
-//
-//  std::string nstr = wstring_to_string(str);
-//  const char* cstr = nstr.c_str();
-//
-//  FILE* fp = nullptr;
-//  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
-//  _wfopen_s(&fp, logPath.c_str(), L"a+");
-//  if (fp) {
-//    fwrite(cstr, strlen(cstr), 1, fp);
-//    fclose(fp);
-//  }
+  //  va_list args;
+  //
+  //  va_start(args, format);
+  //  auto str = Format(format, args);
+  //  va_end(args);
+  //
+  //  str = Format(L"[chrome++] %s\n", str.c_str());
+  //
+  //  std::string nstr = wstring_to_string(str);
+  //  const char* cstr = nstr.c_str();
+  //
+  //  FILE* fp = nullptr;
+  //  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+  //  _wfopen_s(&fp, logPath.c_str(), L"a+");
+  //  if (fp) {
+  //    fwrite(cstr, strlen(cstr), 1, fp);
+  //    fclose(fp);
+  //  }
 }
 
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
@@ -162,8 +163,7 @@ void StringSplit(String* str, Char delim, Function f) {
     if (*str == delim) {
       *str = 0;  // 截断字符串
 
-      if (str - ptr)  // 非空字符串
-      {
+      if (str - ptr) {  // 非空字符串
         f(ptr);
       }
 
@@ -173,86 +173,88 @@ void StringSplit(String* str, Char delim, Function f) {
     str++;
   }
 
-  if (str - ptr)  // 非空字符串
-  {
+  if (str - ptr) {  // 非空字符串
     f(ptr);
   }
 }
 
 // 分别模拟按键按下和释放，适用于模拟单个按键操作
-// template <typename... T>
-// void SendKey(T... keys)
-// {
-//     std::vector<INPUT> inputs;
-//     std::vector<int> keys_ = {keys...};
-//     for (auto &key : keys_)
-//     {
-//         INPUT input = {0};
-//         input.type = INPUT_KEYBOARD;
-//         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
-//         input.ki.wVk = (WORD)key;
-//         input.ki.dwExtraInfo = MAGIC_CODE;
+//template <typename... T>
+//void SendKey(T... keys) {
+//  std::vector<INPUT> inputs;
+//  std::vector<int> keys_ = {keys...};
+//  for (auto& key : keys_) {
+//    INPUT input = {0};
+//    input.type = INPUT_KEYBOARD;
+//    input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+//    input.ki.wVk = (WORD)key;
+//    input.ki.dwExtraInfo = MAGIC_CODE;
 //
-//         // 修正鼠标消息
-//         switch (input.ki.wVk)
-//         {
-//             case VK_RBUTTON:
-//                 input.type = INPUT_MOUSE;
-//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_RIGHTDOWN;
-//                 input.mi.dwExtraInfo = MAGIC_CODE;
-//                 break;
-//             case VK_LBUTTON:
-//                 input.type = INPUT_MOUSE;
-//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
-//                 input.mi.dwExtraInfo = MAGIC_CODE;
-//                 break;
-//             case VK_MBUTTON:
-//                 input.type = INPUT_MOUSE;
-//                 input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-//                 input.mi.dwExtraInfo = MAGIC_CODE;
-//                 break;
-//         }
+//    // 修正鼠标消息
+//    switch (input.ki.wVk) {
+//      case VK_RBUTTON:
+//        input.type = INPUT_MOUSE;
+//        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+//                               ? MOUSEEVENTF_LEFTDOWN
+//                               : MOUSEEVENTF_RIGHTDOWN;
+//        input.mi.dwExtraInfo = MAGIC_CODE;
+//        break;
+//      case VK_LBUTTON:
+//        input.type = INPUT_MOUSE;
+//        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+//                               ? MOUSEEVENTF_RIGHTDOWN
+//                               : MOUSEEVENTF_LEFTDOWN;
+//        input.mi.dwExtraInfo = MAGIC_CODE;
+//        break;
+//      case VK_MBUTTON:
+//        input.type = INPUT_MOUSE;
+//        input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+//        input.mi.dwExtraInfo = MAGIC_CODE;
+//        break;
+//    }
 //
-//         inputs.push_back(input);
-//     }
-//     std::reverse(keys_.begin(), keys_.end());
-//     for (auto &key : keys_)
-//     {
-//         INPUT input = {0};
-//         input.type = INPUT_KEYBOARD;
-//         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
-//         input.ki.wVk = (WORD)key;
-//         input.ki.dwExtraInfo = MAGIC_CODE;
+//    inputs.push_back(input);
+//  }
+//  std::reverse(keys_.begin(), keys_.end());
+//  for (auto& key : keys_) {
+//    INPUT input = {0};
+//    input.type = INPUT_KEYBOARD;
+//    input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
+//    input.ki.wVk = (WORD)key;
+//    input.ki.dwExtraInfo = MAGIC_CODE;
 //
-//         // 修正鼠标消息
-//         switch (input.ki.wVk)
-//         {
-//             case VK_RBUTTON:
-//                 input.type = INPUT_MOUSE;
-//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_RIGHTUP;
-//                 input.mi.dwExtraInfo = MAGIC_CODE;
-//                 break;
-//             case VK_LBUTTON:
-//                 input.type = INPUT_MOUSE;
-//                 input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP;
-//                 input.mi.dwExtraInfo = MAGIC_CODE;
-//                 break;
-//             case VK_MBUTTON:
-//                 input.type = INPUT_MOUSE;
-//                 input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-//                 input.mi.dwExtraInfo = MAGIC_CODE;
-//                 break;
-//         }
+//    // 修正鼠标消息
+//    switch (input.ki.wVk) {
+//      case VK_RBUTTON:
+//        input.type = INPUT_MOUSE;
+//        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+//                               ? MOUSEEVENTF_LEFTUP
+//                               : MOUSEEVENTF_RIGHTUP;
+//        input.mi.dwExtraInfo = MAGIC_CODE;
+//        break;
+//      case VK_LBUTTON:
+//        input.type = INPUT_MOUSE;
+//        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+//                               ? MOUSEEVENTF_RIGHTUP
+//                               : MOUSEEVENTF_LEFTUP;
+//        input.mi.dwExtraInfo = MAGIC_CODE;
+//        break;
+//      case VK_MBUTTON:
+//        input.type = INPUT_MOUSE;
+//        input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+//        input.mi.dwExtraInfo = MAGIC_CODE;
+//        break;
+//    }
 //
-//         inputs.push_back(input);
-//     }
-//     // for (auto & key : inputs)
-//     //{
-//     //     DebugLog(L"%X %X", key.ki.wVk, key.mi.dwFlags);
-//     // }
+//    inputs.push_back(input);
+//  }
+//  // for (auto & key : inputs)
+//  //{
+//  //     DebugLog(L"%X %X", key.ki.wVk, key.mi.dwFlags);
+//  // }
 //
-//     ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
-// }
+//  ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
+//}
 
 // 发送组合按键操作
 class SendKeys {
@@ -331,7 +333,7 @@ bool isEndWith(const wchar_t* s, const wchar_t* sub) {
 // 获得指定路径的绝对路径
 std::wstring GetAbsolutePath(const std::wstring& path) {
   wchar_t buffer[MAX_PATH];
-  ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, NULL);
+  ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, nullptr);
   return buffer;
 }
 
@@ -347,6 +349,7 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path) {
   }
   return std::wstring(&buffer[0], 0, ExpandedLength);
 }
+
 // 替换 ini 文件中的字符串（宽字符处理中文路径）
 void ReplaceStringIni(std::wstring& subject, const std::wstring& search,
                       const std::wstring& replace) {
@@ -409,17 +412,18 @@ bool ReplaceStringInPlace(std::string& subject, const std::string& search,
   }
   return find;
 }
-// bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize)
-//{
-//     DWORD ProtectFlag = 0;
-//     if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, PAGE_EXECUTE_READWRITE, &ProtectFlag))
-//     {
-//         memcpy(BaseAddress, Buffer, nSize);
-//         FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-//         VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag, &ProtectFlag);
-//         return true;
-//     }
-//     return false;
-// }
+
+//bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
+//  DWORD ProtectFlag = 0;
+//  if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
+//                       PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
+//    memcpy(BaseAddress, Buffer, nSize);
+//    FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
+//    VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
+//                     &ProtectFlag);
+//    return true;
+//  }
+//  return false;
+//}
 
 #endif  // UTILS_H_
