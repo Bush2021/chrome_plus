@@ -466,8 +466,8 @@ bool IsDocNewTab() {
       GetAccessibleValue(Document, [&flag](BSTR bstr) {
         std::wstring_view bstr_view(bstr);
         flag =
-            bstr_view.find(L"chrome://newtab") != std::wstring_view::npos ||
-            bstr_view.find(L"chrome://new-tab-page") != std::wstring_view::npos;
+            bstr_view.find(L"://newtab") != std::wstring_view::npos ||
+            bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
       });
     }
   }
