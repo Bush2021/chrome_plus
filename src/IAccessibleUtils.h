@@ -91,93 +91,64 @@ long GetAccessibleState(NodePtr node) {
 }
 
 template <typename Function>
-void TraversalAccessible(NodePtr node, Function f) {
-  if (!node)
+void TraversalAccessible(NodePtr node, Function f, bool rawTraversal = false) {
+  if (!node) {
     return;
+  }
 
   long childCount = 0;
-  if (S_OK != node->get_accChildCount(&childCount) || !childCount)
+  if (S_OK != node->get_accChildCount(&childCount) || childCount == 0) {
     return;
+  }
 
   auto nStep = childCount < 20 ? childCount : 20;
   for (auto i = 0; i < childCount;) {
     auto arrChildren = std::make_unique<VARIANT[]>(nStep);
 
     long nGetCount = 0;
-    if (S_OK == AccessibleChildren(node.Get(), i, nStep, arrChildren.get(),
-                                   &nGetCount)) {
+    if (S_OK != AccessibleChildren(node.Get(), i, nStep, arrChildren.get(), &nGetCount)) {
+      return;
+    }
 
-      bool bDone = false;
-      for (int j = 0; j < nGetCount; ++j) {
-        if (arrChildren[j].vt != VT_DISPATCH) {
-          continue;
-        }
-        if (bDone) {
-          arrChildren[j].pdispVal->Release();  // 立刻释放，避免内存泄漏
-          continue;
-        }
-
-        Microsoft::WRL::ComPtr<IDispatch> pDispatch = arrChildren[j].pdispVal;
-        NodePtr pChild = nullptr;
-        if (S_OK ==
-            pDispatch->QueryInterface(IID_IAccessible, (void**)&pChild)) {
-          if ((GetAccessibleState(pChild) & STATE_SYSTEM_INVISIBLE) == 0) {
-            if (f(pChild)) {
-              bDone = true;
-            }
-          }
-        }
+    bool bDone = false;
+    for (int j = 0; j < nGetCount; ++j) {
+      if (arrChildren[j].vt != VT_DISPATCH) {
+        continue;
       }
 
       if (bDone) {
-        return;
+        arrChildren[j].pdispVal->Release();  // 立刻释放，避免内存泄漏
+        continue;
       }
+
+      Microsoft::WRL::ComPtr<IDispatch> pDispatch = arrChildren[j].pdispVal;
+      NodePtr pChild = nullptr;
+      if (S_OK != pDispatch->QueryInterface(IID_IAccessible, (void**)&pChild)) {
+        continue;
+      }
+
+      if (rawTraversal) {
+        TraversalAccessible(pChild, f, true);
+        if (f(pChild)) {
+          bDone = true;
+        }
+      } else {
+        if ((GetAccessibleState(pChild) & STATE_SYSTEM_INVISIBLE) == 0) {
+          if (f(pChild)) {
+            bDone = true;
+          }
+        }
+      }
+    }
+
+    if (bDone) {
+      return;
     }
 
     i += nStep;
 
     if (i + nStep >= childCount) {
       nStep = childCount - i;
-    }
-  }
-}
-
-// 原 TraversalAccessible 函数，现在被使用步进的新函数替代，只保留 Raw 遍历功能
-template <typename Function>
-void TraversalRawAccessible(NodePtr node, Function f,
-                            bool rawTraversal = false) {
-  if (!node)
-    return;
-
-  long childCount = 0;
-  if (S_OK != node->get_accChildCount(&childCount) || !childCount)
-    return;
-
-  std::vector<VARIANT> varChildren(childCount);
-  if (S_OK != AccessibleChildren(node.Get(), 0, childCount, varChildren.data(),
-                                 &childCount))
-    return;
-
-  for (const auto& varChild : varChildren) {
-    if (varChild.vt != VT_DISPATCH)
-      continue;
-
-    Microsoft::WRL::ComPtr<IDispatch> dispatch = varChild.pdispVal;
-    NodePtr child = nullptr;
-    if (S_OK != dispatch->QueryInterface(IID_IAccessible, (void**)&child))
-      continue;
-
-    if (rawTraversal) {
-      TraversalRawAccessible(child, f, true);
-      if (f(child))
-        break;
-    } else {
-      if ((GetAccessibleState(child) & STATE_SYSTEM_INVISIBLE) ==
-          0)  // 只遍历可见节点
-      {
-        if (f(child))
-          break;
-      }
     }
   }
 }
@@ -465,9 +436,8 @@ bool IsDocNewTab() {
       // Document 的 accValue 需要添加启动参数 --force-renderer-accessibility 来获取
       GetAccessibleValue(Document, [&flag](BSTR bstr) {
         std::wstring_view bstr_view(bstr);
-        flag =
-            bstr_view.find(L"://newtab") != std::wstring_view::npos ||
-            bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
+        flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
+               bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
       });
     }
   }
@@ -488,7 +458,7 @@ bool IsOnBookmark(NodePtr top, POINT pt) {
   }
 
   bool flag = false;
-  TraversalRawAccessible(
+  TraversalAccessible(
       top,
       [&flag, &pt](NodePtr child) {
         if (GetAccessibleRole(child) != ROLE_SYSTEM_PUSHBUTTON) {
