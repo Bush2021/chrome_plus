@@ -97,7 +97,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
   }
 
   long child_count = 0;
-  if (S_OK != node->get_accchild_count(&child_count) || child_count == 0) {
+  if (S_OK != node->get_accChildCount(&child_count) || child_count == 0) {
     return;
   }
 
