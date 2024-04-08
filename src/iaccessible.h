@@ -355,33 +355,6 @@ bool IsOnTheTabBar(NodePtr top, POINT pt) {
 // 从当前标签页的名称判断是否是新标签页
 bool IsNameNewTab(NodePtr top) {
 
-  std::vector<std::wstring> disableTabNames;
-  std::wstring disableTabNamesStr = GetDisableTabName();
-  std::wstring::size_type start = 0;
-  std::wstring::size_type end = disableTabNamesStr.find(L',');
-  while (end != std::wstring::npos) {
-    std::wstring name = disableTabNamesStr.substr(start, end - start);
-    if (!name.empty() && name.front() == L'"') {
-      name.erase(0, 1);
-    }
-    if (!name.empty() && name.back() == L'"') {
-      name.erase(name.size() - 1);
-    }
-    disableTabNames.push_back(name);
-    start = end + 1;
-    end = disableTabNamesStr.find(L',', start);
-  }
-  if (start < disableTabNamesStr.length()) {
-    std::wstring name = disableTabNamesStr.substr(start);
-    if (!name.empty() && name.front() == L'"') {
-      name.erase(0, 1);
-    }
-    if (!name.empty() && name.back() == L'"') {
-      name.erase(name.size() - 1);
-    }
-    disableTabNames.push_back(name);
-  }
-
   bool flag = false;
   std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
@@ -408,16 +381,19 @@ bool IsNameNewTab(NodePtr top) {
     return false;
   }
 
+  std::vector<std::wstring> disable_tab_names =
+      StringSplit(GetDisableTabName(), L',', L"\"");
+
   TraversalAccessible(
-      page_tab_pane, [&flag, &new_tab_name, &disableTabNames](NodePtr child) {
+      page_tab_pane, [&flag, &new_tab_name, &disable_tab_names](NodePtr child) {
         if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) {
           GetAccessibleName(
-              child, [&flag, &new_tab_name, &disableTabNames](BSTR bstr) {
+              child, [&flag, &new_tab_name, &disable_tab_names](BSTR bstr) {
                 std::wstring_view bstr_view(bstr);
                 std::wstring_view new_tab_view(new_tab_name.get());
                 flag = (bstr_view.find(new_tab_view) != std::wstring::npos);
-                for (const auto& disableTabName : disableTabNames) {
-                  if (bstr_view.find(disableTabName) != std::wstring::npos) {
+                for (const auto& tab_name : disable_tab_names) {
+                  if (bstr_view.find(tab_name) != std::wstring::npos) {
                     flag = true;
                     break;
                   }

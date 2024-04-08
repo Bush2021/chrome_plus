@@ -156,26 +156,40 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
   ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
 }
 
-template <typename String, typename Char, typename Function>
-void StringSplit(String* str, Char delim, Function f) {
-  String* ptr = str;
-  while (*str) {
-    if (*str == delim) {
-      *str = 0;  // 截断字符串
-
-      if (str - ptr) {  // 非空字符串
-        f(ptr);
-      }
-
-      *str = delim;   // 还原字符串
-      ptr = str + 1;  // 移动下次结果指针
+// 指定分隔符、包裹符号分割字符串
+std::vector<std::wstring> StringSplit(const std::wstring& str,
+                                      const wchar_t delim,
+                                      const std::wstring& enclosure) {
+  std::vector<std::wstring> result;
+  std::wstring::size_type start = 0;
+  std::wstring::size_type end = str.find(delim);
+  while (end != std::wstring::npos) {
+    std::wstring name = str.substr(start, end - start);
+    if (!enclosure.empty() && !name.empty() &&
+        name.front() == enclosure.front()) {
+      name.erase(0, 1);
     }
-    str++;
+    if (!enclosure.empty() && !name.empty() &&
+        name.back() == enclosure.back()) {
+      name.erase(name.size() - 1);
+    }
+    result.push_back(name);
+    start = end + 1;
+    end = str.find(delim, start);
   }
-
-  if (str - ptr) {  // 非空字符串
-    f(ptr);
+  if (start < str.length()) {
+    std::wstring name = str.substr(start);
+    if (!enclosure.empty() && !name.empty() &&
+        name.front() == enclosure.front()) {
+      name.erase(0, 1);
+    }
+    if (!enclosure.empty() && !name.empty() &&
+        name.back() == enclosure.back()) {
+      name.erase(name.size() - 1);
+    }
+    result.push_back(name);
   }
+  return result;
 }
 
 // 发送组合按键操作
