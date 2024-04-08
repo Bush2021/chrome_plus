@@ -1,94 +1,55 @@
 #ifndef HOTKEY_H_
 #define HOTKEY_H_
 
-#include <tchar.h>
+#include <iterator>
 
-UINT ParseHotkeys(const TCHAR* keys) {
+UINT ParseHotkeys(const wchar_t* keys) {
   UINT mo = 0;
   UINT vk = 0;
 
   std::wstring temp = keys;
   std::vector<std::wstring> key_parts = StringSplit(temp, L'+', L"");
 
+  std::unordered_map<std::wstring, UINT> keyMap = {
+      {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
+      {L"win", MOD_WIN},      {L"left", VK_LEFT},     {L"right", VK_RIGHT},
+      {L"up", VK_UP},         {L"down", VK_DOWN},     {L"←", VK_LEFT},
+      {L"→", VK_RIGHT},       {L"↑", VK_UP},          {L"↓", VK_DOWN},
+      {L"esc", VK_ESCAPE},    {L"tab", VK_TAB},       {L"backspace", VK_BACK},
+      {L"enter", VK_RETURN},  {L"space", VK_SPACE},   {L"prtsc", VK_SNAPSHOT},
+      {L"scroll", VK_SCROLL}, {L"pause", VK_PAUSE},   {L"insert", VK_INSERT},
+      {L"delete", VK_DELETE}, {L"end", VK_END},       {L"home", VK_HOME},
+      {L"pageup", VK_PRIOR},  {L"pagedown", VK_NEXT},
+  };
+
   for (auto& key : key_parts) {
-    // 解析控制键
-    if (_tcsicmp(key.c_str(), _T("Shift")) == 0)
-      mo |= MOD_SHIFT;
-    else if (_tcsicmp(key.c_str(), _T("Ctrl")) == 0)
-      mo |= MOD_CONTROL;
-    else if (_tcsicmp(key.c_str(), _T("Alt")) == 0)
-      mo |= MOD_ALT;
-    else if (_tcsicmp(key.c_str(), _T("Win")) == 0)
-      mo |= MOD_WIN;
+    std::wstring lowerKey;
+    std::transform(key.begin(), key.end(), std::back_inserter(lowerKey),
+                   ::tolower);
 
-    TCHAR wch = key[0];
-    if (_tcslen(key.c_str()) == 1)  // 解析单个字符A-Z、0-9等
-    {
-      if (isalnum(wch))
-        vk = toupper(wch);
-      else
-        vk = LOWORD(VkKeyScan(wch));
-    } else if (_tcslen(key.c_str()) > 1 &&
-               (wch == 'F' || wch == 'f'))  // 解析F1-F24功能键
-    {
-      if (isdigit(key[1])) {
-        int FX = _ttoi(&key[1]);
-        if (FX >= 1 && FX <= 24)
-          vk = VK_F1 + FX - 1;
+    if (keyMap.count(lowerKey)) {
+      if (lowerKey == L"shift" || lowerKey == L"ctrl" || lowerKey == L"alt" ||
+          lowerKey == L"win") {
+        mo |= keyMap[lowerKey];
+      } else {
+        vk = keyMap[lowerKey];
       }
-    } else  // 解析其他按键
-    {
-      if (_tcsicmp(key.c_str(), _T("Left")) == 0)
-        vk = VK_LEFT;
-      else if (_tcsicmp(key.c_str(), _T("Right")) == 0)
-        vk = VK_RIGHT;
-      else if (_tcsicmp(key.c_str(), _T("Up")) == 0)
-        vk = VK_UP;
-      else if (_tcsicmp(key.c_str(), _T("Down")) == 0)
-        vk = VK_DOWN;
-
-      else if (_tcsicmp(key.c_str(), _T("←")) == 0)
-        vk = VK_LEFT;
-      else if (_tcsicmp(key.c_str(), _T("→")) == 0)
-        vk = VK_RIGHT;
-      else if (_tcsicmp(key.c_str(), _T("↑")) == 0)
-        vk = VK_UP;
-      else if (_tcsicmp(key.c_str(), _T("↓")) == 0)
-        vk = VK_DOWN;
-
-      else if (_tcsicmp(key.c_str(), _T("Esc")) == 0)
-        vk = VK_ESCAPE;
-      else if (_tcsicmp(key.c_str(), _T("Tab")) == 0)
-        vk = VK_TAB;
-
-      else if (_tcsicmp(key.c_str(), _T("Backspace")) == 0)
-        vk = VK_BACK;
-      else if (_tcsicmp(key.c_str(), _T("Enter")) == 0)
-        vk = VK_RETURN;
-      else if (_tcsicmp(key.c_str(), _T("Space")) == 0)
-        vk = VK_SPACE;
-
-      else if (_tcsicmp(key.c_str(), _T("PrtSc")) == 0)
-        vk = VK_SNAPSHOT;
-      else if (_tcsicmp(key.c_str(), _T("Scroll")) == 0)
-        vk = VK_SCROLL;
-      else if (_tcsicmp(key.c_str(), _T("Pause")) == 0)
-        vk = VK_PAUSE;
-
-      else if (_tcsicmp(key.c_str(), _T("Insert")) == 0)
-        vk = VK_INSERT;
-      else if (_tcsicmp(key.c_str(), _T("Delete")) == 0)
-        vk = VK_DELETE;
-
-      else if (_tcsicmp(key.c_str(), _T("End")) == 0)
-        vk = VK_END;
-      else if (_tcsicmp(key.c_str(), _T("Home")) == 0)
-        vk = VK_HOME;
-
-      else if (_tcsicmp(key.c_str(), _T("PageUp")) == 0)
-        vk = VK_PRIOR;
-      else if (_tcsicmp(key.c_str(), _T("PageDown")) == 0)
-        vk = VK_NEXT;
+    } else {
+      TCHAR wch = key[0];
+      if (key.length() == 1)  // 解析单个字符A-Z、0-9等
+      {
+        if (isalnum(wch))
+          vk = toupper(wch);
+        else
+          vk = LOWORD(VkKeyScan(wch));
+      } else if (wch == 'F' || wch == 'f')  // 解析F1-F24功能键
+      {
+        if (isdigit(key[1])) {
+          int FX = _wtoi(&key[1]);
+          if (FX >= 1 && FX <= 24)
+            vk = VK_F1 + FX - 1;
+        }
+      }
     }
   }
 
