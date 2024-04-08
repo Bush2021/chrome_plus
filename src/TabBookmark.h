@@ -20,12 +20,12 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   static auto LAST_CLOSING_TAB_TICK = GetTickCount64();
   auto tick = GetTickCount64() - LAST_CLOSING_TAB_TICK;
   LAST_CLOSING_TAB_TICK = GetTickCount64();
-  if (tick > 0 && tick <= 200 && nTabCount <= 2){
-  	bIsOnlyOneTab = true;
+  if (tick > 0 && tick <= 200 && nTabCount <= 2) {
+    bIsOnlyOneTab = true;
   }
   bKeepTab = bIsOnlyOneTab;
-  if (ptr){
-  	*ptr = tick;
+  if (ptr) {
+    *ptr = tick;
   }
 
   return bKeepTab;
@@ -122,13 +122,13 @@ bool handleRightClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr TopContainerView = GetTopContainerView(hwnd);
+  NodePtr pTopContainerView = GetTopContainerView(hwnd);
 
-  bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-  bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+  bool bIsOnOneTab = IsOnOneTab(pTopContainerView, pmouse->pt);
+  bool bKeepTab = IsNeedKeep(hwnd);
 
-  if (isOnOneTab) {
-    if (isOnlyOneTab) {
+  if (bIsOnOneTab) {
+    if (bKeepTab) {
       ExecuteCommand(IDC_NEW_TAB);
       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
       ExecuteCommand(IDC_CLOSE_TAB);
@@ -137,7 +137,6 @@ bool handleRightClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
     }
     return true;
   }
-
   return false;
 }
 
@@ -153,16 +152,11 @@ bool handleMiddleClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   bool bIsOnOneTab = IsOnOneTab(pTopContainerView, pmouse->pt);
   bool bKeepTab = IsNeedKeep(hwnd);
 
-  if (bIsOnOneTab) {
-  	if (bKeepTab) {
-      ExecuteCommand(IDC_NEW_TAB);
-      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-      ExecuteCommand(IDC_CLOSE_TAB);
-    } else {
-      ExecuteCommand(IDC_CLOSE_TAB);
-    }
+  if (bIsOnOneTab && bKeepTab) {
+    ExecuteCommand(IDC_NEW_TAB);
     return true;
   }
+
   return false;
 }
 
@@ -268,7 +262,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
 
     if (handleMiddleClick(wParam, lParam, pmouse)) {
-    	return 1;
+      // return 1;
     }
 
     if (handleBookmark(wParam, lParam, pmouse)) {
