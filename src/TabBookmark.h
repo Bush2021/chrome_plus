@@ -3,11 +3,32 @@
 
 #include "IAccessibleUtils.h"
 
-HHOOK mouse_hook = NULL;
+HHOOK mouse_hook = nullptr;
 
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key) {
   return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
+}
+
+bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
+  bool bKeepTab = false;
+
+  NodePtr pTopContainerView = GetTopContainerView(hwnd);
+  auto nTabCount = GetTabCount(pTopContainerView);
+  bool bIsOnlyOneTab = nTabCount <= 1;
+
+  static auto LAST_CLOSING_TAB_TICK = GetTickCount64();
+  auto tick = GetTickCount64() - LAST_CLOSING_TAB_TICK;
+  LAST_CLOSING_TAB_TICK = GetTickCount64();
+  if (tick > 0 && tick <= 200 && nTabCount <= 2){
+  	bIsOnlyOneTab = true;
+  }
+  bKeepTab = bIsOnlyOneTab;
+  if (ptr){
+  	*ptr = tick;
+  }
+
+  return bKeepTab;
 }
 
 class IniConfig {
@@ -127,16 +148,21 @@ bool handleMiddleClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr TopContainerView = GetTopContainerView(hwnd);
+  NodePtr pTopContainerView = GetTopContainerView(hwnd);
 
-  bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-  bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+  bool bIsOnOneTab = IsOnOneTab(pTopContainerView, pmouse->pt);
+  bool bKeepTab = IsNeedKeep(hwnd);
 
-  if (isOnOneTab && isOnlyOneTab) {
-    ExecuteCommand(IDC_NEW_TAB);
+  if (bIsOnOneTab) {
+  	if (bKeepTab) {
+      ExecuteCommand(IDC_NEW_TAB);
+      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+      ExecuteCommand(IDC_CLOSE_TAB);
+    } else {
+      ExecuteCommand(IDC_CLOSE_TAB);
+    }
     return true;
   }
-
   return false;
 }
 
@@ -241,7 +267,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       return 1;
     }
 
-    if (handleMiddleClick(wParam, lParam, pmouse)) {}
+    if (handleMiddleClick(wParam, lParam, pmouse)) {
+    	return 1;
+    }
 
     if (handleBookmark(wParam, lParam, pmouse)) {
       return 1;
@@ -254,19 +282,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 next:
   // DebugLog(L"CallNextHookEx %X", wParam);
   return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-}
-
-bool IsNeedKeep() {
-  bool keep_tab = false;
-
-  NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
-  if (IsOnlyOneTab(TopContainerView)) {
-    keep_tab = true;
-  }
-
-  if (TopContainerView) {}
-
-  return keep_tab;
 }
 
 bool IsNeedOpenUrlInNewTab() {
@@ -284,20 +299,20 @@ bool IsNeedOpenUrlInNewTab() {
   return open_url_ing;
 }
 
-HHOOK keyboard_hook = NULL;
+HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
   {
-    bool keep_tab = false;
+    bool bKeepTab = false;
 
     if (wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) {
-      keep_tab = IsNeedKeep();
+      bKeepTab = IsNeedKeep(GetForegroundWindow());
     }
     if (wParam == VK_F4 && IsPressed(VK_CONTROL)) {
-      keep_tab = IsNeedKeep();
+      bKeepTab = IsNeedKeep(GetForegroundWindow());
     }
 
-    if (keep_tab) {
+    if (bKeepTab) {
       ExecuteCommand(IDC_NEW_TAB);
       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
       ExecuteCommand(IDC_CLOSE_TAB);

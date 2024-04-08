@@ -238,6 +238,41 @@ NodePtr GetMenuBarPane(HWND hwnd) {
   return MenuBarPane;
 }
 
+// 获取当前标签页数量
+__int64 GetTabCount(NodePtr top) {
+  NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  if (!PageTabList) {
+    return 0;
+  }
+
+  NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
+  if (!PageTab) {
+    return 0;
+  }
+
+  NodePtr PageTabPane = GetParentElement(PageTab);
+  if (!PageTabPane) {
+    return 0;
+  }
+
+  std::vector<NodePtr> children;
+  TraversalAccessible(PageTabPane, [&children](NodePtr child) {
+    children.push_back(child);
+    return false;
+  });
+
+  auto nTabCount =
+      std::count_if(children.begin(), children.end(), [](NodePtr child) {
+        auto role = GetAccessibleRole(child);
+        auto state = GetAccessibleState(child);
+        return role == ROLE_SYSTEM_PAGETAB ||
+               (role == ROLE_SYSTEM_PAGETABLIST &&
+                (state & STATE_SYSTEM_COLLAPSED));
+      });
+
+  return nTabCount;
+}
+
 NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
   NodePtr element = nullptr;
   if (parent) {
@@ -292,43 +327,12 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
   return flag;
 }
 
-// 是否只有一个标签
 bool IsOnlyOneTab(NodePtr top) {
   if (!IsKeepLastTabFun()) {
     return false;
   }
-
-  NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (!PageTabList) {
-    return false;
-  }
-
-  NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
-  if (!PageTab) {
-    return false;
-  }
-
-  NodePtr PageTabPane = GetParentElement(PageTab);
-  if (!PageTabPane) {
-    return false;
-  }
-
-  std::vector<NodePtr> children;
-  TraversalAccessible(PageTabPane, [&children](NodePtr child) {
-    children.push_back(child);
-    return false;
-  });
-
-  auto tab_count =
-      std::count_if(children.begin(), children.end(), [](NodePtr child) {
-        auto role = GetAccessibleRole(child);
-        auto state = GetAccessibleState(child);
-        return role == ROLE_SYSTEM_PAGETAB ||
-               (role == ROLE_SYSTEM_PAGETABLIST &&
-                (state & STATE_SYSTEM_COLLAPSED));
-      });
-
-  return tab_count <= 1;
+  auto nTabCount = GetTabCount(top);
+  return nTabCount <= 1;
 }
 
 // 鼠标是否在标签栏上
