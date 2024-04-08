@@ -20,7 +20,7 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   static auto LAST_CLOSING_TAB_TICK = GetTickCount64();
   auto tick = GetTickCount64() - LAST_CLOSING_TAB_TICK;
   LAST_CLOSING_TAB_TICK = GetTickCount64();
-  if (tick > 0 && tick <= 200 && nTabCount <= 2) {
+  if (tick > 0 && tick <= 250 && nTabCount <= 2) {
     bIsOnlyOneTab = true;
   }
   bKeepTab = bIsOnlyOneTab;
