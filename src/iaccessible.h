@@ -1,5 +1,5 @@
-#ifndef IACCESSIBLEUTILS_H_
-#define IACCESSIBLEUTILS_H_
+#ifndef IACCESSIBLE_H_
+#define IACCESSIBLE_H_
 
 #include <oleacc.h>
 #pragma comment(lib, "oleacc.lib")
@@ -91,64 +91,67 @@ long GetAccessibleState(NodePtr node) {
 }
 
 template <typename Function>
-void TraversalAccessible(NodePtr node, Function f, bool rawTraversal = false) {
+void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
   if (!node) {
     return;
   }
 
-  long childCount = 0;
-  if (S_OK != node->get_accChildCount(&childCount) || childCount == 0) {
+  long child_count = 0;
+  if (S_OK != node->get_accchild_count(&child_count) || child_count == 0) {
     return;
   }
 
-  auto nStep = childCount < 20 ? childCount : 20;
-  for (auto i = 0; i < childCount;) {
-    auto arrChildren = std::make_unique<VARIANT[]>(nStep);
+  auto step = child_count < 20 ? child_count : 20;
+  for (auto i = 0; i < child_count;) {
+    auto arrChildren = std::make_unique<VARIANT[]>(step);
 
-    long nGetCount = 0;
-    if (S_OK != AccessibleChildren(node.Get(), i, nStep, arrChildren.get(), &nGetCount)) {
+    long get_count = 0;
+    if (S_OK != AccessibleChildren(node.Get(), i, step, arrChildren.get(),
+                                   &get_count)) {
       return;
     }
 
-    bool bDone = false;
-    for (int j = 0; j < nGetCount; ++j) {
+    bool is_task_completed = false;
+    for (int j = 0; j < get_count; ++j) {
       if (arrChildren[j].vt != VT_DISPATCH) {
         continue;
       }
 
-      if (bDone) {
+      if (is_task_completed) {
         arrChildren[j].pdispVal->Release();  // 立刻释放，避免内存泄漏
         continue;
       }
 
-      Microsoft::WRL::ComPtr<IDispatch> pDispatch = arrChildren[j].pdispVal;
-      NodePtr pChild = nullptr;
-      if (S_OK != pDispatch->QueryInterface(IID_IAccessible, (void**)&pChild)) {
+      Microsoft::WRL::ComPtr<IDispatch> dispatch_interface =
+          arrChildren[j].pdispVal;
+      NodePtr child_node = nullptr;
+      if (S_OK != dispatch_interface->QueryInterface(IID_IAccessible,
+                                                     (void**)&child_node)) {
         continue;
       }
 
-      if (rawTraversal) {
-        TraversalAccessible(pChild, f, true);
-        if (f(pChild)) {
-          bDone = true;
+      if (raw_traversal) {
+        TraversalAccessible(child_node, f, true);
+        if (f(child_node)) {
+          is_task_completed = true;
         }
       } else {
-        if ((GetAccessibleState(pChild) & STATE_SYSTEM_INVISIBLE) == 0) {
-          if (f(pChild)) {
-            bDone = true;
+        if ((GetAccessibleState(child_node) & STATE_SYSTEM_INVISIBLE) == 0) {
+          if (f(child_node)) {
+            is_task_completed = true;
           }
         }
       }
     }
 
-    if (bDone) {
+    if (is_task_completed) {
       return;
     }
 
-    i += nStep;
+    i += step;
 
-    if (i + nStep >= childCount) {
-      nStep = childCount - i;
+    if (i + step >= child_count) {
+      step = child_count - i;
     }
   }
 }
@@ -169,20 +172,20 @@ NodePtr FindElementWithRole(NodePtr node, long role) {
 }
 
 NodePtr FindPageTabList(NodePtr node) {
-  NodePtr PageTabList = nullptr;
+  NodePtr page_tab_list = nullptr;
   if (node) {
     TraversalAccessible(node, [&](NodePtr child) {
       if (auto role = GetAccessibleRole(child);
           role == ROLE_SYSTEM_PAGETABLIST) {
-        PageTabList = child;
+        page_tab_list = child;
       } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
         // 必须保留这两个判断，否则会闪退 (#56)
-        PageTabList = FindPageTabList(child);
+        page_tab_list = FindPageTabList(child);
       }
-      return PageTabList;
+      return page_tab_list;
     });
   }
-  return PageTabList;
+  return page_tab_list;
 }
 
 NodePtr GetParentElement(NodePtr child) {
@@ -198,70 +201,70 @@ NodePtr GetParentElement(NodePtr child) {
 }
 
 NodePtr GetTopContainerView(HWND hwnd) {
-  NodePtr TopContainerView = nullptr;
+  NodePtr top_container_view = nullptr;
   wchar_t name[MAX_PATH];
   if (GetClassName(hwnd, name, MAX_PATH) &&
       wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    NodePtr paccMainWindow = nullptr;
+    NodePtr pacc_main_window = nullptr;
     if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                           IID_PPV_ARGS(&paccMainWindow))) {
-      NodePtr PageTabList = FindPageTabList(paccMainWindow);
-      if (PageTabList) {
-        TopContainerView = GetParentElement(PageTabList);
+                                           IID_PPV_ARGS(&pacc_main_window))) {
+      NodePtr page_tab_list = FindPageTabList(pacc_main_window);
+      if (page_tab_list) {
+        top_container_view = GetParentElement(page_tab_list);
       }
-      if (!TopContainerView) {
+      if (!top_container_view) {
         DebugLog(L"GetTopContainerView failed");
       }
     }
   }
-  return TopContainerView;
+  return top_container_view;
 }
 
 NodePtr GetMenuBarPane(HWND hwnd) {
-  NodePtr MenuBarPane = nullptr;
+  NodePtr menu_bar_pane = nullptr;
   wchar_t name[MAX_PATH];
   if (GetClassName(hwnd, name, MAX_PATH) &&
       wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    NodePtr paccMainWindow = nullptr;
+    NodePtr pacc_main_window = nullptr;
     if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                           IID_PPV_ARGS(&paccMainWindow))) {
-      NodePtr MenuBar =
-          FindElementWithRole(paccMainWindow, ROLE_SYSTEM_MENUBAR);
-      if (MenuBar) {
-        MenuBarPane = GetParentElement(MenuBar);
+                                           IID_PPV_ARGS(&pacc_main_window))) {
+      NodePtr menu_bar =
+          FindElementWithRole(pacc_main_window, ROLE_SYSTEM_MENUBAR);
+      if (menu_bar) {
+        menu_bar_pane = GetParentElement(menu_bar);
       }
-      if (!MenuBarPane) {
+      if (!menu_bar_pane) {
         DebugLog(L"GetBookmarkView failed");
       }
     }
   }
-  return MenuBarPane;
+  return menu_bar_pane;
 }
 
 // 获取当前标签页数量
 __int64 GetTabCount(NodePtr top) {
-  NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (!PageTabList) {
+  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  if (!page_tab_list) {
     return 0;
   }
 
-  NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
-  if (!PageTab) {
+  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  if (!page_tab) {
     return 0;
   }
 
-  NodePtr PageTabPane = GetParentElement(PageTab);
-  if (!PageTabPane) {
+  NodePtr page_tab_pane = GetParentElement(page_tab);
+  if (!page_tab_pane) {
     return 0;
   }
 
   std::vector<NodePtr> children;
-  TraversalAccessible(PageTabPane, [&children](NodePtr child) {
+  TraversalAccessible(page_tab_pane, [&children](NodePtr child) {
     children.push_back(child);
     return false;
   });
 
-  auto nTabCount =
+  auto tab_count =
       std::count_if(children.begin(), children.end(), [](NodePtr child) {
         auto role = GetAccessibleRole(child);
         auto state = GetAccessibleState(child);
@@ -270,7 +273,7 @@ __int64 GetTabCount(NodePtr top) {
                 (state & STATE_SYSTEM_COLLAPSED));
       });
 
-  return nTabCount;
+  return tab_count;
 }
 
 NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
@@ -294,23 +297,23 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
 
 // 鼠标是否在某个标签上
 bool IsOnOneTab(NodePtr top, POINT pt) {
-  NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (!PageTabList) {
+  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  if (!page_tab_list) {
     return false;
   }
 
-  NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
-  if (!PageTab) {
+  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  if (!page_tab) {
     return false;
   }
 
-  NodePtr PageTabPane = GetParentElement(PageTab);
-  if (!PageTabPane) {
+  NodePtr page_tab_pane = GetParentElement(page_tab);
+  if (!page_tab_pane) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(PageTabPane, [&flag, &pt](NodePtr child) {
+  TraversalAccessible(page_tab_pane, [&flag, &pt](NodePtr child) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
       return false;
     }
@@ -328,19 +331,19 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
 }
 
 bool IsOnlyOneTab(NodePtr top) {
-  if (!IsKeepLastTabFun()) {
+  if (!IsKeepLastTab()) {
     return false;
   }
-  auto nTabCount = GetTabCount(top);
-  return nTabCount <= 1;
+  auto tab_count = GetTabCount(top);
+  return tab_count <= 1;
 }
 
 // 鼠标是否在标签栏上
 bool IsOnTheTabBar(NodePtr top, POINT pt) {
   bool flag = false;
-  NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (PageTabList) {
-    GetAccessibleSize(PageTabList, [&flag, &pt](RECT rect) {
+  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  if (page_tab_list) {
+    GetAccessibleSize(page_tab_list, [&flag, &pt](RECT rect) {
       if (PtInRect(&rect, pt)) {
         flag = true;
       }
@@ -381,12 +384,12 @@ bool IsNameNewTab(NodePtr top) {
 
   bool flag = false;
   std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
-  NodePtr PageTabList = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (!PageTabList) {
+  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  if (!page_tab_list) {
     return false;
   }
 
-  TraversalAccessible(PageTabList, [&new_tab_name](NodePtr child) {
+  TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
       GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
         new_tab_name.reset(_wcsdup(bstr));  // 保存从新建标签页按钮获取的名称
@@ -395,18 +398,18 @@ bool IsNameNewTab(NodePtr top) {
     return false;
   });
 
-  NodePtr PageTab = FindElementWithRole(PageTabList, ROLE_SYSTEM_PAGETAB);
-  if (!PageTab) {
+  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  if (!page_tab) {
     return false;
   }
 
-  NodePtr PageTabPane = GetParentElement(PageTab);
-  if (!PageTabPane) {
+  NodePtr page_tab_pane = GetParentElement(page_tab);
+  if (!page_tab_pane) {
     return false;
   }
 
   TraversalAccessible(
-      PageTabPane, [&flag, &new_tab_name, &disableTabNames](NodePtr child) {
+      page_tab_pane, [&flag, &new_tab_name, &disableTabNames](NodePtr child) {
         if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) {
           GetAccessibleName(
               child, [&flag, &new_tab_name, &disableTabNames](BSTR bstr) {
@@ -431,14 +434,14 @@ bool IsDocNewTab() {
   bool flag = false;
   HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
                            L"Chrome_RenderWidgetHostHWND", nullptr);
-  NodePtr paccMainWindow = nullptr;
+  NodePtr pacc_main_window = nullptr;
   if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                         IID_PPV_ARGS(&paccMainWindow))) {
-    NodePtr Document =
-        FindElementWithRole(paccMainWindow, ROLE_SYSTEM_DOCUMENT);
-    if (Document) {
-      // Document 的 accValue 需要添加启动参数 --force-renderer-accessibility 来获取
-      GetAccessibleValue(Document, [&flag](BSTR bstr) {
+                                         IID_PPV_ARGS(&pacc_main_window))) {
+    NodePtr document =
+        FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
+    if (document) {
+      // document 的 accValue 需要添加启动参数 --force-renderer-accessibility 来获取
+      GetAccessibleValue(document, [&flag](BSTR bstr) {
         std::wstring_view bstr_view(bstr);
         flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
                bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
@@ -449,7 +452,7 @@ bool IsDocNewTab() {
 }
 
 bool IsOnNewTab(NodePtr top) {
-  if (!IsNewTabDisableFun()) {
+  if (!IsNewTabDisable()) {
     return false;
   }
   return IsNameNewTab(top) || IsDocNewTab();
@@ -483,30 +486,30 @@ bool IsOnBookmark(NodePtr top, POINT pt) {
 
         return flag;
       },
-      true);  // rawTraversal
+      true);  // raw_traversal
 
   return flag;
 }
 
 // 鼠标是否在菜单栏的书签文件（夹）上
 bool IsOnMenuBookmark(NodePtr top, POINT pt) {
-  NodePtr MenuBar = FindElementWithRole(top, ROLE_SYSTEM_MENUBAR);
-  if (!MenuBar) {
+  NodePtr menu_bar = FindElementWithRole(top, ROLE_SYSTEM_MENUBAR);
+  if (!menu_bar) {
     return false;
   }
 
-  NodePtr MenuItem = FindElementWithRole(MenuBar, ROLE_SYSTEM_MENUITEM);
-  if (!MenuItem) {
+  NodePtr menu_item = FindElementWithRole(menu_bar, ROLE_SYSTEM_MENUITEM);
+  if (!menu_item) {
     return false;
   }
 
-  NodePtr MenuBarPane = GetParentElement(MenuItem);
-  if (!MenuBarPane) {
+  NodePtr menu_bar_pane = GetParentElement(menu_item);
+  if (!menu_bar_pane) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(MenuBarPane, [&flag, &pt](NodePtr child) {
+  TraversalAccessible(menu_bar_pane, [&flag, &pt](NodePtr child) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_MENUITEM) {
       return false;
     }
@@ -531,23 +534,23 @@ bool IsOnMenuBookmark(NodePtr top, POINT pt) {
 
 // 地址栏是否已经获得焦点
 bool IsOmniboxFocus(NodePtr top) {
-  NodePtr ToolBar = FindElementWithRole(top, ROLE_SYSTEM_TOOLBAR);
-  if (!ToolBar) {
+  NodePtr tool_bar = FindElementWithRole(top, ROLE_SYSTEM_TOOLBAR);
+  if (!tool_bar) {
     return false;
   }
 
-  NodePtr OmniboxEdit = FindElementWithRole(ToolBar, ROLE_SYSTEM_TEXT);
-  if (!OmniboxEdit) {
+  NodePtr omnibox = FindElementWithRole(tool_bar, ROLE_SYSTEM_TEXT);
+  if (!omnibox) {
     return false;
   }
 
-  NodePtr ToolBarGroup = GetParentElement(OmniboxEdit);
-  if (!ToolBarGroup) {
+  NodePtr tool_bar_group = GetParentElement(omnibox);
+  if (!tool_bar_group) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(ToolBarGroup, [&flag](NodePtr child) {
+  TraversalAccessible(tool_bar_group, [&flag](NodePtr child) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_TEXT) {
       return false;
     }
@@ -562,4 +565,4 @@ bool IsOmniboxFocus(NodePtr top) {
   return flag;
 }
 
-#endif  // IACCESSIBLEUTILS_H_
+#endif  // IACCESSIBLE_H_

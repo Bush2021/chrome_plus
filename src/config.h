@@ -1,24 +1,26 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-const std::wstring IniPath = GetAppDir() + L"\\chrome++.ini";
+const std::wstring kIniPath = GetAppDir() + L"\\chrome++.ini";
 
 // 读取 ini 文件
 bool IsIniExist() {
-  if (PathFileExists(IniPath.data())) {
+  if (PathFileExists(kIniPath.data())) {
     return true;
   }
   return false;
 }
 
-std::wstring GetIniString(const std::wstring& section, const std::wstring& key, const std::wstring& default_value) {
+std::wstring GetIniString(const std::wstring& section, const std::wstring& key,
+                          const std::wstring& default_value) {
   std::vector<TCHAR> buffer(100);
-  DWORD bytesRead = 0;
+  DWORD bytesread = 0;
   do {
-    bytesRead = ::GetPrivateProfileStringW(section.c_str(), key.c_str(), default_value.c_str(),
-                                           buffer.data(), buffer.size(), IniPath.c_str());
+    bytesread = ::GetPrivateProfileStringW(section.c_str(), key.c_str(),
+                                           default_value.c_str(), buffer.data(),
+                                           buffer.size(), kIniPath.c_str());
     // 如果字符串过长，则倍增缓冲区大小
-    if (bytesRead >= buffer.size() - 1) {
+    if (bytesread >= buffer.size() - 1) {
       buffer.resize(buffer.size() * 2);
     } else {
       break;
@@ -48,8 +50,9 @@ std::wstring GetDirPath(const std::wstring& dirType) {
   }
 
   std::wstring DirBuffer(MAX_PATH, '\0');
-  ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(), path.c_str(),
-                             &DirBuffer[0], MAX_PATH, IniPath.c_str());
+  ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(),
+                             path.c_str(), &DirBuffer[0], MAX_PATH,
+                             kIniPath.c_str());
 
   if (DirBuffer[0] == 0) {
     DirBuffer = path;
@@ -73,43 +76,50 @@ std::wstring GetDiskCacheDir() {
 
 // 老板键
 std::wstring GetBosskey() {
-  return IsIniExist() ? GetIniString(L"General", L"Bosskey", L"") : std::wstring(L"");
+  return IsIniExist() ? GetIniString(L"General", L"Bosskey", L"")
+                      : std::wstring(L"");
 }
 
 // 定义翻译快捷键
 std::wstring GetTranslateKey() {
-  return IsIniExist() ? GetIniString(L"General", L"TranslateKey", L"") : std::wstring(L"");
+  return IsIniExist() ? GetIniString(L"General", L"TranslateKey", L"")
+                      : std::wstring(L"");
 }
 
 // 保留最后一个标签
-bool IsKeepLastTabFun() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1, IniPath.c_str()) != 0;
+bool IsKeepLastTab() {
+  return ::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1,
+                                 kIniPath.c_str()) != 0;
 }
 
 // 双击关闭
-bool IsDblClkFun() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1, IniPath.c_str()) != 0;
+bool IsDoubleClickClose() {
+  return ::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1,
+                                 kIniPath.c_str()) != 0;
 }
 
 // 单击右键关闭
-bool IsRClkFun() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0, IniPath.c_str()) != 0;
+bool IsRightClickClose() {
+  return ::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0,
+                                 kIniPath.c_str()) != 0;
 }
 
 // 鼠标停留在标签栏时滚轮切换标签
-bool IsWheelTabFun() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, IniPath.c_str()) != 0;
+bool IsWheelTab() {
+  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, kIniPath.c_str()) !=
+         0;
 }
 
 // 在任何位置按住右键时滚轮切换标签
-bool IsWheelTabWhenPressRButtonFun() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1, IniPath.c_str()) != 0;
+bool IsWheelTabWhenPressRightButton() {
+  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1,
+                                 kIniPath.c_str()) != 0;
 }
 
 // 地址栏输入网址在新标签页打开
 std::string IsOpenUrlNewTabFun() {
-  int value =
-      ::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0, IniPath.c_str());
+  int value = ::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0,
+                                      kIniPath.c_str());
   switch (value) {
     case 1:
       return "foreground";
@@ -121,9 +131,9 @@ std::string IsOpenUrlNewTabFun() {
 }
 
 // 书签在新标签页打开
-std::string IsBookmarkNewTabFun() {
+std::string IsBookmarkNewTab() {
   int value = ::GetPrivateProfileIntW(L"Tabs", L"open_bookmark_new_tab", 0,
-                                      IniPath.c_str());
+                                      kIniPath.c_str());
   switch (value) {
     case 1:
       return "foreground";
@@ -135,13 +145,15 @@ std::string IsBookmarkNewTabFun() {
 }
 
 // 新标签页不生效
-bool IsNewTabDisableFun() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1, IniPath.c_str()) != 0;
+bool IsNewTabDisable() {
+  return ::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1,
+                                 kIniPath.c_str()) != 0;
 }
 
 // 自定义禁用标签页名称
 std::wstring GetDisableTabName() {
-  return IsIniExist() ? GetIniString(L"Tabs", L"new_tab_disable_name", L"") : L"";
+  return IsIniExist() ? GetIniString(L"Tabs", L"new_tab_disable_name", L"")
+                      : L"";
 }
 
 #endif  // CONFIG_H_

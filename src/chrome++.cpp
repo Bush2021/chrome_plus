@@ -13,10 +13,10 @@ HMODULE hInstance;
 #include "utils.h"
 #include "patch.h"
 #include "config.h"
-#include "TabBookmark.h"
+#include "tabbookmark.h"
 #include "hotkey.h"
 #include "portable.h"
-#include "PakPatch.h"
+#include "pakpatch.h"
 #include "appid.h"
 #include "green.h"
 

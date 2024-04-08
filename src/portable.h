@@ -65,7 +65,7 @@ std::wstring GetCommand(LPWSTR param) {
       }
 
       {
-        if (IsNewTabDisableFun()) {
+        if (IsNewTabDisable()) {
           args.push_back(L"--force-renderer-accessibility");
         }
       }
