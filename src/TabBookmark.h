@@ -20,10 +20,16 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   static auto LAST_CLOSING_TAB_TICK = GetTickCount64();
   auto tick = GetTickCount64() - LAST_CLOSING_TAB_TICK;
   LAST_CLOSING_TAB_TICK = GetTickCount64();
+
   if (tick > 0 && tick <= 250 && nTabCount <= 2) {
     bIsOnlyOneTab = true;
   }
+  if (nTabCount == 0) {  // 处理全屏等状态
+    bIsOnlyOneTab = false;
+  }
+
   bKeepTab = bIsOnlyOneTab;
+
   if (ptr) {
     *ptr = tick;
   }
