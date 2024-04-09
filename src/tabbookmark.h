@@ -15,7 +15,7 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
 
   NodePtr top_container_view = GetTopContainerView(hwnd);
   auto tab_count = GetTabCount(top_container_view);
-  bool is_only_one_tab = tab_count <= 1;
+  bool is_only_one_tab = (tab_count > 0 && tab_count <= 1);
 
   static auto last_closing_tab_tick = GetTickCount64();
   auto tick = GetTickCount64() - last_closing_tab_tick;
@@ -23,9 +23,6 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
 
   if (tick > 0 && tick <= 250 && tab_count <= 2) {
     is_only_one_tab = true;
-  }
-  if (tab_count == 0) {  // 处理全屏等状态
-    is_only_one_tab = false;
   }
 
   keep_tab = is_only_one_tab;
@@ -286,6 +283,35 @@ next:
   return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
 
+bool handleTabPreserve(WPARAM wParam) {
+  bool is_full_screen = false;
+  if (!GetTopContainerView(GetForegroundWindow())) {
+    is_full_screen = true;
+  }
+
+  bool keep_tab = false;
+
+  if (wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) {
+    keep_tab = IsNeedKeep(GetForegroundWindow());
+  }
+  if (wParam == VK_F4 && IsPressed(VK_CONTROL)) {
+    keep_tab = IsNeedKeep(GetForegroundWindow());
+  }
+
+  if (is_full_screen) {
+    ExecuteCommand(IDC_FULLSCREEN);
+  }
+
+  if (keep_tab) {
+    ExecuteCommand(IDC_NEW_TAB);
+    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+    ExecuteCommand(IDC_CLOSE_TAB);
+    return 1;
+  }
+
+  return 0;
+}
+
 bool IsNeedOpenUrlInNewTab() {
   bool open_url_ing = false;
 
@@ -305,21 +331,8 @@ HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
   {
-    bool keep_tab = false;
 
-    if (wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) {
-      keep_tab = IsNeedKeep(GetForegroundWindow());
-    }
-    if (wParam == VK_F4 && IsPressed(VK_CONTROL)) {
-      keep_tab = IsNeedKeep(GetForegroundWindow());
-    }
-
-    if (keep_tab) {
-      ExecuteCommand(IDC_NEW_TAB);
-      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-      ExecuteCommand(IDC_CLOSE_TAB);
-      return 1;
-    }
+    if (handleTabPreserve(wParam)) {}
 
     bool open_url_ing = false;
 
