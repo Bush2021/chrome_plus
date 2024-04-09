@@ -284,34 +284,27 @@ next:
 }
 
 bool handleTabPreserve(WPARAM wParam) {
-  bool is_full_screen = false;
-  if (!GetTopContainerView(GetForegroundWindow())) {
-    is_full_screen = true;
+
+  if (!(wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) &&
+      !(wParam == VK_F4 && IsPressed(VK_CONTROL))) {
+    return 0;
   }
 
-  bool keep_tab = false;
+  HWND hwnd = GetFocus();
 
-  if (wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) {
-    keep_tab = IsNeedKeep(GetForegroundWindow());
-  }
-  if (wParam == VK_F4 && IsPressed(VK_CONTROL)) {
-    keep_tab = IsNeedKeep(GetForegroundWindow());
-  }
-
-  if (is_full_screen) {
+  if (!GetTopContainerView(hwnd)) {
     ExecuteCommand(IDC_FULLSCREEN);
   }
 
-  if (keep_tab) {
-    ExecuteCommand(IDC_NEW_TAB);
-    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-    ExecuteCommand(IDC_CLOSE_TAB);
-    return 1;
+  if (!IsNeedKeep(hwnd)) {
+    return 0;
   }
 
-  return 0;
+  ExecuteCommand(IDC_NEW_TAB);
+  ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+  ExecuteCommand(IDC_CLOSE_TAB);
+  return 1;
 }
-
 bool IsNeedOpenUrlInNewTab() {
   bool open_url_ing = false;
 
