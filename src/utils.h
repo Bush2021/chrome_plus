@@ -136,7 +136,6 @@ void DebugLog(const wchar_t* format, ...) {
 #define IDC_SELECT_TAB_6 34024
 #define IDC_SELECT_TAB_7 34025
 #define IDC_SELECT_LAST_TAB 34026
-#define IDC_FULLSCREEN 34030
 #define IDC_SHOW_TRANSLATE 35009
 
 #define IDC_UPGRADE_DIALOG 40024

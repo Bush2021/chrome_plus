@@ -24,6 +24,9 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   if (tick > 0 && tick <= 250 && tab_count <= 2) {
     is_only_one_tab = true;
   }
+  if (tab_count == 0) {  // 处理全屏等状态
+    is_only_one_tab = false;
+  }
 
   keep_tab = is_only_one_tab;
 
@@ -283,30 +286,6 @@ next:
   return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
 
-bool handleTabPreserve(WPARAM wParam) {
-
-  if (!(wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) &&
-      !(wParam == VK_F4 && IsPressed(VK_CONTROL))) {
-    return 0;
-  }
-
-  HWND hwnd = GetFocus();
-
-  // if (!GetTopContainerView(hwnd)) {
-  //   keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0); // 先释放用户按住的 Ctrl
-  //   SendKeys(VK_ESCAPE);
-  // }
-
-  if (!IsNeedKeep(hwnd)) {
-    return 0;
-  }
-
-  ExecuteCommand(IDC_NEW_TAB);
-  ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-  ExecuteCommand(IDC_CLOSE_TAB);
-  return 1;
-}
-
 bool IsNeedOpenUrlInNewTab() {
   bool open_url_ing = false;
 
@@ -326,8 +305,21 @@ HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
   {
+    bool keep_tab = false;
 
-    if (handleTabPreserve(wParam)) {}
+    if (wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) {
+      keep_tab = IsNeedKeep(GetForegroundWindow());
+    }
+    if (wParam == VK_F4 && IsPressed(VK_CONTROL)) {
+      keep_tab = IsNeedKeep(GetForegroundWindow());
+    }
+
+    if (keep_tab) {
+      ExecuteCommand(IDC_NEW_TAB);
+      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+      ExecuteCommand(IDC_CLOSE_TAB);
+      return 1;
+    }
 
     bool open_url_ing = false;
 
