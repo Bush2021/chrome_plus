@@ -292,9 +292,10 @@ bool handleTabPreserve(WPARAM wParam) {
 
   HWND hwnd = GetFocus();
 
-  if (!GetTopContainerView(hwnd)) {
-    ExecuteCommand(IDC_FULLSCREEN);
-  }
+  // if (!GetTopContainerView(hwnd)) {
+  //   keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0); // 先释放用户按住的 Ctrl
+  //   SendKeys(VK_ESCAPE);
+  // }
 
   if (!IsNeedKeep(hwnd)) {
     return 0;
@@ -305,6 +306,7 @@ bool handleTabPreserve(WPARAM wParam) {
   ExecuteCommand(IDC_CLOSE_TAB);
   return 1;
 }
+
 bool IsNeedOpenUrlInNewTab() {
   bool open_url_ing = false;
 
