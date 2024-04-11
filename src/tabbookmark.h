@@ -61,7 +61,7 @@ class IniConfig {
 IniConfig config;
 
 // 滚轮切换标签页
-bool handleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MOUSEWHEEL ||
       (!config.is_wheel_tab && !config.is_wheel_tab_when_press_right_button)) {
     return false;
@@ -99,7 +99,7 @@ bool handleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 双击关闭标签页
-int handleDblClk(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONDBLCLK || !config.is_double_click_close) {
     return 0;
   }
@@ -127,7 +127,7 @@ int handleDblClk(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 右键关闭标签页
-int handleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_RBUTTONUP || IsPressed(VK_SHIFT) ||
       !config.is_right_click_close) {
     return 0;
@@ -156,7 +156,7 @@ int handleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 保留最后标签页 - 中键
-int handleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MBUTTONUP) {
     return 0;
   }
@@ -181,7 +181,7 @@ int handleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 新标签页打开书签
-bool handleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
     return false;
@@ -206,7 +206,7 @@ bool handleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 新标签页打开书签文件夹中的书签
-bool handleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+bool HandleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
     return false;
@@ -272,27 +272,27 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     //     return 1;
     // }
 
-    if (handleMouseWheel(wParam, lParam, pmouse)) {
+    if (HandleMouseWheel(wParam, lParam, pmouse)) {
       return 1;
     }
 
-    if (handleDblClk(wParam, pmouse) != 0) {
+    if (HandleDoubleClick(wParam, pmouse) != 0) {
       return 1;
     }
 
-    if (handleRightClick(wParam, pmouse) != 0) {
+    if (HandleRightClick(wParam, pmouse) != 0) {
       return 1;
     }
 
-    if (handleMiddleClick(wParam, pmouse) != 0) {
+    if (HandleMiddleClick(wParam, pmouse) != 0) {
       return 1;
     }
 
-    if (handleBookmark(wParam, pmouse)) {
+    if (HandleBookmark(wParam, pmouse)) {
       return 1;
     }
 
-    if (handleBookmarkMenu(wParam, pmouse)) {
+    if (HandleBookmarkMenu(wParam, pmouse)) {
       return 1;
     }
   }
@@ -301,7 +301,7 @@ next:
   return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
 
-int handleKeepTab(WPARAM wParam) {
+int HandleKeepTab(WPARAM wParam) {
 
   if (!(wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) &&
       !(wParam == VK_F4 && IsPressed(VK_CONTROL))) {
@@ -333,7 +333,7 @@ int handleKeepTab(WPARAM wParam) {
   return 1;
 }
 
-int handleOpenUrlNewTab(WPARAM wParam) {
+int HandleOpenUrlNewTab(WPARAM wParam) {
   if (!(config.is_open_url_new_tab != "disabled" && wParam == VK_RETURN &&
         !IsPressed(VK_MENU))) {
     return 0;
@@ -355,11 +355,11 @@ HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
   {
-    if (handleKeepTab(wParam) != 0) {
+    if (HandleKeepTab(wParam) != 0) {
       return 1;
     }
 
-    if (handleOpenUrlNewTab(wParam) != 0) {
+    if (HandleOpenUrlNewTab(wParam) != 0) {
       return 1;
     }
   }
