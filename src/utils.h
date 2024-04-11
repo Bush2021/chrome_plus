@@ -14,6 +14,26 @@
 
 #include "FastSearch.h"
 
+
+// https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
+#define IDC_NEW_TAB 34014
+#define IDC_CLOSE_TAB 34015
+#define IDC_SELECT_NEXT_TAB 34016
+#define IDC_SELECT_PREVIOUS_TAB 34017
+#define IDC_SELECT_TAB_0 34018
+#define IDC_SELECT_TAB_1 34019
+#define IDC_SELECT_TAB_2 34020
+#define IDC_SELECT_TAB_3 34021
+#define IDC_SELECT_TAB_4 34022
+#define IDC_SELECT_TAB_5 34023
+#define IDC_SELECT_TAB_6 34024
+#define IDC_SELECT_TAB_7 34025
+#define IDC_SELECT_LAST_TAB 34026
+#define IDC_SHOW_TRANSLATE 35009
+#define IDC_UPGRADE_DIALOG 40024
+
+
+// 字符串操作函数
 std::wstring Format(const wchar_t* format, va_list args) {
   std::vector<wchar_t> buffer;
 
@@ -36,6 +56,119 @@ std::wstring Format(const wchar_t* format, ...) {
   return str;
 }
 
+std::string wstring_to_string(const std::wstring& wstr) {
+  int cbMultiByte = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, nullptr, 0,
+                                        nullptr, nullptr);
+
+  std::string str(cbMultiByte - 1, '\0');
+
+  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], cbMultiByte,
+                      nullptr, nullptr);
+
+  return str;
+}
+
+// 指定分隔符、包裹符号分割字符串
+std::vector<std::wstring> StringSplit(const std::wstring& str,
+                                      const wchar_t delim,
+                                      const std::wstring& enclosure) {
+  std::vector<std::wstring> result;
+  std::wstring::size_type start = 0;
+  std::wstring::size_type end = str.find(delim);
+  while (end != std::wstring::npos) {
+    std::wstring name = str.substr(start, end - start);
+    if (!enclosure.empty() && !name.empty() &&
+        name.front() == enclosure.front()) {
+      name.erase(0, 1);
+    }
+    if (!enclosure.empty() && !name.empty() &&
+        name.back() == enclosure.back()) {
+      name.erase(name.size() - 1);
+    }
+    result.push_back(name);
+    start = end + 1;
+    end = str.find(delim, start);
+  }
+  if (start < str.length()) {
+    std::wstring name = str.substr(start);
+    if (!enclosure.empty() && !name.empty() &&
+        name.front() == enclosure.front()) {
+      name.erase(0, 1);
+    }
+    if (!enclosure.empty() && !name.empty() &&
+        name.back() == enclosure.back()) {
+      name.erase(name.size() - 1);
+    }
+    result.push_back(name);
+  }
+  return result;
+}
+
+// 替换 ini 文件中的字符串
+void ReplaceStringIni(std::wstring& subject, const std::wstring& search,
+                      const std::wstring& replace) {
+  size_t pos = 0;
+  while ((pos = subject.find(search, pos)) != std::wstring::npos) {
+    subject.replace(pos, search.length(), replace);
+    pos += replace.length();
+  }
+}
+
+// 压缩HTML
+std::string& ltrim(std::string& s) {
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+                                  [](int ch) { return !std::isspace(ch); }));
+  return s;
+}
+std::string& rtrim(std::string& s) {
+  s.erase(std::find_if(s.rbegin(), s.rend(),
+                       [](int ch) { return !std::isspace(ch); })
+              .base(),
+          s.end());
+  return s;
+}
+
+std::string& trim(std::string& s) {
+  return ltrim(rtrim(s));
+}
+
+std::vector<std::string> split(const std::string& text, char sep) {
+  std::vector<std::string> tokens;
+  std::size_t start = 0, end = 0;
+  while ((end = text.find(sep, start)) != std::string::npos) {
+    std::string temp = text.substr(start, end - start);
+    tokens.push_back(temp);
+    start = end + 1;
+  }
+  std::string temp = text.substr(start);
+  tokens.push_back(temp);
+  return tokens;
+}
+
+void compression_html(std::string& html) {
+  auto lines = split(html, '\n');
+  html.clear();
+  for (auto& line : lines) {
+    html += "\n";
+    html += trim(line);
+  }
+}
+
+// 替换字符串
+bool ReplaceStringInPlace(std::string& subject, const std::string& search,
+                          const std::string& replace) {
+  bool find = false;
+  size_t pos = 0;
+  while ((pos = subject.find(search, pos)) != std::string::npos) {
+    subject.replace(pos, search.length(), replace);
+    pos += replace.length();
+    find = true;
+  }
+  return find;
+}
+
+
+// 内存和模块搜索函数
 // 搜索内存
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
   return (uint8_t*)FastSearch(src, n, sub, m);
@@ -81,6 +214,21 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
   return nullptr;
 }
 
+//bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
+//  DWORD ProtectFlag = 0;
+//  if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
+//                       PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
+//    memcpy(BaseAddress, Buffer, nSize);
+//    FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
+//    VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
+//                     &ProtectFlag);
+//    return true;
+//  }
+//  return false;
+//}
+
+
+// 路径和文件操作函数
 // 获得程序所在文件夹
 std::wstring GetAppDir() {
   wchar_t path[MAX_PATH];
@@ -89,18 +237,38 @@ std::wstring GetAppDir() {
   return path;
 }
 
-std::string wstring_to_string(const std::wstring& wstr) {
-  int cbMultiByte = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, nullptr, 0,
-                                        nullptr, nullptr);
-
-  std::string str(cbMultiByte - 1, '\0');
-
-  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], cbMultiByte,
-                      nullptr, nullptr);
-
-  return str;
+bool isEndWith(const wchar_t* s, const wchar_t* sub) {
+  if (!s || !sub)
+    return false;
+  size_t len1 = wcslen(s);
+  size_t len2 = wcslen(sub);
+  if (len2 > len1)
+    return false;
+  return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
+// 获得指定路径的绝对路径
+std::wstring GetAbsolutePath(const std::wstring& path) {
+  wchar_t buffer[MAX_PATH];
+  ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, nullptr);
+  return buffer;
+}
+
+// 展开环境路径比如 %windir%
+std::wstring ExpandEnvironmentPath(const std::wstring& path) {
+  std::vector<wchar_t> buffer(MAX_PATH);
+  size_t ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
+                                                     (DWORD)buffer.size());
+  if (ExpandedLength > buffer.size()) {
+    buffer.resize(ExpandedLength);
+    ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
+                                                (DWORD)buffer.size());
+  }
+  return std::wstring(&buffer[0], 0, ExpandedLength);
+}
+
+
+// 日志函数
 void DebugLog(const wchar_t* format, ...) {
   //  va_list args;
   //
@@ -122,24 +290,8 @@ void DebugLog(const wchar_t* format, ...) {
   //  }
 }
 
-// https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
-#define IDC_NEW_TAB 34014
-#define IDC_CLOSE_TAB 34015
-#define IDC_SELECT_NEXT_TAB 34016
-#define IDC_SELECT_PREVIOUS_TAB 34017
-#define IDC_SELECT_TAB_0 34018
-#define IDC_SELECT_TAB_1 34019
-#define IDC_SELECT_TAB_2 34020
-#define IDC_SELECT_TAB_3 34021
-#define IDC_SELECT_TAB_4 34022
-#define IDC_SELECT_TAB_5 34023
-#define IDC_SELECT_TAB_6 34024
-#define IDC_SELECT_TAB_7 34025
-#define IDC_SELECT_LAST_TAB 34026
-#define IDC_SHOW_TRANSLATE 35009
 
-#define IDC_UPGRADE_DIALOG 40024
-
+// 窗口和用户界面操作函数
 HWND GetTopWnd(HWND hwnd) {
   while (::GetParent(hwnd) && ::IsWindowVisible(::GetParent(hwnd))) {
     hwnd = ::GetParent(hwnd);
@@ -156,42 +308,8 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
   ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
 }
 
-// 指定分隔符、包裹符号分割字符串
-std::vector<std::wstring> StringSplit(const std::wstring& str,
-                                      const wchar_t delim,
-                                      const std::wstring& enclosure) {
-  std::vector<std::wstring> result;
-  std::wstring::size_type start = 0;
-  std::wstring::size_type end = str.find(delim);
-  while (end != std::wstring::npos) {
-    std::wstring name = str.substr(start, end - start);
-    if (!enclosure.empty() && !name.empty() &&
-        name.front() == enclosure.front()) {
-      name.erase(0, 1);
-    }
-    if (!enclosure.empty() && !name.empty() &&
-        name.back() == enclosure.back()) {
-      name.erase(name.size() - 1);
-    }
-    result.push_back(name);
-    start = end + 1;
-    end = str.find(delim, start);
-  }
-  if (start < str.length()) {
-    std::wstring name = str.substr(start);
-    if (!enclosure.empty() && !name.empty() &&
-        name.front() == enclosure.front()) {
-      name.erase(0, 1);
-    }
-    if (!enclosure.empty() && !name.empty() &&
-        name.back() == enclosure.back()) {
-      name.erase(name.size() - 1);
-    }
-    result.push_back(name);
-  }
-  return result;
-}
 
+// 键盘和鼠标输入函数
 // 发送组合按键操作
 class SendKeys {
  public:
@@ -255,111 +373,5 @@ void SendOneMouse(int mouse) {
   input[0].mi.dwExtraInfo = MAGIC_CODE;
   ::SendInput(1, input, sizeof(INPUT));
 }
-
-bool isEndWith(const wchar_t* s, const wchar_t* sub) {
-  if (!s || !sub)
-    return false;
-  size_t len1 = wcslen(s);
-  size_t len2 = wcslen(sub);
-  if (len2 > len1)
-    return false;
-  return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
-}
-
-// 获得指定路径的绝对路径
-std::wstring GetAbsolutePath(const std::wstring& path) {
-  wchar_t buffer[MAX_PATH];
-  ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, nullptr);
-  return buffer;
-}
-
-// 展开环境路径比如 %windir%
-std::wstring ExpandEnvironmentPath(const std::wstring& path) {
-  std::vector<wchar_t> buffer(MAX_PATH);
-  size_t ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
-                                                     (DWORD)buffer.size());
-  if (ExpandedLength > buffer.size()) {
-    buffer.resize(ExpandedLength);
-    ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
-                                                (DWORD)buffer.size());
-  }
-  return std::wstring(&buffer[0], 0, ExpandedLength);
-}
-
-// 替换 ini 文件中的字符串（宽字符处理中文路径）
-void ReplaceStringIni(std::wstring& subject, const std::wstring& search,
-                      const std::wstring& replace) {
-  size_t pos = 0;
-  while ((pos = subject.find(search, pos)) != std::wstring::npos) {
-    subject.replace(pos, search.length(), replace);
-    pos += replace.length();
-  }
-}
-
-// 压缩HTML
-std::string& ltrim(std::string& s) {
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                  [](int ch) { return !std::isspace(ch); }));
-  return s;
-}
-std::string& rtrim(std::string& s) {
-  s.erase(std::find_if(s.rbegin(), s.rend(),
-                       [](int ch) { return !std::isspace(ch); })
-              .base(),
-          s.end());
-  return s;
-}
-
-std::string& trim(std::string& s) {
-  return ltrim(rtrim(s));
-}
-
-std::vector<std::string> split(const std::string& text, char sep) {
-  std::vector<std::string> tokens;
-  std::size_t start = 0, end = 0;
-  while ((end = text.find(sep, start)) != std::string::npos) {
-    std::string temp = text.substr(start, end - start);
-    tokens.push_back(temp);
-    start = end + 1;
-  }
-  std::string temp = text.substr(start);
-  tokens.push_back(temp);
-  return tokens;
-}
-
-void compression_html(std::string& html) {
-  auto lines = split(html, '\n');
-  html.clear();
-  for (auto& line : lines) {
-    html += "\n";
-    html += trim(line);
-  }
-}
-
-// 替换字符串
-bool ReplaceStringInPlace(std::string& subject, const std::string& search,
-                          const std::string& replace) {
-  bool find = false;
-  size_t pos = 0;
-  while ((pos = subject.find(search, pos)) != std::string::npos) {
-    subject.replace(pos, search.length(), replace);
-    pos += replace.length();
-    find = true;
-  }
-  return find;
-}
-
-//bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
-//  DWORD ProtectFlag = 0;
-//  if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
-//                       PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
-//    memcpy(BaseAddress, Buffer, nSize);
-//    FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-//    VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
-//                     &ProtectFlag);
-//    return true;
-//  }
-//  return false;
-//}
 
 #endif  // UTILS_H_
