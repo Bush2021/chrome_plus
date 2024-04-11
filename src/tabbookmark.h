@@ -99,7 +99,7 @@ bool handleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 双击关闭标签页
-bool handleDblClk(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool handleDblClk(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONDBLCLK || !config.is_double_click_close) {
     return false;
   }
@@ -125,7 +125,7 @@ bool handleDblClk(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 右键关闭标签页
-bool handleRightClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool handleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_RBUTTONUP || IsPressed(VK_SHIFT) ||
       !config.is_right_click_close) {
     return false;
@@ -151,7 +151,7 @@ bool handleRightClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 保留最后标签页 - 中键
-bool handleMiddleClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool handleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MBUTTONUP) {
     return false;
   }
@@ -171,7 +171,7 @@ bool handleMiddleClick(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 新标签页打开书签
-bool handleBookmark(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool handleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
     return false;
@@ -196,7 +196,7 @@ bool handleBookmark(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 新标签页打开书签文件夹中的书签
-bool handleBookmarkMenu(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool handleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
     return false;
@@ -266,21 +266,21 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       return 1;
     }
 
-    if (handleDblClk(wParam, lParam, pmouse)) {}
+    if (handleDblClk(wParam, pmouse)) {}
 
-    if (handleRightClick(wParam, lParam, pmouse)) {
+    if (handleRightClick(wParam, pmouse)) {
       return 1;
     }
 
-    if (handleMiddleClick(wParam, lParam, pmouse)) {
+    if (handleMiddleClick(wParam, pmouse)) {
       // return 1;
     }
 
-    if (handleBookmark(wParam, lParam, pmouse)) {
+    if (handleBookmark(wParam, pmouse)) {
       return 1;
     }
 
-    if (handleBookmarkMenu(wParam, lParam, pmouse)) {
+    if (handleBookmarkMenu(wParam, pmouse)) {
       return 1;
     }
   }
