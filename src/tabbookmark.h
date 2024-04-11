@@ -333,19 +333,22 @@ int handleKeepTab(WPARAM wParam) {
   return 1;
 }
 
-bool IsNeedOpenUrlInNewTab() {
-  bool open_url_ing = false;
-
-  NodePtr TopContainerView = GetTopContainerView(GetForegroundWindow());
-  if (IsOmniboxFocus(TopContainerView)) {
-    if (!IsOnNewTab(TopContainerView)) {
-      open_url_ing = true;
-    }
+int handleOpenUrlNewTab(WPARAM wParam) {
+  if (!(config.is_open_url_new_tab != "disabled" && wParam == VK_RETURN &&
+        !IsPressed(VK_MENU))) {
+    return 0;
   }
 
-  if (TopContainerView) {}
-
-  return open_url_ing;
+  NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
+  if (IsOmniboxFocus(top_container_view) && !IsOnNewTab(top_container_view)) {
+      if (config.is_open_url_new_tab == "foreground") {
+        SendKeys(VK_MENU, VK_RETURN);
+      } else if (config.is_open_url_new_tab == "background") {
+        SendKeys(VK_SHIFT, VK_MENU, VK_RETURN);
+      }
+      return 1;
+    }
+  return 0;
 }
 
 HHOOK keyboard_hook = nullptr;
@@ -356,19 +359,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
       return 1;
     }
 
-    bool open_url_ing = false;
-
-    if (config.is_open_url_new_tab != "disabled" && wParam == VK_RETURN &&
-        !IsPressed(VK_MENU)) {
-      open_url_ing = IsNeedOpenUrlInNewTab();
-    }
-
-    if (open_url_ing) {
-      if (config.is_open_url_new_tab == "foreground") {
-        SendKeys(VK_MENU, VK_RETURN);
-      } else if (config.is_open_url_new_tab == "background") {
-        SendKeys(VK_SHIFT, VK_MENU, VK_RETURN);
-      }
+    if (handleOpenUrlNewTab(wParam) != 0) {
       return 1;
     }
   }
