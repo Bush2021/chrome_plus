@@ -99,75 +99,85 @@ bool handleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // 双击关闭标签页
-bool handleDblClk(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+int handleDblClk(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONDBLCLK || !config.is_double_click_close) {
-    return false;
+    return 0;
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
+  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
   NodePtr top_container_view = GetTopContainerView(hwnd);
+  if (!top_container_view) {
+    return 0;
+  }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
   bool is_only_one_tab = IsOnlyOneTab(top_container_view);
 
   if (is_on_one_tab) {
     if (is_only_one_tab) {
-      ExecuteCommand(IDC_NEW_TAB);
-      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-      ExecuteCommand(IDC_CLOSE_TAB);
+      ExecuteCommand(IDC_NEW_TAB, hwnd);
+      ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     } else {
-      ExecuteCommand(IDC_CLOSE_TAB);
+      ExecuteCommand(IDC_CLOSE_TAB, hwnd);
     }
-    return true;
+    return 1;
   }
-
-  return false;
+  return 0;
 }
 
 // 右键关闭标签页
-bool handleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+int handleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_RBUTTONUP || IsPressed(VK_SHIFT) ||
       !config.is_right_click_close) {
-    return false;
+    return 0;
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
+  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
   NodePtr top_container_view = GetTopContainerView(hwnd);
+  if (!top_container_view) {
+    return 0;
+  }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
   bool keep_tab = IsNeedKeep(hwnd);
 
   if (is_on_one_tab) {
     if (keep_tab) {
-      ExecuteCommand(IDC_NEW_TAB);
-      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-      ExecuteCommand(IDC_CLOSE_TAB);
+      ExecuteCommand(IDC_NEW_TAB, hwnd);
+      ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     } else {
       SendKeys(VK_MBUTTON);
     }
-    return true;
+    return 1;
   }
-  return false;
+  return 0;
 }
 
 // 保留最后标签页 - 中键
-bool handleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+int handleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MBUTTONUP) {
-    return false;
+    return 0;
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
+  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
   NodePtr top_container_view = GetTopContainerView(hwnd);
+  if (!top_container_view) {
+    return 0;
+  }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
   bool keep_tab = IsNeedKeep(hwnd);
 
   if (is_on_one_tab && keep_tab) {
-    ExecuteCommand(IDC_NEW_TAB);
-    return true;
+    ExecuteCommand(IDC_NEW_TAB, hwnd);
+    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+    return 1;
   }
 
-  return false;
+  return 0;
 }
 
 // 新标签页打开书签
@@ -266,14 +276,16 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       return 1;
     }
 
-    if (handleDblClk(wParam, pmouse)) {}
-
-    if (handleRightClick(wParam, pmouse)) {
+    if (handleDblClk(wParam, pmouse) != 0) {
       return 1;
     }
 
-    if (handleMiddleClick(wParam, pmouse)) {
-      // return 1;
+    if (handleRightClick(wParam, pmouse) != 0) {
+      return 1;
+    }
+
+    if (handleMiddleClick(wParam, pmouse) != 0) {
+      return 1;
     }
 
     if (handleBookmark(wParam, pmouse)) {
@@ -287,6 +299,38 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 next:
   // DebugLog(L"CallNextHookEx %X", wParam);
   return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+}
+
+int handleKeepTab(WPARAM wParam) {
+
+  if (!(wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) &&
+      !(wParam == VK_F4 && IsPressed(VK_CONTROL))) {
+    return 0;
+  }
+
+  HWND hwnd = GetFocus();
+  wchar_t name[256] = {0};
+  GetClassName(hwnd, name, 255);
+  if (wcsstr(name, L"Chrome_WidgetWin_") == nullptr) {
+    return 0;
+  }
+
+  if (IsFullScreen(hwnd)) {
+    // 必须退出全屏才能找到标签
+    ExecuteCommand(IDC_FULLSCREEN, hwnd);
+  }
+
+  HWND tmp_hwnd = hwnd;
+  hwnd = GetAncestor(tmp_hwnd, GA_ROOTOWNER);
+  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, tmp_hwnd);
+
+  if (!IsNeedKeep(hwnd)) {
+    return 0;
+  }
+
+  ExecuteCommand(IDC_NEW_TAB, hwnd);
+  ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  return 1;
 }
 
 bool IsNeedOpenUrlInNewTab() {
@@ -308,19 +352,7 @@ HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
   {
-    bool keep_tab = false;
-
-    if (wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) {
-      keep_tab = IsNeedKeep(GetForegroundWindow());
-    }
-    if (wParam == VK_F4 && IsPressed(VK_CONTROL)) {
-      keep_tab = IsNeedKeep(GetForegroundWindow());
-    }
-
-    if (keep_tab) {
-      ExecuteCommand(IDC_NEW_TAB);
-      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-      ExecuteCommand(IDC_CLOSE_TAB);
+    if (handleKeepTab(wParam) != 0) {
       return 1;
     }
 

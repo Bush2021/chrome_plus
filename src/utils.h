@@ -31,7 +31,9 @@
 #define IDC_SELECT_LAST_TAB 34026
 #define IDC_SHOW_TRANSLATE 35009
 #define IDC_UPGRADE_DIALOG 40024
-
+#define IDC_FULLSCREEN 34030
+#define IDC_CLOSE_FIND_OR_STOP 37003
+#define IDC_WINDOW_CLOSE_OTHER_TABS 35023
 
 // 字符串操作函数
 std::wstring Format(const wchar_t* format, va_list args) {
@@ -270,24 +272,24 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path) {
 
 // 日志函数
 void DebugLog(const wchar_t* format, ...) {
-  //  va_list args;
-  //
-  //  va_start(args, format);
-  //  auto str = Format(format, args);
-  //  va_end(args);
-  //
-  //  str = Format(L"[chrome++] %s\n", str.c_str());
-  //
-  //  std::string nstr = wstring_to_string(str);
-  //  const char* cstr = nstr.c_str();
-  //
-  //  FILE* fp = nullptr;
-  //  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
-  //  _wfopen_s(&fp, logPath.c_str(), L"a+");
-  //  if (fp) {
-  //    fwrite(cstr, strlen(cstr), 1, fp);
-  //    fclose(fp);
-  //  }
+//  va_list args;
+//
+//  va_start(args, format);
+//  auto str = Format(format, args);
+//  va_end(args);
+//
+//  str = Format(L"[chrome++] %s\n", str.c_str());
+//
+//  std::string nstr = wstring_to_string(str);
+//  const char* cstr = nstr.c_str();
+//
+//  FILE* fp = nullptr;
+//  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+//  _wfopen_s(&fp, logPath.c_str(), L"a+");
+//  if (fp) {
+//    fwrite(cstr, strlen(cstr), 1, fp);
+//    fclose(fp);
+//  }
 }
 
 
@@ -306,6 +308,14 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
   // hwnd = GetForegroundWindow();
   // PostMessage(hwnd, WM_SYSCOMMAND, id, 0);
   ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
+}
+
+bool IsFullScreen(HWND hwnd) {
+  RECT windowRect;
+  return (GetClientRect(hwnd, &windowRect)
+          && (windowRect.left == 0 && windowRect.top == 0
+              && windowRect.right == GetSystemMetrics(SM_CXSCREEN)
+              && windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
 }
 
 
