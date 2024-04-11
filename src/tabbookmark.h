@@ -11,6 +11,10 @@ bool IsPressed(int key) {
 }
 
 bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
+  if (!IsKeepLastTab()) {
+    return false;
+  }
+
   bool keep_tab = false;
 
   NodePtr top_container_view = GetTopContainerView(hwnd);
@@ -27,7 +31,6 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   if (tab_count == 0) {  // 处理全屏等状态
     is_only_one_tab = false;
   }
-
   keep_tab = is_only_one_tab;
 
   if (ptr) {
