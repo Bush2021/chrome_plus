@@ -105,10 +105,13 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
   NodePtr top_container_view = GetTopContainerView(hwnd);
   if (!top_container_view) {
-    return 0;
+    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
+    top_container_view = GetTopContainerView(hwnd);
+    if (!top_container_view) {
+      return 0;
+    }
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
@@ -134,10 +137,13 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
   NodePtr top_container_view = GetTopContainerView(hwnd);
   if (!top_container_view) {
-    return 0;
+    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
+    top_container_view = GetTopContainerView(hwnd);
+    if (!top_container_view) {
+      return 0;
+    }
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
@@ -162,10 +168,13 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
   NodePtr top_container_view = GetTopContainerView(hwnd);
   if (!top_container_view) {
-    return 0;
+    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
+    top_container_view = GetTopContainerView(hwnd);
+    if (!top_container_view) {
+      return 0;
+    }
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
