@@ -416,7 +416,11 @@ bool IsDocNewTab() {
     NodePtr document =
         FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
     if (document) {
-      // document 的 accValue 需要添加启动参数 --force-renderer-accessibility 来获取
+      // The accValue of document needs to be obtained by adding the startup
+      // parameter --force-renderer-accessibility. However, this parameter will
+      // slightly affect the performance of the browser when loading pages with
+      // a large number of elements. Therefore, it is not enabled by default.
+      // If users need to use this feature, they may add the parameter manually.
       GetAccessibleValue(document, [&flag](BSTR bstr) {
         std::wstring_view bstr_view(bstr);
         flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||

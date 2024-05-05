@@ -64,12 +64,6 @@ std::wstring GetCommand(LPWSTR param) {
         args.push_back(L"--disk-cache-dir=" + diskcache);
       }
 
-      {
-        if (IsNewTabDisable()) {
-          args.push_back(L"--force-renderer-accessibility");
-        }
-      }
-
       // 获取命令行，然后追加参数
       // 截取拆分每个--开头的参数，然后多次 args.push_back
       // 重复上述过程，直到字串中不再存在 -- 号
