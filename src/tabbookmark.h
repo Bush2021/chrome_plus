@@ -286,7 +286,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
 
     if (HandleDoubleClick(wParam, pmouse) != 0) {
-      return 1;
+      // Do not return 1. Returning 1 could cause the keep_tab to fail
+      // or trigger double-click operations consecutively when the user
+      // double-clicks on the tab page rapidly and repeatedly.
     }
 
     if (HandleRightClick(wParam, pmouse) != 0) {
@@ -350,13 +352,13 @@ int HandleOpenUrlNewTab(WPARAM wParam) {
 
   NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
   if (IsOmniboxFocus(top_container_view) && !IsOnNewTab(top_container_view)) {
-      if (config.is_open_url_new_tab == "foreground") {
-        SendKeys(VK_MENU, VK_RETURN);
-      } else if (config.is_open_url_new_tab == "background") {
-        SendKeys(VK_SHIFT, VK_MENU, VK_RETURN);
-      }
-      return 1;
+    if (config.is_open_url_new_tab == "foreground") {
+      SendKeys(VK_MENU, VK_RETURN);
+    } else if (config.is_open_url_new_tab == "background") {
+      SendKeys(VK_SHIFT, VK_MENU, VK_RETURN);
     }
+    return 1;
+  }
   return 0;
 }
 
