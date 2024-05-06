@@ -43,6 +43,20 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   return keep_tab;
 }
 
+// If the top_container_view is not found at the first time, try to close the
+// find-in-page bar and find the top_container_view again.
+NodePtr IsFindBarOn(HWND hwnd) {
+  NodePtr top_container_view = GetTopContainerView(hwnd);
+  if (!top_container_view) {
+    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
+    top_container_view = GetTopContainerView(hwnd);
+    if (!top_container_view) {
+      return nullptr;
+    }
+  }
+  return top_container_view;
+}
+
 class IniConfig {
  public:
   IniConfig()
@@ -108,16 +122,9 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr top_container_view = GetTopContainerView(hwnd);
-
-  // If the top_container_view is not found at the first time, try to close the
-  // find-in-page bar and find the top_container_view again.
+  NodePtr top_container_view = IsFindBarOn(hwnd);
   if (!top_container_view) {
-    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
-    top_container_view = GetTopContainerView(hwnd);
-    if (!top_container_view) {
-      return 0;
-    }
+    return 0;
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
@@ -143,13 +150,9 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr top_container_view = GetTopContainerView(hwnd);
+  NodePtr top_container_view = IsFindBarOn(hwnd);
   if (!top_container_view) {
-    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
-    top_container_view = GetTopContainerView(hwnd);
-    if (!top_container_view) {
-      return 0;
-    }
+    return 0;
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
@@ -174,13 +177,9 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr top_container_view = GetTopContainerView(hwnd);
+  NodePtr top_container_view = IsFindBarOn(hwnd);
   if (!top_container_view) {
-    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
-    top_container_view = GetTopContainerView(hwnd);
-    if (!top_container_view) {
-      return 0;
-    }
+    return 0;
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
