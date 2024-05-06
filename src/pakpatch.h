@@ -21,17 +21,17 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
                               _In_ DWORD dwFileOffsetLow,
                               _In_ SIZE_T dwNumberOfBytesToMap) {
   if (hFileMappingObject == resources_pak_map) {
-    // 修改属性为可修改
+    // Modify it to be modifiable.
     LPVOID buffer =
         RawMapViewOfFile(hFileMappingObject, FILE_MAP_COPY, dwFileOffsetHigh,
                          dwFileOffsetLow, dwNumberOfBytesToMap);
 
-    // 不再需要hook
+    // No more hook needed.
     resources_pak_map = NULL;
     MH_DisableHook(MapViewOfFile);
 
     if (buffer) {
-      // 遍历gzip文件
+      // Traverse the gzip file.
       TraversalGZIPFile((BYTE*)buffer, [=](uint8_t* begin, uint32_t size,
                                            uint32_t& new_len) {
         bool changed = false;
@@ -41,7 +41,7 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
             memmem(begin, size, search_start, sizeof(search_start) - 1);
         if (pos) {
 
-          // 压缩HTML以备写入补丁信息
+          // Compress the HTML for writing patch information.
           std::string html((char*)begin, size);
           compression_html(html);
 
@@ -55,15 +55,15 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
                 R"(hidden="true")");
           }
 
-          const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )""alpha-dcde2e9" u8R"( modified version</div>)";
+          const char prouct_title[] = u8R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR u8R"( modified version</div>)";
           ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)",
                                prouct_title);
 
           if (html.length() <= size) {
-            // 写入修改
+            // Write modifications.
             memcpy(begin, html.c_str(), html.length());
 
-            // 修改长度
+            // Modify length.
             new_len = html.length();
             changed = true;
           }
@@ -96,12 +96,12 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                                   _In_ DWORD dwMaximumSizeLow,
                                   _In_opt_ LPCTSTR lpName) {
   if (hFile == resources_pak_file) {
-    // 修改属性为可修改
+    // Modify it to be modifiable.
     resources_pak_map =
         RawCreateFileMapping(hFile, lpAttributes, PAGE_WRITECOPY,
                              dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
 
-    // 不再需要hook
+    // No more hook needed.
     resources_pak_file = NULL;
     MH_DisableHook(CreateFileMappingW);
 
@@ -143,7 +143,7 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName, _In_ DWORD dwDesiredAccess,
       MH_EnableHook(CreateFileMappingW);
     }
 
-    // 不再需要hook
+    // No more hook needed.
     MH_DisableHook(CreateFileW);
   }
 
