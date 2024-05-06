@@ -22,30 +22,25 @@ typedef NTSTATUS(WINAPI* pLdrLoadDll)(IN PWCHAR PathToFile OPTIONAL,
 pLdrLoadDll RawLdrLoadDll = nullptr;
 
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/browser/ui/dialogs/outdated_upgrade_bubble.cc?q=outdated_upgrade_bubble&ss=chromium%2Fchromium%2Fsrc
-// 该功能失效，需要修改
-//    void Outdated(HMODULE module)
-//{
-//    // "OutdatedUpgradeBubble.Show"
-//#ifdef _WIN64
-//    BYTE search[] = {0x48, 0x89, 0x8C, 0x24, 0xF0, 0x00, 0x00, 0x00, 0x80, 0x3D};
-//    uint8_t *match = SearchModuleRaw(module, search, sizeof(search));
-//#else
-//    BYTE search[] = {0x31, 0xE8, 0x89, 0x45, 0xF0, 0x88, 0x5D, 0xEF, 0x80, 0x3D};
-//    uint8_t *match = SearchModuleRaw(module, search, sizeof(search));
-//#endif
-//    if (match)
-//    {
-//        if (*(match + 0xF) == 0x74)
-//        {
-//            BYTE patch[] = {0x90, 0x90};
-//            WriteMemory(match + 0xF, patch, sizeof(patch));
-//        }
-//    }
-//    else
-//    {
-//        DebugLog(L"patch Outdated failed %p", module);
-//    }
-//}
+// This function is invalid and needs to be modified.
+// void Outdated(HMODULE module) {
+//   // "OutdatedUpgradeBubble.Show"
+// #ifdef _WIN64
+//   BYTE search[] = {0x48, 0x89, 0x8C, 0x24, 0xF0, 0x00, 0x00, 0x00, 0x80, 0x3D};
+//   uint8_t* match = SearchModuleRaw(module, search, sizeof(search));
+// #else
+//   BYTE search[] = {0x31, 0xE8, 0x89, 0x45, 0xF0, 0x88, 0x5D, 0xEF, 0x80, 0x3D};
+//   uint8_t* match = SearchModuleRaw(module, search, sizeof(search));
+// #endif
+//   if (match) {
+//     if (*(match + 0xF) == 0x74) {
+//       BYTE patch[] = {0x90, 0x90};
+//       WriteMemory(match + 0xF, patch, sizeof(patch));
+//     }
+//   } else {
+//     DebugLog(L"patch Outdated failed %p", module);
+//   }
+// }
 
 void DevWarning(HMODULE module) {
   // "enable-automation"

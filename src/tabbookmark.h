@@ -10,6 +10,9 @@ bool IsPressed(int key) {
   return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
 }
 
+// Compared with `IsOnlyOneTab`, this function additionally implements tick
+// fault tolerance to prevent users from directly closing the window when
+// they click too fast.
 bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   if (!IsKeepLastTab()) {
     return false;
@@ -28,7 +31,7 @@ bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
   if (tick > 0 && tick <= 250 && tab_count <= 2) {
     is_only_one_tab = true;
   }
-  if (tab_count == 0) {  // 处理全屏等状态
+  if (tab_count == 0) {  // Processing full screen and other states.
     is_only_one_tab = false;
   }
   keep_tab = is_only_one_tab;
@@ -60,7 +63,7 @@ class IniConfig {
 
 IniConfig config;
 
-// 滚轮切换标签页
+// Use the mouse wheel to switch tabs
 bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MOUSEWHEEL ||
       (!config.is_wheel_tab && !config.is_wheel_tab_when_press_right_button)) {
@@ -73,7 +76,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
   int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
-  // 是否启用鼠标停留在标签栏时滚轮切换标签
+  // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
   if (config.is_wheel_tab && IsOnTheTabBar(top_container_view, pmouse->pt)) {
     hwnd = GetTopWnd(hwnd);
     if (zDelta > 0) {
@@ -84,7 +87,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
     return true;
   }
 
-  // 是否启用在任何位置按住右键时滚轮切换标签
+  // If it is used to switch tabs when the right button is held.
   if (config.is_wheel_tab_when_press_right_button && IsPressed(VK_RBUTTON)) {
     hwnd = GetTopWnd(hwnd);
     if (zDelta > 0) {
@@ -98,7 +101,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
-// 双击关闭标签页
+// Double-click to close tab.
 int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONDBLCLK || !config.is_double_click_close) {
     return 0;
@@ -106,6 +109,9 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
   NodePtr top_container_view = GetTopContainerView(hwnd);
+
+  // If the top_container_view is not found at the first time, try to close the
+  // find-in-page bar and find the top_container_view again.
   if (!top_container_view) {
     ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
     top_container_view = GetTopContainerView(hwnd);
@@ -129,7 +135,7 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   return 0;
 }
 
-// 右键关闭标签页
+// Right-click to close tab (Hold Shift to show the original menu).
 int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_RBUTTONUP || IsPressed(VK_SHIFT) ||
       !config.is_right_click_close) {
@@ -161,7 +167,7 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   return 0;
 }
 
-// 保留最后标签页 - 中键
+// Preserve the last tab when the middle button is clicked on the tab.
 int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MBUTTONUP) {
     return 0;
@@ -189,7 +195,7 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   return 0;
 }
 
-// 新标签页打开书签
+// Open bookmarks in a new tab from the bookmark bar.
 bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
@@ -214,7 +220,7 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
-// 新标签页打开书签文件夹中的书签
+// Open bookmarks in a new tab from a bookmark menu (folder).
 bool HandleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
@@ -327,7 +333,7 @@ int HandleKeepTab(WPARAM wParam) {
   }
 
   if (IsFullScreen(hwnd)) {
-    // 必须退出全屏才能找到标签
+    // Have to exit full screen to find the tab.
     ExecuteCommand(IDC_FULLSCREEN, hwnd);
   }
 

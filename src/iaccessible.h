@@ -118,7 +118,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
       }
 
       if (is_task_completed) {
-        arrChildren[j].pdispVal->Release();  // 立刻释放，避免内存泄漏
+        arrChildren[j].pdispVal->Release();  // Release immediately to avoid memory leaks.
         continue;
       }
 
@@ -179,7 +179,7 @@ NodePtr FindPageTabList(NodePtr node) {
           role == ROLE_SYSTEM_PAGETABLIST) {
         page_tab_list = child;
       } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
-        // 必须保留这两个判断，否则会闪退 (#56)
+        // These two judgments must be retained, otherwise it will crash (#56)
         page_tab_list = FindPageTabList(child);
       }
       return page_tab_list;
@@ -241,7 +241,7 @@ NodePtr GetMenuBarPane(HWND hwnd) {
   return menu_bar_pane;
 }
 
-// 获取当前标签页数量
+// Gets the current number of tabs.
 __int64 GetTabCount(NodePtr top) {
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (!page_tab_list) {
@@ -295,7 +295,7 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
   return element;
 }
 
-// 鼠标是否在某个标签上
+// Whether the mouse is on a tab
 bool IsOnOneTab(NodePtr top, POINT pt) {
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (!page_tab_list) {
@@ -338,7 +338,7 @@ bool IsOnlyOneTab(NodePtr top) {
   return tab_count <= 1;
 }
 
-// 鼠标是否在标签栏上
+// Whether the mouse is on the tab bar
 bool IsOnTheTabBar(NodePtr top, POINT pt) {
   bool flag = false;
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
@@ -352,7 +352,7 @@ bool IsOnTheTabBar(NodePtr top, POINT pt) {
   return flag;
 }
 
-// 从当前标签页的名称判断是否是新标签页
+// Determine whether it is a new tab page from the name of the current tab page.
 bool IsNameNewTab(NodePtr top) {
 
   bool flag = false;
@@ -365,7 +365,7 @@ bool IsNameNewTab(NodePtr top) {
   TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
       GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-        new_tab_name.reset(_wcsdup(bstr));  // 保存从新建标签页按钮获取的名称
+        new_tab_name.reset(_wcsdup(bstr));  // Save the name obtained from the new tab button.
       });
     }
     return false;
@@ -405,7 +405,7 @@ bool IsNameNewTab(NodePtr top) {
   return flag;
 }
 
-// 从标签页的文档 value 判断是否是新标签页
+// Determine whether it is a new tab page from the document value of the tab page.
 bool IsDocNewTab() {
   bool flag = false;
   HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
@@ -438,7 +438,7 @@ bool IsOnNewTab(NodePtr top) {
   return IsNameNewTab(top) || IsDocNewTab();
 }
 
-// 鼠标是否在书签上
+// Whether the mouse is on a bookmark in the bookmark bar.
 bool IsOnBookmark(NodePtr top, POINT pt) {
   if (!top) {
     return false;
@@ -471,7 +471,7 @@ bool IsOnBookmark(NodePtr top, POINT pt) {
   return flag;
 }
 
-// 鼠标是否在菜单栏的书签文件（夹）上
+// Whether the mouse is on a bookmark in the menu bar (folder).
 bool IsOnMenuBookmark(NodePtr top, POINT pt) {
   NodePtr menu_bar = FindElementWithRole(top, ROLE_SYSTEM_MENUBAR);
   if (!menu_bar) {
@@ -512,7 +512,7 @@ bool IsOnMenuBookmark(NodePtr top, POINT pt) {
   return flag;
 }
 
-// 地址栏是否已经获得焦点
+// Whether the omnibox is focused.
 bool IsOmniboxFocus(NodePtr top) {
   NodePtr tool_bar = FindElementWithRole(top, ROLE_SYSTEM_TOOLBAR);
   if (!tool_bar) {

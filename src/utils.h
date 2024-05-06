@@ -35,7 +35,7 @@
 #define IDC_CLOSE_FIND_OR_STOP 37003
 #define IDC_WINDOW_CLOSE_OTHER_TABS 35023
 
-// 字符串操作函数
+// String manipulation function.
 std::wstring Format(const wchar_t* format, va_list args) {
   std::vector<wchar_t> buffer;
 
@@ -70,7 +70,7 @@ std::string wstring_to_string(const std::wstring& wstr) {
   return str;
 }
 
-// 指定分隔符、包裹符号分割字符串
+// Specify the delimiter and wrapper to split the string.
 std::vector<std::wstring> StringSplit(const std::wstring& str,
                                       const wchar_t delim,
                                       const std::wstring& enclosure) {
@@ -106,7 +106,7 @@ std::vector<std::wstring> StringSplit(const std::wstring& str,
   return result;
 }
 
-// 替换 ini 文件中的字符串
+// Replace string in INI file.
 void ReplaceStringIni(std::wstring& subject, const std::wstring& search,
                       const std::wstring& replace) {
   size_t pos = 0;
@@ -116,7 +116,7 @@ void ReplaceStringIni(std::wstring& subject, const std::wstring& search,
   }
 }
 
-// 压缩HTML
+// Compression html.
 std::string& ltrim(std::string& s) {
   s.erase(s.begin(), std::find_if(s.begin(), s.end(),
                                   [](int ch) { return !std::isspace(ch); }));
@@ -156,7 +156,6 @@ void compression_html(std::string& html) {
   }
 }
 
-// 替换字符串
 bool ReplaceStringInPlace(std::string& subject, const std::string& search,
                           const std::string& replace) {
   bool find = false;
@@ -170,8 +169,8 @@ bool ReplaceStringInPlace(std::string& subject, const std::string& search,
 }
 
 
-// 内存和模块搜索函数
-// 搜索内存
+// Memory and module search functions.
+// Search memory.
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
   return (uint8_t*)FastSearch(src, n, sub, m);
 }
@@ -230,8 +229,8 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
 //}
 
 
-// 路径和文件操作函数
-// 获得程序所在文件夹
+// Path and file manipulation functions.
+// Get the directory where the application is located.
 std::wstring GetAppDir() {
   wchar_t path[MAX_PATH];
   ::GetModuleFileName(nullptr, path, MAX_PATH);
@@ -249,14 +248,14 @@ bool isEndWith(const wchar_t* s, const wchar_t* sub) {
   return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
-// 获得指定路径的绝对路径
+// Get the absolute path.
 std::wstring GetAbsolutePath(const std::wstring& path) {
   wchar_t buffer[MAX_PATH];
   ::GetFullPathNameW(path.c_str(), MAX_PATH, buffer, nullptr);
   return buffer;
 }
 
-// 展开环境路径比如 %windir%
+// Expand environment variables in the path.
 std::wstring ExpandEnvironmentPath(const std::wstring& path) {
   std::vector<wchar_t> buffer(MAX_PATH);
   size_t ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
@@ -270,7 +269,7 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path) {
 }
 
 
-// 日志函数
+// Debug log function.
 void DebugLog(const wchar_t* format, ...) {
 //  va_list args;
 //
@@ -293,7 +292,7 @@ void DebugLog(const wchar_t* format, ...) {
 }
 
 
-// 窗口和用户界面操作函数
+// Window and message processing functions.
 HWND GetTopWnd(HWND hwnd) {
   while (::GetParent(hwnd) && ::IsWindowVisible(::GetParent(hwnd))) {
     hwnd = ::GetParent(hwnd);
@@ -319,8 +318,8 @@ bool IsFullScreen(HWND hwnd) {
 }
 
 
-// 键盘和鼠标输入函数
-// 发送组合按键操作
+// Keyboard and mouse input functions.
+// Send the combined key operation.
 class SendKeys {
  public:
   template <typename... T>
@@ -332,7 +331,7 @@ class SendKeys {
       input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
       input.ki.wVk = key;
 
-      // 修正鼠标消息
+      // Correct the mouse message
       switch (key) {
         case VK_MBUTTON:
           input.type = INPUT_MOUSE;
@@ -349,7 +348,7 @@ class SendKeys {
     for (auto& input : inputs_) {
       input.ki.dwFlags |= KEYEVENTF_KEYUP;
 
-      // 修正鼠标消息
+      // Correct the mouse message
       switch (input.ki.wVk) {
         case VK_MBUTTON:
           input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
@@ -364,9 +363,9 @@ class SendKeys {
   std::vector<INPUT> inputs_;
 };
 
-// 发送鼠标消息
+// Send a single key operation.
 void SendOneMouse(int mouse) {
-  // 交换左右键
+  // Swap the left and right mouse buttons (if defined).
   if (::GetSystemMetrics(SM_SWAPBUTTON) == TRUE) {
     if (mouse == MOUSEEVENTF_RIGHTDOWN)
       mouse = MOUSEEVENTF_LEFTDOWN;

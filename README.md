@@ -5,12 +5,12 @@
 
 # Features
 * Double-click to close tab.
-* Right-click to close tab. (Hold Shift to show the original menu.)
-* Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the close button will not work.)
+* Right-click to close tab (Hold Shift to show the original menu).
+* Preserve the last tab (prevents the browser from closing when the last tab is closed; clicking the close button will not work).
 * Use the mouse wheel to switch tabs when hovering over the tab bar.
 * Use the mouse wheel to switch tabs when holding the right mouse button.
-* Create new tab to opens the contents entered in address bar. (Can be configured to open in foreground or background.)
-* Create new tab to opens bookmarks. (Can be configured to open in foreground or background.)
+* Create new tab to opens the contents entered in address bar (Can be configured to open in foreground or background).
+* Create new tab to opens bookmarks (Can be configured to open in foreground or background).
 * Disable the above two features when the current tab is a new tab.
 * Customize hotkeys to quickly hide the browser window (boss key).
 * Customize hotkeys to translate web page.

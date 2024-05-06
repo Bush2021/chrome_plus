@@ -36,13 +36,13 @@ UINT ParseHotkeys(const wchar_t* keys) {
       }
     } else {
       TCHAR wch = key[0];
-      if (key.length() == 1)  // 解析单个字符A-Z、0-9等
+      if (key.length() == 1)  // Parse single characters A-Z, 0-9, etc.
       {
         if (isalnum(wch))
           vk = toupper(wch);
         else
           vk = LOWORD(VkKeyScan(wch));
-      } else if (wch == 'F' || wch == 'f')  // 解析F1-F24功能键
+      } else if (wch == 'F' || wch == 'f')  // Parse the F1-F24 function keys.
       {
         if (isdigit(key[1])) {
           int FX = _wtoi(&key[1]);
@@ -64,7 +64,6 @@ static bool is_hide = false;
 static std::vector<HWND> hwnd_list;
 
 BOOL CALLBACK SearchChromeWindow(HWND hWnd, LPARAM lParam) {
-  // 隐藏
   if (IsWindowVisible(hWnd)) {
     wchar_t buff[256];
     GetClassNameW(hWnd, buff, 255);
@@ -110,7 +109,6 @@ void Hotkey(const std::wstring& keys, HotkeyAction action) {
     UINT flag = ParseHotkeys(keys.c_str());
 
     std::thread th([flag, action]() {
-      // 注册热键
       RegisterHotKey(NULL, 0, LOWORD(flag), HIWORD(flag));
 
       MSG msg;

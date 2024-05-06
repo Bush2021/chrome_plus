@@ -24,19 +24,19 @@ typedef int (*Startup)();
 Startup ExeMain = NULL;
 
 void ChromePlus() {
-  // 快捷方式
+  // Shortcut.
   SetAppId();
 
-  // 便携化补丁
+  // Portable hajack patch.
   MakeGreen();
 
-  // 标签页，书签，地址栏增强
+  // Enhancement of the address bar, tab, and bookmark.
   TabBookmark();
 
-  // 给pak文件打补丁
+  // Patch the pak file.
   PakPatch();
 
-  // 处理热键
+  // Process the hotkey.
   GetHotkey();
 }
 
@@ -49,28 +49,28 @@ void ChromePlusCommand(LPWSTR param) {
 }
 
 int Loader() {
-  // 硬补丁
+  // Hard patch.
   MakePatch();
 
-  // 只关注主界面
+  // Only main interface.
   LPWSTR param = GetCommandLineW();
   // DebugLog(L"param %s", param);
   if (!wcsstr(param, L"-type=")) {
     ChromePlusCommand(param);
   }
 
-  // 返回到主程序
+  // Return to the main function.
   return ExeMain();
 }
 
 void InstallLoader() {
-  // 获取程序入口点
+  // Get the address of the original entry point of the main module.
   MODULEINFO mi;
   GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi,
                        sizeof(MODULEINFO));
   PBYTE entry = (PBYTE)mi.EntryPoint;
 
-  // 入口点跳转到Loader
+  // Jump from the original entry to the loader.
   MH_STATUS status = MH_CreateHook(entry, Loader, (LPVOID*)&ExeMain);
   if (status == MH_OK) {
     MH_EnableHook(entry);
@@ -88,10 +88,10 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv) {
     DisableThreadLibraryCalls(hModule);
     hInstance = hModule;
 
-    // 保持系统dll原有功能
+    // Maintain the original function of system DLLs.
     LoadSysDll(hModule);
 
-    // 初始化HOOK库成功以后安装加载器
+    // Install the loader after successfully initializing MinHook.
     MH_STATUS status = MH_Initialize();
     if (status == MH_OK) {
       InstallLoader();

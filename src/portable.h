@@ -29,7 +29,7 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines,
   return text;
 }
 
-// 构造新命令行
+// Construct new command line with portable mode.
 std::wstring GetCommand(LPWSTR param) {
   std::vector<std::wstring> args;
 
@@ -46,11 +46,11 @@ std::wstring GetCommand(LPWSTR param) {
     insert_pos = i;
   }
   for (int i = 0; i < argc; i++) {
-    // 保留原来参数
+    // Preserve former arguments.
     if (i)
       args.push_back(argv[i]);
 
-    // 追加参数
+    // Append new arguments.
     if (i == insert_pos) {
       args.push_back(L"--portable");
 
@@ -64,10 +64,10 @@ std::wstring GetCommand(LPWSTR param) {
         args.push_back(L"--disk-cache-dir=" + diskcache);
       }
 
-      // 获取命令行，然后追加参数
-      // 截取拆分每个--开头的参数，然后多次 args.push_back
-      // 重复上述过程，直到字串中不再存在 -- 号
-      // 这样就可以保证每个参数生效
+      // Get the command line and append parameters
+      // Intercept and split the parameters starting with each --,
+      // and then args.push_back multiple times
+      // Repeat the above process until the -- sign no longer exists in the string
       {
         auto cr_command_line = GetCrCommandLine();
         std::wstring temp = cr_command_line;
