@@ -363,6 +363,79 @@ class SendKeys {
   std::vector<INPUT> inputs_;
 };
 
+template <typename... T>
+void SendKey(T&&... keys) {
+  std::vector<typename std::common_type<T...>::type> keys_ = {
+      std::forward<T>(keys)...};
+  std::vector<INPUT> inputs{};
+  inputs.reserve(keys_.size() * 2);
+  for (auto& key : keys_) {
+    INPUT input = {0};
+    // 修正鼠标消息
+    switch (key) {
+      case VK_RBUTTON:
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+                               ? MOUSEEVENTF_LEFTDOWN
+                               : MOUSEEVENTF_RIGHTDOWN;
+        input.mi.dwExtraInfo = MAGIC_CODE;
+        break;
+      case VK_LBUTTON:
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+                               ? MOUSEEVENTF_RIGHTDOWN
+                               : MOUSEEVENTF_LEFTDOWN;
+        input.mi.dwExtraInfo = MAGIC_CODE;
+        break;
+      case VK_MBUTTON:
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+        input.mi.dwExtraInfo = MAGIC_CODE;
+        break;
+      default:
+        input.type = INPUT_KEYBOARD;
+        input.ki.wVk = (WORD)key;
+        input.ki.dwExtraInfo = MAGIC_CODE;
+        break;
+    }
+    inputs.emplace_back(std::move(input));
+  }
+
+  for (auto& key = keys_.rbegin(); key != keys_.rend(); ++key) {
+    INPUT input = {0};
+    // 修正鼠标消息
+    switch (*key) {
+      case VK_RBUTTON:
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+                               ? MOUSEEVENTF_LEFTUP
+                               : MOUSEEVENTF_RIGHTUP;
+        input.mi.dwExtraInfo = MAGIC_CODE;
+        break;
+      case VK_LBUTTON:
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+                               ? MOUSEEVENTF_RIGHTUP
+                               : MOUSEEVENTF_LEFTUP;
+        input.mi.dwExtraInfo = MAGIC_CODE;
+        break;
+      case VK_MBUTTON:
+        input.type = INPUT_MOUSE;
+        input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+        input.mi.dwExtraInfo = MAGIC_CODE;
+        break;
+      default:
+        input.type = INPUT_KEYBOARD;
+        input.ki.dwFlags = KEYEVENTF_KEYUP;
+        input.ki.wVk = (WORD)(*key);
+        input.ki.dwExtraInfo = MAGIC_CODE;
+        break;
+    }
+    inputs.emplace_back(std::move(input));
+  }
+  ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
+}
+
 // Send a single key operation.
 void SendOneMouse(int mouse) {
   // Swap the left and right mouse buttons (if defined).

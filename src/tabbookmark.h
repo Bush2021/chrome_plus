@@ -163,7 +163,9 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
       ExecuteCommand(IDC_NEW_TAB, hwnd);
       ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     } else {
-      SendKeys(VK_MBUTTON);
+      // Attempt new SendKey function which includes a `dwExtraInfo`
+      // value (MAGIC_CODE).
+      SendKey(VK_MBUTTON);
     }
     return 1;
   }
@@ -263,6 +265,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
     }
 
+    // Defining a `dwExtraInfo` value to prevent hook the message sent by
+    // Chrome++ itself.
     if (pmouse->dwExtraInfo == MAGIC_CODE) {
       // DebugLog(L"MAGIC_CODE %x", wParam);
       goto next;
