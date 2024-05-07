@@ -13,31 +13,20 @@ bool IsPressed(int key) {
 // Compared with `IsOnlyOneTab`, this function additionally implements tick
 // fault tolerance to prevent users from directly closing the window when
 // they click too fast.
-bool IsNeedKeep(HWND hwnd, int32_t* ptr = nullptr) {
+bool IsNeedKeep(NodePtr top_container_view) {
   if (!IsKeepLastTab()) {
     return false;
   }
 
-  bool keep_tab = false;
-
-  NodePtr top_container_view = GetTopContainerView(hwnd);
   auto tab_count = GetTabCount(top_container_view);
-  bool is_only_one_tab = (tab_count > 0 && tab_count <= 1);
+  bool keep_tab = (tab_count == 1);
 
   static auto last_closing_tab_tick = GetTickCount64();
   auto tick = GetTickCount64() - last_closing_tab_tick;
   last_closing_tab_tick = GetTickCount64();
 
-  if (tick > 0 && tick <= 250 && tab_count <= 2) {
-    is_only_one_tab = true;
-  }
-  if (tab_count == 0) {  // Processing full screen and other states.
-    is_only_one_tab = false;
-  }
-  keep_tab = is_only_one_tab;
-
-  if (ptr) {
-    *ptr = tick;
+  if (tick > 50 && tick <= 250 && tab_count == 2) {
+    keep_tab = true;
   }
 
   return keep_tab;
@@ -156,7 +145,7 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
-  bool keep_tab = IsNeedKeep(hwnd);
+  bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab) {
     if (keep_tab) {
@@ -183,7 +172,7 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
-  bool keep_tab = IsNeedKeep(hwnd);
+  bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab && keep_tab) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
@@ -340,7 +329,8 @@ int HandleKeepTab(WPARAM wParam) {
   hwnd = GetAncestor(tmp_hwnd, GA_ROOTOWNER);
   ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, tmp_hwnd);
 
-  if (!IsNeedKeep(hwnd)) {
+  NodePtr top_container_view = GetTopContainerView(hwnd);
+  if (!IsNeedKeep(top_container_view)) {
     return 0;
   }
 
