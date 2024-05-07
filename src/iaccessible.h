@@ -242,7 +242,7 @@ NodePtr GetMenuBarPane(HWND hwnd) {
 }
 
 // Gets the current number of tabs.
-__int64 GetTabCount(NodePtr top) {
+int GetTabCount(NodePtr top) {
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (!page_tab_list) {
     return 0;
@@ -264,14 +264,16 @@ __int64 GetTabCount(NodePtr top) {
     return false;
   });
 
-  auto tab_count =
-      std::count_if(children.begin(), children.end(), [](NodePtr child) {
-        auto role = GetAccessibleRole(child);
-        auto state = GetAccessibleState(child);
-        return role == ROLE_SYSTEM_PAGETAB ||
-               (role == ROLE_SYSTEM_PAGETABLIST &&
-                (state & STATE_SYSTEM_COLLAPSED));
-      });
+  int tab_count = 0;
+  for (const auto& child : children) {
+    auto role = GetAccessibleRole(child);
+    auto state = GetAccessibleState(child);
+    if (role == ROLE_SYSTEM_PAGETAB ||
+        // Grouped and collapsed tabs are counted as one tab.
+        (role == ROLE_SYSTEM_PAGETABLIST && (state & STATE_SYSTEM_COLLAPSED))) {
+      ++tab_count;
+    }
+  }
 
   return tab_count;
 }
