@@ -409,6 +409,13 @@ bool IsNameNewTab(NodePtr top) {
 
 // Determine whether it is a new tab page from the document value of the tab page.
 bool IsDocNewTab() {
+
+  auto cr_command_line = GetCrCommandLine();
+  if (cr_command_line.find(L"--force-renderer-accessibility") ==
+      std::wstring::npos) {
+    return false;
+  }
+
   bool flag = false;
   HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
                            L"Chrome_RenderWidgetHostHWND", nullptr);
