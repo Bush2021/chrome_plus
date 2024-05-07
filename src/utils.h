@@ -59,15 +59,14 @@ std::wstring Format(const wchar_t* format, ...) {
 }
 
 std::string wstring_to_string(const std::wstring& wstr) {
-  int cbMultiByte = WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, nullptr, 0,
-                                        nullptr, nullptr);
-
-  std::string str(cbMultiByte - 1, '\0');
-
-  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, &str[0], cbMultiByte,
-                      nullptr, nullptr);
-
-  return str;
+  std::string strTo;
+  auto szTo = new char[wstr.length() + 1];
+  szTo[wstr.size()] = '\0';
+  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, szTo,
+                      static_cast<int>(wstr.length()), nullptr, nullptr);
+  strTo = szTo;
+  delete[] szTo;
+  return strTo;
 }
 
 // Specify the delimiter and wrapper to split the string.
