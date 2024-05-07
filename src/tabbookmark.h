@@ -13,12 +13,11 @@ bool IsPressed(int key) {
 // Compared with `IsOnlyOneTab`, this function additionally implements tick
 // fault tolerance to prevent users from directly closing the window when
 // they click too fast.
-bool IsNeedKeep(HWND hwnd) {
+bool IsNeedKeep(NodePtr top_container_view) {
   if (!IsKeepLastTab()) {
     return false;
   }
 
-  NodePtr top_container_view = GetTopContainerView(hwnd);
   auto tab_count = GetTabCount(top_container_view);
   bool keep_tab = (tab_count == 1);
 
@@ -146,7 +145,7 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
-  bool keep_tab = IsNeedKeep(hwnd);
+  bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab) {
     if (keep_tab) {
@@ -173,7 +172,7 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
-  bool keep_tab = IsNeedKeep(hwnd);
+  bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab && keep_tab) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
@@ -330,7 +329,8 @@ int HandleKeepTab(WPARAM wParam) {
   hwnd = GetAncestor(tmp_hwnd, GA_ROOTOWNER);
   ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, tmp_hwnd);
 
-  if (!IsNeedKeep(hwnd)) {
+  NodePtr top_container_view = GetTopContainerView(hwnd);
+  if (!IsNeedKeep(top_container_view)) {
     return 0;
   }
 
