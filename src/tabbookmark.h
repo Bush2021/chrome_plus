@@ -240,44 +240,21 @@ bool HandleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  static bool wheel_tab_ing = false;
-  static bool double_click_ing = false;
-
   if (nCode != HC_ACTION) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
   }
 
-  if (nCode == HC_ACTION) {
-    PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
-
+  do {
     if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
-      return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+      break;
     }
+    PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
 
     // Defining a `dwExtraInfo` value to prevent hook the message sent by
     // Chrome++ itself.
     if (pmouse->dwExtraInfo == MAGIC_CODE) {
-      // DebugLog(L"MAGIC_CODE %x", wParam);
-      goto next;
+      break;
     }
-
-    if (wParam == WM_RBUTTONUP && wheel_tab_ing) {
-      // DebugLog(L"wheel_tab_ing");
-      wheel_tab_ing = false;
-      return 1;
-    }
-
-    // if (wParam == WM_MBUTTONDOWN)
-    //{
-    //     //DebugLog(L"wheel_tab_ing");
-    //     return 1;
-    // }
-    // if (wParam == WM_LBUTTONUP && double_click_ing)
-    //{
-    //     //DebugLog(L"double_click_ing");
-    //     double_click_ing = false;
-    //     return 1;
-    // }
 
     if (HandleMouseWheel(wParam, lParam, pmouse)) {
       return 1;
@@ -304,9 +281,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (HandleBookmarkMenu(wParam, pmouse)) {
       return 1;
     }
-  }
-next:
-  // DebugLog(L"CallNextHookEx %X", wParam);
+  } while (0);
   return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
 
