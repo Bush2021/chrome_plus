@@ -68,7 +68,8 @@ BOOL CALLBACK SearchChromeWindow(HWND hWnd, LPARAM lParam) {
     wchar_t buff[256];
     GetClassNameW(hWnd, buff, 255);
     if (wcscmp(buff, L"Chrome_WidgetWin_1") ==
-        0)  // || wcscmp(buff, L"Chrome_WidgetWin_2")==0 || wcscmp(buff, L"SysShadow")==0 )
+        0)  // || wcscmp(buff, L"Chrome_WidgetWin_2")==0 || wcscmp(buff,
+            // L"SysShadow")==0 )
     {
       ShowWindow(hWnd, SW_HIDE);
       hwnd_list.push_back(hWnd);

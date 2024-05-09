@@ -118,7 +118,8 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
       }
 
       if (is_task_completed) {
-        arrChildren[j].pdispVal->Release();  // Release immediately to avoid memory leaks.
+        arrChildren[j]
+            .pdispVal->Release();  // Release immediately to avoid memory leaks.
         continue;
       }
 
@@ -356,7 +357,6 @@ bool IsOnTheTabBar(NodePtr top, POINT pt) {
 
 // Determine whether it is a new tab page from the name of the current tab page.
 bool IsNameNewTab(NodePtr top) {
-
   bool flag = false;
   std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
@@ -367,7 +367,8 @@ bool IsNameNewTab(NodePtr top) {
   TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
       GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-        new_tab_name.reset(_wcsdup(bstr));  // Save the name obtained from the new tab button.
+        new_tab_name.reset(
+            _wcsdup(bstr));  // Save the name obtained from the new tab button.
       });
     }
     return false;
@@ -407,9 +408,9 @@ bool IsNameNewTab(NodePtr top) {
   return flag;
 }
 
-// Determine whether it is a new tab page from the document value of the tab page.
+// Determine whether it is a new tab page from the document value of the tab
+// page.
 bool IsDocNewTab() {
-
   auto cr_command_line = GetCrCommandLine();
   if (cr_command_line.find(L"--force-renderer-accessibility") ==
       std::wstring::npos) {

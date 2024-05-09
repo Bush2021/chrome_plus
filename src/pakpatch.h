@@ -40,7 +40,6 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
         uint8_t* pos =
             memmem(begin, size, search_start, sizeof(search_start) - 1);
         if (pos) {
-
           // Compress the HTML for writing patch information.
           std::string html((char*)begin, size);
           compression_html(html);
@@ -82,10 +81,13 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
 
 HANDLE resources_pak_file = NULL;
 
-typedef HANDLE(WINAPI* pCreateFileMapping)(
-    _In_ HANDLE hFile, _In_opt_ LPSECURITY_ATTRIBUTES lpAttributes,
-    _In_ DWORD flProtect, _In_ DWORD dwMaximumSizeHigh,
-    _In_ DWORD dwMaximumSizeLow, _In_opt_ LPCTSTR lpName);
+typedef HANDLE(WINAPI* pCreateFileMapping)(_In_ HANDLE hFile,
+                                           _In_opt_ LPSECURITY_ATTRIBUTES
+                                               lpAttributes,
+                                           _In_ DWORD flProtect,
+                                           _In_ DWORD dwMaximumSizeHigh,
+                                           _In_ DWORD dwMaximumSizeLow,
+                                           _In_opt_ LPCTSTR lpName);
 
 pCreateFileMapping RawCreateFileMapping = NULL;
 
@@ -116,15 +118,19 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                               dwMaximumSizeLow, lpName);
 }
 
-typedef HANDLE(WINAPI* pCreateFile)(
-    _In_ LPCTSTR lpFileName, _In_ DWORD dwDesiredAccess, _In_ DWORD dwShareMode,
-    _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-    _In_ DWORD dwCreationDisposition, _In_ DWORD dwFlagsAndAttributes,
-    _In_opt_ HANDLE hTemplateFile);
+typedef HANDLE(WINAPI* pCreateFile)(_In_ LPCTSTR lpFileName,
+                                    _In_ DWORD dwDesiredAccess,
+                                    _In_ DWORD dwShareMode,
+                                    _In_opt_ LPSECURITY_ATTRIBUTES
+                                        lpSecurityAttributes,
+                                    _In_ DWORD dwCreationDisposition,
+                                    _In_ DWORD dwFlagsAndAttributes,
+                                    _In_opt_ HANDLE hTemplateFile);
 
 pCreateFile RawCreateFile = NULL;
 
-HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName, _In_ DWORD dwDesiredAccess,
+HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
+                           _In_ DWORD dwDesiredAccess,
                            _In_ DWORD dwShareMode,
                            _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
                            _In_ DWORD dwCreationDisposition,

@@ -26,11 +26,11 @@ pLdrLoadDll RawLdrLoadDll = nullptr;
 // void Outdated(HMODULE module) {
 //   // "OutdatedUpgradeBubble.Show"
 // #ifdef _WIN64
-//   BYTE search[] = {0x48, 0x89, 0x8C, 0x24, 0xF0, 0x00, 0x00, 0x00, 0x80, 0x3D};
-//   uint8_t* match = SearchModuleRaw(module, search, sizeof(search));
+//   BYTE search[] = {0x48, 0x89, 0x8C, 0x24, 0xF0, 0x00, 0x00, 0x00, 0x80,
+//   0x3D}; uint8_t* match = SearchModuleRaw(module, search, sizeof(search));
 // #else
-//   BYTE search[] = {0x31, 0xE8, 0x89, 0x45, 0xF0, 0x88, 0x5D, 0xEF, 0x80, 0x3D};
-//   uint8_t* match = SearchModuleRaw(module, search, sizeof(search));
+//   BYTE search[] = {0x31, 0xE8, 0x89, 0x45, 0xF0, 0x88, 0x5D, 0xEF, 0x80,
+//   0x3D}; uint8_t* match = SearchModuleRaw(module, search, sizeof(search));
 // #endif
 //   if (match) {
 //     if (*(match + 0xF) == 0x74) {

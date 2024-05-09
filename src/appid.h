@@ -6,10 +6,12 @@
 #include <shobjidl.h>
 
 typedef HRESULT(WINAPI* pPSStringFromPropertyKey)(REFPROPERTYKEY pkey,
-                                                  LPWSTR psz, UINT cch);
+                                                  LPWSTR psz,
+                                                  UINT cch);
 pPSStringFromPropertyKey RawPSStringFromPropertyKey = nullptr;
 
-HRESULT WINAPI MyPSStringFromPropertyKey(REFPROPERTYKEY pkey, LPWSTR psz,
+HRESULT WINAPI MyPSStringFromPropertyKey(REFPROPERTYKEY pkey,
+                                         LPWSTR psz,
                                          UINT cch) {
   HRESULT result = RawPSStringFromPropertyKey(pkey, psz, cch);
   if (SUCCEEDED(result)) {

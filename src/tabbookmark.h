@@ -311,7 +311,6 @@ next:
 }
 
 int HandleKeepTab(WPARAM wParam) {
-
   if (!(wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) &&
       !(wParam == VK_F4 && IsPressed(VK_CONTROL))) {
     return 0;

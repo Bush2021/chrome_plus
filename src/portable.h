@@ -67,7 +67,8 @@ std::wstring GetCommand(LPWSTR param) {
       // Get the command line and append parameters
       // Intercept and split the parameters starting with each --,
       // and then args.push_back multiple times
-      // Repeat the above process until the -- sign no longer exists in the string
+      // Repeat the above process until the -- sign no longer exists in the
+      // string
       {
         auto cr_command_line = GetCrCommandLine();
         std::wstring temp = cr_command_line;

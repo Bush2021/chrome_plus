@@ -14,7 +14,6 @@
 
 #include "FastSearch.h"
 
-
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
 #define IDC_NEW_TAB 34014
 #define IDC_CLOSE_TAB 34015
@@ -106,7 +105,8 @@ std::vector<std::wstring> StringSplit(const std::wstring& str,
 }
 
 // Replace string in INI file.
-void ReplaceStringIni(std::wstring& subject, const std::wstring& search,
+void ReplaceStringIni(std::wstring& subject,
+                      const std::wstring& search,
                       const std::wstring& replace) {
   size_t pos = 0;
   while ((pos = subject.find(search, pos)) != std::wstring::npos) {
@@ -155,7 +155,8 @@ void compression_html(std::string& html) {
   }
 }
 
-bool ReplaceStringInPlace(std::string& subject, const std::string& search,
+bool ReplaceStringInPlace(std::string& subject,
+                          const std::string& search,
                           const std::string& replace) {
   bool find = false;
   size_t pos = 0;
@@ -166,7 +167,6 @@ bool ReplaceStringInPlace(std::string& subject, const std::string& search,
   }
   return find;
 }
-
 
 // Memory and module search functions.
 // Search memory.
@@ -214,19 +214,18 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
   return nullptr;
 }
 
-//bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
-//  DWORD ProtectFlag = 0;
-//  if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
-//                       PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
-//    memcpy(BaseAddress, Buffer, nSize);
-//    FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-//    VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
-//                     &ProtectFlag);
-//    return true;
-//  }
-//  return false;
-//}
-
+// bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
+//   DWORD ProtectFlag = 0;
+//   if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
+//                        PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
+//     memcpy(BaseAddress, Buffer, nSize);
+//     FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
+//     VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
+//                      &ProtectFlag);
+//     return true;
+//   }
+//   return false;
+// }
 
 // Path and file manipulation functions.
 // Get the directory where the application is located.
@@ -267,29 +266,27 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path) {
   return std::wstring(&buffer[0], 0, ExpandedLength);
 }
 
-
 // Debug log function.
 void DebugLog(const wchar_t* format, ...) {
-//  va_list args;
-//
-//  va_start(args, format);
-//  auto str = Format(format, args);
-//  va_end(args);
-//
-//  str = Format(L"[chrome++] %s\n", str.c_str());
-//
-//  std::string nstr = wstring_to_string(str);
-//  const char* cstr = nstr.c_str();
-//
-//  FILE* fp = nullptr;
-//  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
-//  _wfopen_s(&fp, logPath.c_str(), L"a+");
-//  if (fp) {
-//    fwrite(cstr, strlen(cstr), 1, fp);
-//    fclose(fp);
-//  }
+  //  va_list args;
+  //
+  //  va_start(args, format);
+  //  auto str = Format(format, args);
+  //  va_end(args);
+  //
+  //  str = Format(L"[chrome++] %s\n", str.c_str());
+  //
+  //  std::string nstr = wstring_to_string(str);
+  //  const char* cstr = nstr.c_str();
+  //
+  //  FILE* fp = nullptr;
+  //  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+  //  _wfopen_s(&fp, logPath.c_str(), L"a+");
+  //  if (fp) {
+  //    fwrite(cstr, strlen(cstr), 1, fp);
+  //    fclose(fp);
+  //  }
 }
-
 
 // Window and message processing functions.
 HWND GetTopWnd(HWND hwnd) {
@@ -310,12 +307,11 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
 
 bool IsFullScreen(HWND hwnd) {
   RECT windowRect;
-  return (GetClientRect(hwnd, &windowRect)
-          && (windowRect.left == 0 && windowRect.top == 0
-              && windowRect.right == GetSystemMetrics(SM_CXSCREEN)
-              && windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
+  return (GetClientRect(hwnd, &windowRect) &&
+          (windowRect.left == 0 && windowRect.top == 0 &&
+           windowRect.right == GetSystemMetrics(SM_CXSCREEN) &&
+           windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
 }
-
 
 // Keyboard and mouse input functions.
 // Send the combined key operation.

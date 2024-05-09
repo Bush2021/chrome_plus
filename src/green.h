@@ -19,11 +19,14 @@ BOOL WINAPI FakeGetVolumeInformation(_In_opt_ LPCTSTR lpRootPathName,
   return 0;
 }
 
-BOOL WINAPI MyCryptProtectData(
-    _In_ DATA_BLOB* pDataIn, _In_opt_ LPCWSTR szDataDescr,
-    _In_opt_ DATA_BLOB* pOptionalEntropy, _Reserved_ PVOID pvReserved,
-    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct, _In_ DWORD dwFlags,
-    _Out_ DATA_BLOB* pDataOut) {
+BOOL WINAPI
+MyCryptProtectData(_In_ DATA_BLOB* pDataIn,
+                   _In_opt_ LPCWSTR szDataDescr,
+                   _In_opt_ DATA_BLOB* pOptionalEntropy,
+                   _Reserved_ PVOID pvReserved,
+                   _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
+                   _In_ DWORD dwFlags,
+                   _Out_ DATA_BLOB* pDataOut) {
   pDataOut->cbData = pDataIn->cbData;
   pDataOut->pbData = (BYTE*)LocalAlloc(LMEM_FIXED, pDataOut->cbData);
   memcpy(pDataOut->pbData, pDataIn->pbData, pDataOut->cbData);
@@ -31,18 +34,24 @@ BOOL WINAPI MyCryptProtectData(
 }
 
 typedef BOOL(WINAPI* pCryptUnprotectData)(
-    _In_ DATA_BLOB* pDataIn, _Out_opt_ LPWSTR* ppszDataDescr,
-    _In_opt_ DATA_BLOB* pOptionalEntropy, _Reserved_ PVOID pvReserved,
-    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct, _In_ DWORD dwFlags,
+    _In_ DATA_BLOB* pDataIn,
+    _Out_opt_ LPWSTR* ppszDataDescr,
+    _In_opt_ DATA_BLOB* pOptionalEntropy,
+    _Reserved_ PVOID pvReserved,
+    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
+    _In_ DWORD dwFlags,
     _Out_ DATA_BLOB* pDataOut);
 
 pCryptUnprotectData RawCryptUnprotectData = NULL;
 
-BOOL WINAPI MyCryptUnprotectData(
-    _In_ DATA_BLOB* pDataIn, _Out_opt_ LPWSTR* ppszDataDescr,
-    _In_opt_ DATA_BLOB* pOptionalEntropy, _Reserved_ PVOID pvReserved,
-    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct, _In_ DWORD dwFlags,
-    _Out_ DATA_BLOB* pDataOut) {
+BOOL WINAPI
+MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
+                     _Out_opt_ LPWSTR* ppszDataDescr,
+                     _In_opt_ DATA_BLOB* pOptionalEntropy,
+                     _Reserved_ PVOID pvReserved,
+                     _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
+                     _In_ DWORD dwFlags,
+                     _Out_ DATA_BLOB* pDataOut) {
   if (RawCryptUnprotectData(pDataIn, ppszDataDescr, pOptionalEntropy,
                             pvReserved, pPromptStruct, dwFlags, pDataOut)) {
     return true;
@@ -54,15 +63,21 @@ BOOL WINAPI MyCryptUnprotectData(
   return true;
 }
 
-typedef DWORD(WINAPI* pLogonUserW)(LPCWSTR lpszUsername, LPCWSTR lpszDomain,
-                                   LPCWSTR lpszPassword, DWORD dwLogonType,
-                                   DWORD dwLogonProvider, PHANDLE phToken);
+typedef DWORD(WINAPI* pLogonUserW)(LPCWSTR lpszUsername,
+                                   LPCWSTR lpszDomain,
+                                   LPCWSTR lpszPassword,
+                                   DWORD dwLogonType,
+                                   DWORD dwLogonProvider,
+                                   PHANDLE phToken);
 
 pLogonUserW RawLogonUserW = NULL;
 
-DWORD WINAPI MyLogonUserW(LPCWSTR lpszUsername, LPCWSTR lpszDomain,
-                          LPCWSTR lpszPassword, DWORD dwLogonType,
-                          DWORD dwLogonProvider, PHANDLE phToken) {
+DWORD WINAPI MyLogonUserW(LPCWSTR lpszUsername,
+                          LPCWSTR lpszDomain,
+                          LPCWSTR lpszPassword,
+                          DWORD dwLogonType,
+                          DWORD dwLogonProvider,
+                          PHANDLE phToken) {
   DWORD ret = RawLogonUserW(lpszUsername, lpszDomain, lpszPassword, dwLogonType,
                             dwLogonProvider, phToken);
 
@@ -84,13 +99,16 @@ BOOL WINAPI MyIsOS(DWORD dwOS) {
 }
 
 typedef NET_API_STATUS(WINAPI* pNetUserGetInfo)(LPCWSTR servername,
-                                                LPCWSTR username, DWORD level,
+                                                LPCWSTR username,
+                                                DWORD level,
                                                 LPBYTE* bufptr);
 
 pNetUserGetInfo RawNetUserGetInfo = NULL;
 
-NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername, LPCWSTR username,
-                                       DWORD level, LPBYTE* bufptr) {
+NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
+                                       LPCWSTR username,
+                                       DWORD level,
+                                       LPBYTE* bufptr) {
   NET_API_STATUS ret = RawNetUserGetInfo(servername, username, level, bufptr);
   if (level == 1 && ret == 0) {
     LPUSER_INFO_1 user_info = (LPUSER_INFO_1)*bufptr;
@@ -107,16 +125,23 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername, LPCWSTR username,
   (0x00000001ui64 << 28)
 
 typedef BOOL(WINAPI* pUpdateProcThreadAttribute)(
-    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList, DWORD dwFlags,
-    DWORD_PTR Attribute, PVOID lpValue, SIZE_T cbSize, PVOID lpPreviousValue,
+    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    DWORD dwFlags,
+    DWORD_PTR Attribute,
+    PVOID lpValue,
+    SIZE_T cbSize,
+    PVOID lpPreviousValue,
     PSIZE_T lpReturnSize);
 
 pUpdateProcThreadAttribute RawUpdateProcThreadAttribute = nullptr;
 
 BOOL WINAPI MyUpdateProcThreadAttribute(
-    __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList, __in DWORD dwFlags,
-    __in DWORD_PTR Attribute, __in_bcount_opt(cbSize) PVOID lpValue,
-    __in SIZE_T cbSize, __out_bcount_opt(cbSize) PVOID lpPreviousValue,
+    __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    __in DWORD dwFlags,
+    __in DWORD_PTR Attribute,
+    __in_bcount_opt(cbSize) PVOID lpValue,
+    __in SIZE_T cbSize,
+    __out_bcount_opt(cbSize) PVOID lpPreviousValue,
     __in_opt PSIZE_T lpReturnSize) {
   if (Attribute == PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY &&
       cbSize >= sizeof(DWORD64)) {

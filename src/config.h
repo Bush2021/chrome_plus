@@ -11,7 +11,8 @@ bool IsIniExist() {
   return false;
 }
 
-std::wstring GetIniString(const std::wstring& section, const std::wstring& key,
+std::wstring GetIniString(const std::wstring& section,
+                          const std::wstring& key,
                           const std::wstring& default_value) {
   std::vector<TCHAR> buffer(100);
   DWORD bytesread = 0;

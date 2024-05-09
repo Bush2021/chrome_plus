@@ -39,7 +39,8 @@ struct PAK_ALIAS {
 };
 #pragma pack(pop)
 
-bool CheckHeader(uint8_t* buffer, PAK_ENTRY*& pak_entry,
+bool CheckHeader(uint8_t* buffer,
+                 PAK_ENTRY*& pak_entry,
                  PAK_ENTRY*& end_entry) {
   uint32_t version = *(uint32_t*)buffer;
 

@@ -14,7 +14,9 @@ static const uint8_t* ForceSearch(const uint8_t* s, int n, const uint8_t* p) {
   return NULL;
 }
 
-static const uint8_t* SundaySearch(const uint8_t* s, int n, const uint8_t* p,
+static const uint8_t* SundaySearch(const uint8_t* s,
+                                   int n,
+                                   const uint8_t* p,
                                    int m) {
   int i, j;
 
