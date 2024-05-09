@@ -200,9 +200,9 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 
   if (top_container_view && is_on_bookmark && !is_on_new_tab) {
     if (config.is_bookmark_new_tab == "foreground") {
-      SendKeys(VK_MBUTTON, VK_SHIFT);
+      SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (config.is_bookmark_new_tab == "background") {
-      SendKeys(VK_MBUTTON);
+      SendKey(VK_MBUTTON);
     }
     return true;
   }
@@ -229,9 +229,9 @@ bool HandleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
       !is_on_new_tab) {
     if (config.is_bookmark_new_tab == "foreground") {
       DebugLog(L"MButton + Shift");
-      SendKeys(VK_MBUTTON, VK_SHIFT);
+      SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (config.is_bookmark_new_tab == "background") {
-      SendKeys(VK_MBUTTON);
+      SendKey(VK_MBUTTON);
     }
     return true;
   }
@@ -352,9 +352,9 @@ int HandleOpenUrlNewTab(WPARAM wParam) {
   NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
   if (IsOmniboxFocus(top_container_view) && !IsOnNewTab(top_container_view)) {
     if (config.is_open_url_new_tab == "foreground") {
-      SendKeys(VK_MENU, VK_RETURN);
+      SendKey(VK_MENU, VK_RETURN);
     } else if (config.is_open_url_new_tab == "background") {
-      SendKeys(VK_SHIFT, VK_MENU, VK_RETURN);
+      SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
     }
     return 1;
   }

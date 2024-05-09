@@ -319,48 +319,48 @@ bool IsFullScreen(HWND hwnd) {
 
 // Keyboard and mouse input functions.
 // Send the combined key operation.
-class SendKeys {
- public:
-  template <typename... T>
-  SendKeys(T... keys) {
-    std::vector<int> keys_ = {keys...};
-    for (auto& key : keys_) {
-      INPUT input = {0};
-      input.type = INPUT_KEYBOARD;
-      input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
-      input.ki.wVk = key;
+// class SendKeys {
+//  public:
+//   template <typename... T>
+//   SendKeys(T... keys) {
+//     std::vector<int> keys_ = {keys...};
+//     for (auto& key : keys_) {
+//       INPUT input = {0};
+//       input.type = INPUT_KEYBOARD;
+//       input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+//       input.ki.wVk = key;
 
-      // Correct the mouse message
-      switch (key) {
-        case VK_MBUTTON:
-          input.type = INPUT_MOUSE;
-          input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-          break;
-      }
+//       // Correct the mouse message
+//       switch (key) {
+//         case VK_MBUTTON:
+//           input.type = INPUT_MOUSE;
+//           input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
+//           break;
+//       }
 
-      inputs_.push_back(input);
-    }
+//       inputs_.push_back(input);
+//     }
 
-    SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
-  }
-  ~SendKeys() {
-    for (auto& input : inputs_) {
-      input.ki.dwFlags |= KEYEVENTF_KEYUP;
+//     SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
+//   }
+//   ~SendKeys() {
+//     for (auto& input : inputs_) {
+//       input.ki.dwFlags |= KEYEVENTF_KEYUP;
 
-      // Correct the mouse message
-      switch (input.ki.wVk) {
-        case VK_MBUTTON:
-          input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-          break;
-      }
-    }
+//       // Correct the mouse message
+//       switch (input.ki.wVk) {
+//         case VK_MBUTTON:
+//           input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
+//           break;
+//       }
+//     }
 
-    SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
-  }
+//     SendInput((UINT)inputs_.size(), &inputs_[0], sizeof(INPUT));
+//   }
 
- private:
-  std::vector<INPUT> inputs_;
-};
+//  private:
+//   std::vector<INPUT> inputs_;
+// };
 
 template <typename... T>
 void SendKey(T&&... keys) {
@@ -397,10 +397,10 @@ void SendKey(T&&... keys) {
         input.ki.dwExtraInfo = MAGIC_CODE;
         break;
     }
+    input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
     inputs.emplace_back(std::move(input));
   }
-
-  for (auto& key = keys_.rbegin(); key != keys_.rend(); ++key) {
+  for (auto& key = keys_.begin(); key != keys_.end(); ++key) {
     INPUT input = {0};
     // 修正鼠标消息
     switch (*key) {
@@ -430,6 +430,7 @@ void SendKey(T&&... keys) {
         input.ki.dwExtraInfo = MAGIC_CODE;
         break;
     }
+    input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
     inputs.emplace_back(std::move(input));
   }
   ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
