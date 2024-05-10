@@ -370,14 +370,14 @@ void SendKey(T&&... keys) {
     switch (key) {
       case VK_RBUTTON:
         input.type = INPUT_MOUSE;
-        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_LEFTDOWN
                                : MOUSEEVENTF_RIGHTDOWN;
         input.mi.dwExtraInfo = MAGIC_CODE;
         break;
       case VK_LBUTTON:
         input.type = INPUT_MOUSE;
-        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_RIGHTDOWN
                                : MOUSEEVENTF_LEFTDOWN;
         input.mi.dwExtraInfo = MAGIC_CODE;
@@ -390,26 +390,26 @@ void SendKey(T&&... keys) {
       default:
         input.type = INPUT_KEYBOARD;
         input.ki.wVk = (WORD)key;
+        input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
         input.ki.dwExtraInfo = MAGIC_CODE;
         break;
     }
-    input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
     inputs.emplace_back(std::move(input));
   }
-  for (auto& key = keys_.begin(); key != keys_.end(); ++key) {
+  for (auto& key : keys_) {
     INPUT input = {0};
     // 修正鼠标消息
-    switch (*key) {
+    switch (key) {
       case VK_RBUTTON:
         input.type = INPUT_MOUSE;
-        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_LEFTUP
                                : MOUSEEVENTF_RIGHTUP;
         input.mi.dwExtraInfo = MAGIC_CODE;
         break;
       case VK_LBUTTON:
         input.type = INPUT_MOUSE;
-        input.mi.dwFlags = ::GetSystemMetrics(SM_SWAPBUTTON) == TRUE
+        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_RIGHTUP
                                : MOUSEEVENTF_LEFTUP;
         input.mi.dwExtraInfo = MAGIC_CODE;
@@ -422,14 +422,14 @@ void SendKey(T&&... keys) {
       default:
         input.type = INPUT_KEYBOARD;
         input.ki.dwFlags = KEYEVENTF_KEYUP;
-        input.ki.wVk = (WORD)(*key);
+        input.ki.wVk = (WORD)key;
+        input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
         input.ki.dwExtraInfo = MAGIC_CODE;
         break;
     }
-    input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
     inputs.emplace_back(std::move(input));
   }
-  ::SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
+  SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
 }
 
 // Send a single key operation.
