@@ -40,7 +40,7 @@ static const uint8_t* SundaySearch(const uint8_t* s,
       }
     }
 
-    i += skip[s[i + m]];
+    i += (int)skip[s[i + m]];
   }
 
   return NULL;

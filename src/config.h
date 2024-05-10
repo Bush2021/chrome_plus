@@ -17,9 +17,9 @@ std::wstring GetIniString(const std::wstring& section,
   std::vector<TCHAR> buffer(100);
   DWORD bytesread = 0;
   do {
-    bytesread = ::GetPrivateProfileStringW(section.c_str(), key.c_str(),
-                                           default_value.c_str(), buffer.data(),
-                                           buffer.size(), kIniPath.c_str());
+    bytesread = ::GetPrivateProfileStringW(
+        section.c_str(), key.c_str(), default_value.c_str(), buffer.data(),
+        (DWORD)buffer.size(), kIniPath.c_str());
     // 如果字符串过长，则倍增缓冲区大小
     if (bytesread >= buffer.size() - 1) {
       buffer.resize(buffer.size() * 2);
