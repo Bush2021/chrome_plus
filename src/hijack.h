@@ -109,7 +109,7 @@ bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
 // Restore the export function.
 void InstallJMP(PBYTE BaseAddress, uintptr_t Function) {
   if (*BaseAddress == 0xE9) {
-    BaseAddress++;
+    ++BaseAddress;
     BaseAddress = BaseAddress + *(uint32_t*)BaseAddress + 4;
   }
 #ifdef _WIN64
@@ -159,7 +159,7 @@ void LoadVersion(HINSTANCE hModule) {
       lstrcat(szDLLPath, TEXT("\\version.dll"));
 
       HINSTANCE module = LoadLibrary(szDLLPath);
-      for (size_t i = 0; i < pimExD->NumberOfNames; i++) {
+      for (size_t i = 0; i < pimExD->NumberOfNames; ++i) {
         uintptr_t Original =
             (uintptr_t)GetProcAddress(module, (char*)(pImageBase + pName[i]));
         if (Original) {

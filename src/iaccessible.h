@@ -290,7 +290,7 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
                             if (i == skipcount) {
                               element = child;
                             }
-                            i++;
+                            ++i;
                           }
                           return element != nullptr;
                         });

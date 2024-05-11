@@ -184,7 +184,7 @@ uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m) {
                               sizeof(IMAGE_FILE_HEADER) +
                               nt_header->FileHeader.SizeOfOptionalHeader);
 
-  for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++) {
+  for (int i = 0; i < nt_header->FileHeader.NumberOfSections; ++i) {
     if (strcmp((const char*)section[i].Name, ".text") == 0) {
       return memmem(buffer + section[i].PointerToRawData,
                     section[i].SizeOfRawData, sub, m);
@@ -204,7 +204,7 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
                               sizeof(IMAGE_FILE_HEADER) +
                               nt_header->FileHeader.SizeOfOptionalHeader);
 
-  for (int i = 0; i < nt_header->FileHeader.NumberOfSections; i++) {
+  for (int i = 0; i < nt_header->FileHeader.NumberOfSections; ++i) {
     if (strcmp((const char*)section[i].Name, ".rdata") == 0) {
       return memmem(buffer + section[i].PointerToRawData,
                     section[i].SizeOfRawData, sub, m);

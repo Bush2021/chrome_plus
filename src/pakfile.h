@@ -75,8 +75,8 @@ bool CheckHeader(uint8_t* buffer,
 
 template <typename Function>
 void PakFind(uint8_t* buffer, uint8_t* pos, Function f) {
-  PAK_ENTRY* pak_entry = NULL;
-  PAK_ENTRY* end_entry = NULL;
+  PAK_ENTRY* pak_entry = nullptr;
+  PAK_ENTRY* end_entry = nullptr;
 
   // Check the file header.
   if (!CheckHeader(buffer, pak_entry, end_entry))

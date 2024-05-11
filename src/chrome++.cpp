@@ -21,7 +21,7 @@ HMODULE hInstance;
 #include "green.h"
 
 typedef int (*Startup)();
-Startup ExeMain = NULL;
+Startup ExeMain = nullptr;
 
 void ChromePlus() {
   // Shortcut.
@@ -66,7 +66,7 @@ int Loader() {
 void InstallLoader() {
   // Get the address of the original entry point of the main module.
   MODULEINFO mi;
-  GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi,
+  GetModuleInformation(GetCurrentProcess(), GetModuleHandle(nullptr), &mi,
                        sizeof(MODULEINFO));
   PBYTE entry = (PBYTE)mi.EntryPoint;
 

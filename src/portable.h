@@ -37,7 +37,7 @@ std::wstring GetCommand(LPWSTR param) {
   LPWSTR* argv = CommandLineToArgvW(param, &argc);
 
   int insert_pos = 0;
-  for (int i = 0; i < argc; i++) {
+  for (int i = 0; i < argc; ++i) {
     if (std::wstring(argv[i]).find(L"--") != std::wstring::npos ||
         std::wstring(argv[i]).find(L"--single-argument") !=
             std::wstring::npos) {
@@ -45,7 +45,7 @@ std::wstring GetCommand(LPWSTR param) {
     }
     insert_pos = i;
   }
-  for (int i = 0; i < argc; i++) {
+  for (int i = 0; i < argc; ++i) {
     // Preserve former arguments.
     if (i)
       args.push_back(argv[i]);
@@ -97,7 +97,7 @@ std::wstring GetCommand(LPWSTR param) {
 
 void Portable(LPWSTR param) {
   wchar_t path[MAX_PATH];
-  ::GetModuleFileName(NULL, path, MAX_PATH);
+  ::GetModuleFileName(nullptr, path, MAX_PATH);
 
   std::wstring args = GetCommand(param);
 

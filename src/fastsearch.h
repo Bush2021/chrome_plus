@@ -5,13 +5,13 @@
 
 static const uint8_t* ForceSearch(const uint8_t* s, int n, const uint8_t* p) {
   int i;
-  for (i = 0; i < n; i++) {
+  for (i = 0; i < n; ++i) {
     if (*(s + i) == *p) {
       return s + i;
     }
   }
 
-  return NULL;
+  return nullptr;
 }
 
 static const uint8_t* SundaySearch(const uint8_t* s,
@@ -22,11 +22,11 @@ static const uint8_t* SundaySearch(const uint8_t* s,
 
   size_t skip[256];
 
-  for (i = 0; i < 256; i++) {
+  for (i = 0; i < 256; ++i) {
     skip[i] = m + 1;
   }
 
-  for (i = 0; i < m; i++) {
+  for (i = 0; i < m; ++i) {
     skip[p[i]] = m - i;
   }
 
@@ -34,7 +34,7 @@ static const uint8_t* SundaySearch(const uint8_t* s,
   while (i <= n - m) {
     j = 0;
     while (s[i + j] == p[j]) {
-      j++;
+      ++j;
       if (j >= m) {
         return s + i;
       }
@@ -43,12 +43,12 @@ static const uint8_t* SundaySearch(const uint8_t* s,
     i += (int)skip[s[i + m]];
   }
 
-  return NULL;
+  return nullptr;
 }
 
 const uint8_t* FastSearch(const uint8_t* s, int n, const uint8_t* p, int m) {
   if (!s || !p || n < m)
-    return NULL;
+    return nullptr;
 
   if (m == 0) {
     return s;
