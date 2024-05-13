@@ -54,16 +54,7 @@ std::wstring GetCommand(LPWSTR param) {
     if (i == insert_pos) {
       args.push_back(L"--portable");
 
-      {
-        auto userdata = GetUserDataDir();
-        args.push_back(L"--user-data-dir=" + userdata);
-      }
-
-      {
-        auto diskcache = GetDiskCacheDir();
-        args.push_back(L"--disk-cache-dir=" + diskcache);
-      }
-
+  
       // Get the command line and append parameters
       // Intercept and split the parameters starting with each --,
       // and then args.push_back multiple times
