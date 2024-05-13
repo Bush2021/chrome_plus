@@ -36,45 +36,6 @@ std::wstring GetCrCommandLine() {
   return IsIniExist() ? GetIniString(L"General", L"CommandLine", L"") : L"";
 }
 
-// 读取 UserData 和 DiskCache
-std::wstring CanonicalizePath(const std::wstring& path) {
-  TCHAR temp[MAX_PATH];
-  ::PathCanonicalize(temp, path.data());
-  return std::wstring(temp);
-}
-
-std::wstring GetDirPath(const std::wstring& dirType) {
-  std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dirType);
-
-  if (!IsIniExist()) {
-    return path;
-  }
-
-  std::wstring DirBuffer(MAX_PATH, '\0');
-  ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(),
-                             path.c_str(), &DirBuffer[0], MAX_PATH,
-                             kIniPath.c_str());
-
-  if (DirBuffer[0] == 0) {
-    DirBuffer = path;
-  }
-
-  std::wstring ExpandedPath = ExpandEnvironmentPath(DirBuffer);
-
-  ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-  std::wstring Dir = GetAbsolutePath(ExpandedPath);
-
-  return Dir;
-}
-
-std::wstring GetUserDataDir() {
-  return GetDirPath(L"Data");
-}
-
-std::wstring GetDiskCacheDir() {
-  return GetDirPath(L"Cache");
-}
-
 // 老板键
 std::wstring GetBosskey() {
   return IsIniExist() ? GetIniString(L"General", L"Bosskey", L"")
