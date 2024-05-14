@@ -123,10 +123,10 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
   (0x00000001ui64 << 44)
 #endif
 
-#ifndef PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON
-#define PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON \
-  (0x00000001ui64 << 28)
-#endif
+// #ifndef PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON
+// #define PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON \
+//   (0x00000001ui64 << 28)
+// #endif
 
 typedef BOOL(WINAPI* pUpdateProcThreadAttribute)(
     LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
@@ -153,8 +153,8 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
     *policy_value_1 &=
         ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
-    *policy_value_1 &=
-        ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
+    // *policy_value_1 &=
+    //     ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
   }
   return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute,
                                       lpValue, cbSize, lpPreviousValue,
