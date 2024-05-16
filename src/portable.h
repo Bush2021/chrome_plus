@@ -54,6 +54,8 @@ std::wstring GetCommand(LPWSTR param) {
     if (i == insert_pos) {
       args.push_back(L"--portable");
 
+      args.push_back(L"--disable-features=WinSboxNoFakeGdiInit");
+
       {
         auto userdata = GetUserDataDir();
         args.push_back(L"--user-data-dir=" + userdata);
