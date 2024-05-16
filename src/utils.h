@@ -307,7 +307,7 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
 
 bool IsFullScreen(HWND hwnd) {
   RECT windowRect;
-  return (GetClientRect(hwnd, &windowRect) &&
+  return (GetWindowRect(hwnd, &windowRect) &&
           (windowRect.left == 0 && windowRect.top == 0 &&
            windowRect.right == GetSystemMetrics(SM_CXSCREEN) &&
            windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
