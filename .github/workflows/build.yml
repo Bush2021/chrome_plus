@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout Repo
-      uses: actions/checkout@v4.1.4
+      uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -36,7 +36,7 @@ jobs:
       run: xmake
 
     - name: Upload DLL
-      uses: actions/upload-artifact@v4.3.3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}
         path: build/release
