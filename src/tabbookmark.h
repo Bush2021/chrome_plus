@@ -34,7 +34,13 @@ bool IsNeedKeep(NodePtr top_container_view) {
 
 // If the top_container_view is not found at the first time, try to close the
 // find-in-page bar and find the top_container_view again.
-NodePtr IsFindBarOn(HWND hwnd) {
+NodePtr HandleFindBar(HWND hwnd, POINT pt) {
+  // If the mouse is clicked directly on the find-in-page bar, follow Chrome's
+  // original logic. Otherwise, clicking the button on the find-in-page bar may
+  // directly close the find-in-page bar.
+  if (IsOnDialog(hwnd, pt)) {
+    return nullptr;
+  }
   NodePtr top_container_view = GetTopContainerView(hwnd);
   if (!top_container_view) {
     ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
@@ -111,7 +117,7 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr top_container_view = IsFindBarOn(hwnd);
+  NodePtr top_container_view = HandleFindBar(hwnd, pmouse->pt);
   if (!top_container_view) {
     return 0;
   }
@@ -139,7 +145,7 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr top_container_view = IsFindBarOn(hwnd);
+  NodePtr top_container_view = HandleFindBar(hwnd, pmouse->pt);
   if (!top_container_view) {
     return 0;
   }
@@ -168,7 +174,7 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   HWND hwnd = WindowFromPoint(pmouse->pt);
-  NodePtr top_container_view = IsFindBarOn(hwnd);
+  NodePtr top_container_view = HandleFindBar(hwnd, pmouse->pt);
   if (!top_container_view) {
     return 0;
   }

@@ -555,4 +555,32 @@ bool IsOmniboxFocus(NodePtr top) {
   return flag;
 }
 
+// Whether the mouse is on the dialog box.
+bool IsOnDialog(HWND hwnd, POINT pt) {
+  bool flag = false;
+  NodePtr pacc_main_window = nullptr;
+  wchar_t name[MAX_PATH];
+  if (GetClassName(hwnd, name, MAX_PATH) &&
+      wcsstr(name, L"Chrome_WidgetWin_") == name) {
+    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_CLIENT,
+                                           IID_PPV_ARGS(&pacc_main_window))) {
+      TraversalAccessible(
+          pacc_main_window,
+          [&pt, &flag](NodePtr child) {
+            if (GetAccessibleRole(child) == ROLE_SYSTEM_DIALOG) {
+              GetAccessibleSize(child, [&pt, &flag](RECT rect) {
+                if (PtInRect(&rect, pt)) {
+                  flag = true;
+                }
+              });
+            }
+            return flag;
+          },
+          true);  // raw_traversal
+      return flag;
+    }
+  }
+  return flag;
+}
+
 #endif  // IACCESSIBLE_H_
