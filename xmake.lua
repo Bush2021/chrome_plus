@@ -18,16 +18,23 @@ add_cxflags("/utf-8")
 add_links("gdiplus", "kernel32", "user32", "gdi32", "winspool", "comdlg32")
 add_links("advapi32", "shell32", "ole32", "oleaut32", "uuid", "odbc32", "odbccp32")
 
-target("minhook")
+target("detours")
     set_kind("static")
-    add_files("minhook/src/**.c")
-    add_includedirs("minhook/include", {public=true})
+    if os.arch() == "x64" then
+        add_linkdirs("detours/lib.x64", {public=true})
+    elseif os.arch() == "x86" then
+        add_linkdirs("detours/lib.x86", {public=true})
+    elseif os.arch() == "arm64" then
+        add_linkdirs("detours/lib.arm64", {public=true})
+    end
+    add_includedirs("detours/include", {public=true})
 
 target("chrome_plus")
     set_kind("shared")
     set_targetdir("$(buildir)/release")
     set_basename("version")
-    add_deps("minhook")
+    add_deps("detours")
+    add_links("detours")
     add_files("src/*.cpp")
     add_files("src/*.rc")
     add_links("user32")

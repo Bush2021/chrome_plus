@@ -10,6 +10,7 @@ jobs:
         include: [
             { name: Chrome++_x86, arch: x86 },
             { name: Chrome++_x64, arch: x64 },
+            { name: Chrome++_arm64, arch: arm64 }
         ]
 
     name: ${{ matrix.name }}
@@ -28,6 +29,12 @@ jobs:
 
     - name: Setup Xmake
       uses: xmake-io/github-action-setup-xmake@v1
+
+    - name: Compile Detours
+      run: |
+        cd detours/src
+        nmake
+        cd ../..
 
     - name: Configure Xmake
       run: xmake f -a ${{ matrix.arch }}
