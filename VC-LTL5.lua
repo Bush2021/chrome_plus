@@ -28,13 +28,9 @@ target("VC-LTL-5")
         runenvs.INCLUDE = includepath .. runenvs.INCLUDE
 
         local arch = target:arch()
-        local archpath  = "Win32"
-        if arch=="x86" then
-            archpath = "Win32"
-        elseif arch=="x64" then
-            archpath = "x64"
-        elseif arch=="arm64" then
-            archpath = "arm64"
+        local archpath = "Win32"
+        if arch ~= "x86" then
+            archpath = arch
         end
         cprint("${color.warning}Platform : %s", archpath)
         local libpath = VC_LTL_Root .. [[TargetPlatform\]] .. WindowsTargetPlatformMinVersion..[[\lib\]] .. archpath .. ";"
