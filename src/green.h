@@ -25,16 +25,10 @@ BOOL WINAPI FakeGetVolumeInformation(_In_opt_ LPCTSTR lpRootPathName,
   return false;
 }
 
-#ifndef PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON
-#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON \
-  (0x00000001ui64 << 44)
-#endif
-// #ifndef
-// PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON
-// #define
-// PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON \
-//   (0x00000001ui64 << 28)
-// #endif
+enum ProcessCreationMitigationPolicy : DWORD64 {
+  BlockNonMicrosoftBinariesAlwaysOn = 0x00000001ui64 << 44,
+  Win32kSystemCallDisableAlwaysOn = 0x00000001ui64 << 28
+};
 
 BOOL WINAPI MyUpdateProcThreadAttribute(
     __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
@@ -48,7 +42,8 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
       cbSize >= sizeof(DWORD64)) {
     // https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc;l=362;drc=4c2fec5f6699ffeefd93137d2bf8c03504c6664c
     PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
-    *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
+    *policy_value_1 &= ~static_cast<DWORD64>(
+        ProcessCreationMitigationPolicy::BlockNonMicrosoftBinariesAlwaysOn);
     // *policy_value_1 &=
     //     ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
   }
