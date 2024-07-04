@@ -4,16 +4,12 @@
 #include "pakfile.h"
 
 DWORD resources_pak_size = 0;
-
 HANDLE resources_pak_map = nullptr;
+HANDLE resources_pak_file = nullptr;
 
-typedef HANDLE(WINAPI* pMapViewOfFile)(_In_ HANDLE hFileMappingObject,
-                                       _In_ DWORD dwDesiredAccess,
-                                       _In_ DWORD dwFileOffsetHigh,
-                                       _In_ DWORD dwFileOffsetLow,
-                                       _In_ SIZE_T dwNumberOfBytesToMap);
-
-pMapViewOfFile RawMapViewOfFile = nullptr;
+auto RawCreateFile = CreateFileW;
+auto RawCreateFileMapping = CreateFileMappingW;
+auto RawMapViewOfFile = MapViewOfFile;
 
 HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
                               _In_ DWORD dwDesiredAccess,
@@ -28,7 +24,15 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
 
     // No more hook needed.
     resources_pak_map = nullptr;
-    MH_DisableHook(MapViewOfFile);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((LPVOID*)&RawMapViewOfFile, MyMapViewOfFile);
+    auto status = DetourTransactionCommit();
+    if (status != NO_ERROR) {
+      DebugLog(L"Unhook RawMapViewOfFile failed %d", status);
+    } else {
+      DebugLog(L"Unhook RawMapViewOfFile success");
+    }
 
     if (buffer) {
       // Traverse the gzip file.
@@ -79,18 +83,6 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
                           dwFileOffsetLow, dwNumberOfBytesToMap);
 }
 
-HANDLE resources_pak_file = nullptr;
-
-typedef HANDLE(WINAPI* pCreateFileMapping)(_In_ HANDLE hFile,
-                                           _In_opt_ LPSECURITY_ATTRIBUTES
-                                               lpAttributes,
-                                           _In_ DWORD flProtect,
-                                           _In_ DWORD dwMaximumSizeHigh,
-                                           _In_ DWORD dwMaximumSizeLow,
-                                           _In_opt_ LPCTSTR lpName);
-
-pCreateFileMapping RawCreateFileMapping = nullptr;
-
 HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                                   _In_opt_ LPSECURITY_ATTRIBUTES lpAttributes,
                                   _In_ DWORD flProtect,
@@ -105,11 +97,24 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
 
     // No more hook needed.
     resources_pak_file = nullptr;
-    MH_DisableHook(CreateFileMappingW);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((LPVOID*)&RawCreateFileMapping, MyCreateFileMapping);
+    auto status = DetourTransactionCommit();
+    if (status != NO_ERROR) {
+      DebugLog(L"Unhook RawCreateFileMapping failed %d", status);
+    } else {
+      DebugLog(L"Unhook RawCreateFileMapping success");
+    }
 
-    if (MH_CreateHook(MapViewOfFile, MyMapViewOfFile,
-                      (LPVOID*)&RawMapViewOfFile) == MH_OK) {
-      MH_EnableHook(MapViewOfFile);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach((LPVOID*)&RawMapViewOfFile, MyMapViewOfFile);
+    status = DetourTransactionCommit();
+    if (status != NO_ERROR) {
+      DebugLog(L"Hook RawMapViewOfFile failed %d", status);
+    } else {
+      DebugLog(L"Hook RawMapViewOfFile success");
     }
 
     return resources_pak_map;
@@ -117,17 +122,6 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
   return RawCreateFileMapping(hFile, lpAttributes, flProtect, dwMaximumSizeHigh,
                               dwMaximumSizeLow, lpName);
 }
-
-typedef HANDLE(WINAPI* pCreateFile)(_In_ LPCTSTR lpFileName,
-                                    _In_ DWORD dwDesiredAccess,
-                                    _In_ DWORD dwShareMode,
-                                    _In_opt_ LPSECURITY_ATTRIBUTES
-                                        lpSecurityAttributes,
-                                    _In_ DWORD dwCreationDisposition,
-                                    _In_ DWORD dwFlagsAndAttributes,
-                                    _In_opt_ HANDLE hTemplateFile);
-
-pCreateFile RawCreateFile = nullptr;
 
 HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
                            _In_ DWORD dwDesiredAccess,
@@ -144,25 +138,40 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
     resources_pak_file = file;
     resources_pak_size = GetFileSize(resources_pak_file, nullptr);
 
-    if (MH_CreateHook(CreateFileMappingW, MyCreateFileMapping,
-                      (LPVOID*)&RawCreateFileMapping) == MH_OK) {
-      MH_EnableHook(CreateFileMappingW);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourAttach((LPVOID*)&RawCreateFileMapping, MyCreateFileMapping);
+    auto status = DetourTransactionCommit();
+    if (status != NO_ERROR) {
+      DebugLog(L"Hook RawCreateFileMapping failed %d", status);
+    } else {
+      DebugLog(L"Hook RawCreateFileMapping success");
     }
 
     // No more hook needed.
-    MH_DisableHook(CreateFileW);
+    DetourTransactionBegin();
+    DetourUpdateThread(GetCurrentThread());
+    DetourDetach((LPVOID*)&RawCreateFile, MyCreateFile);
+    status = DetourTransactionCommit();
+    if (status != NO_ERROR) {
+      DebugLog(L"Unhook RawCreateFile failed %d", status);
+    } else {
+      DebugLog(L"Unhook RawCreateFile success");
+    }
   }
 
   return file;
 }
 
 void PakPatch() {
-  MH_STATUS status =
-      MH_CreateHook(CreateFileW, MyCreateFile, (LPVOID*)&RawCreateFile);
-  if (status == MH_OK) {
-    MH_EnableHook(CreateFileW);
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach((LPVOID*)&RawCreateFile, MyCreateFile);
+  auto status = DetourTransactionCommit();
+  if (status != NO_ERROR) {
+    DebugLog(L"Hook RawCreateFile failed %d", status);
   } else {
-    DebugLog(L"MH_CreateHook CreateFileW failed:%d", status);
+    DebugLog(L"Hook RawCreateFile success");
   }
 }
 

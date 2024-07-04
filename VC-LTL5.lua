@@ -33,6 +33,8 @@ target("VC-LTL-5")
             archpath = "Win32"
         elseif arch=="x64" then
             archpath = "x64"
+        elseif arch=="arm64" then
+            archpath = "arm64"
         end
         cprint("${color.warning}Platform : %s", archpath)
         local libpath = VC_LTL_Root .. [[TargetPlatform\]] .. WindowsTargetPlatformMinVersion..[[\lib\]] .. archpath .. ";"

@@ -3,6 +3,12 @@
 
 #include <lmaccess.h>
 
+auto RawUpdateProcThreadAttribute = UpdateProcThreadAttribute;
+auto RawCryptUnprotectData = CryptUnprotectData;
+auto RawLogonUserW = LogonUserW;
+auto RawIsOS = IsOS;
+auto RawNetUserGetInfo = NetUserGetInfo;
+
 BOOL WINAPI FakeGetComputerName(_Out_ LPTSTR lpBuffer,
                                 _Inout_ LPDWORD lpnSize) {
   return false;
@@ -19,6 +25,38 @@ BOOL WINAPI FakeGetVolumeInformation(_In_opt_ LPCTSTR lpRootPathName,
   return false;
 }
 
+#ifndef PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON
+#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON \
+  (0x00000001ui64 << 44)
+#endif
+// #ifndef
+// PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON
+// #define
+// PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON \
+//   (0x00000001ui64 << 28)
+// #endif
+
+BOOL WINAPI MyUpdateProcThreadAttribute(
+    __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+    __in DWORD dwFlags,
+    __in DWORD_PTR Attribute,
+    __in_bcount_opt(cbSize) PVOID lpValue,
+    __in SIZE_T cbSize,
+    __out_bcount_opt(cbSize) PVOID lpPreviousValue,
+    __in_opt PSIZE_T lpReturnSize) {
+  if (Attribute == PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY &&
+      cbSize >= sizeof(DWORD64)) {
+    // https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc;l=362;drc=4c2fec5f6699ffeefd93137d2bf8c03504c6664c
+    PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
+    *policy_value_1 &= ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
+    // *policy_value_1 &=
+    //     ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
+  }
+  return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute,
+                                      lpValue, cbSize, lpPreviousValue,
+                                      lpReturnSize);
+}
+
 BOOL WINAPI
 MyCryptProtectData(_In_ DATA_BLOB* pDataIn,
                    _In_opt_ LPCWSTR szDataDescr,
@@ -32,17 +70,6 @@ MyCryptProtectData(_In_ DATA_BLOB* pDataIn,
   memcpy(pDataOut->pbData, pDataIn->pbData, pDataOut->cbData);
   return true;
 }
-
-typedef BOOL(WINAPI* pCryptUnprotectData)(
-    _In_ DATA_BLOB* pDataIn,
-    _Out_opt_ LPWSTR* ppszDataDescr,
-    _In_opt_ DATA_BLOB* pOptionalEntropy,
-    _Reserved_ PVOID pvReserved,
-    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
-    _In_ DWORD dwFlags,
-    _Out_ DATA_BLOB* pDataOut);
-
-pCryptUnprotectData RawCryptUnprotectData = nullptr;
 
 BOOL WINAPI
 MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
@@ -63,15 +90,6 @@ MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
   return true;
 }
 
-typedef DWORD(WINAPI* pLogonUserW)(LPCWSTR lpszUsername,
-                                   LPCWSTR lpszDomain,
-                                   LPCWSTR lpszPassword,
-                                   DWORD dwLogonType,
-                                   DWORD dwLogonProvider,
-                                   PHANDLE phToken);
-
-pLogonUserW RawLogonUserW = nullptr;
-
 DWORD WINAPI MyLogonUserW(LPCWSTR lpszUsername,
                           LPCWSTR lpszDomain,
                           LPCWSTR lpszPassword,
@@ -85,10 +103,6 @@ DWORD WINAPI MyLogonUserW(LPCWSTR lpszUsername,
   return ret;
 }
 
-typedef BOOL(WINAPI* pIsOS)(DWORD dwOS);
-
-pIsOS RawIsOS = nullptr;
-
 BOOL WINAPI MyIsOS(DWORD dwOS) {
   DWORD ret = RawIsOS(dwOS);
   if (dwOS == OS_DOMAINMEMBER) {
@@ -97,13 +111,6 @@ BOOL WINAPI MyIsOS(DWORD dwOS) {
 
   return ret;
 }
-
-typedef NET_API_STATUS(WINAPI* pNetUserGetInfo)(LPCWSTR servername,
-                                                LPCWSTR username,
-                                                DWORD level,
-                                                LPBYTE* bufptr);
-
-pNetUserGetInfo RawNetUserGetInfo = nullptr;
 
 NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
                                        LPCWSTR username,
@@ -118,143 +125,39 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
   return ret;
 }
 
-#ifndef PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON
-#define PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON \
-  (0x00000001ui64 << 44)
-#endif
-
-// #ifndef PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON
-// #define PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON \
-//   (0x00000001ui64 << 28)
-// #endif
-
-typedef BOOL(WINAPI* pUpdateProcThreadAttribute)(
-    LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
-    DWORD dwFlags,
-    DWORD_PTR Attribute,
-    PVOID lpValue,
-    SIZE_T cbSize,
-    PVOID lpPreviousValue,
-    PSIZE_T lpReturnSize);
-
-pUpdateProcThreadAttribute RawUpdateProcThreadAttribute = nullptr;
-
-BOOL WINAPI MyUpdateProcThreadAttribute(
-    __inout LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
-    __in DWORD dwFlags,
-    __in DWORD_PTR Attribute,
-    __in_bcount_opt(cbSize) PVOID lpValue,
-    __in SIZE_T cbSize,
-    __out_bcount_opt(cbSize) PVOID lpPreviousValue,
-    __in_opt PSIZE_T lpReturnSize) {
-  if (Attribute == PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY &&
-      cbSize >= sizeof(DWORD64)) {
-    // https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc;l=362;drc=4c2fec5f6699ffeefd93137d2bf8c03504c6664c
-    PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
-    *policy_value_1 &=
-        ~PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON;
-    // *policy_value_1 &=
-    //     ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
-  }
-  return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute,
-                                      lpValue, cbSize, lpPreviousValue,
-                                      lpReturnSize);
-}
-
 void MakeGreen() {
-  HMODULE kernel32 = LoadLibraryW(L"kernel32.dll");
-  if (kernel32) {
-    PBYTE GetComputerNameW =
-        (PBYTE)GetProcAddress(kernel32, "GetComputerNameW");
-    PBYTE GetVolumeInformationW =
-        (PBYTE)GetProcAddress(kernel32, "GetVolumeInformationW");
+  auto RawGetComputerNameW = GetComputerNameW;
+  auto RawGetVolumeInformationW = GetVolumeInformationW;
+  auto RawCryptProtectData = CryptProtectData;
 
-    MH_STATUS status =
-        MH_CreateHook(GetComputerNameW, FakeGetComputerName, nullptr);
-    if (status == MH_OK) {
-      MH_EnableHook(GetComputerNameW);
-    } else {
-      DebugLog(L"MH_CreateHook GetComputerNameW failed:%d", status);
-    }
-    status =
-        MH_CreateHook(GetVolumeInformationW, FakeGetVolumeInformation, nullptr);
-    if (status == MH_OK) {
-      MH_EnableHook(GetVolumeInformationW);
-    } else {
-      DebugLog(L"MH_CreateHook GetVolumeInformationW failed:%d", status);
-    }
-  }
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+
+  // kernel32.dll
+  DetourAttach((LPVOID*)&RawGetComputerNameW, FakeGetComputerName);
+  DetourAttach((LPVOID*)&RawGetVolumeInformationW, FakeGetVolumeInformation);
+  DetourAttach((LPVOID*)&RawUpdateProcThreadAttribute,
+               MyUpdateProcThreadAttribute);
 
   // components/os_crypt/os_crypt_win.cc
-  HMODULE Crypt32 = LoadLibraryW(L"Crypt32.dll");
-  if (Crypt32) {
-    PBYTE CryptProtectData = (PBYTE)GetProcAddress(Crypt32, "CryptProtectData");
-    PBYTE CryptUnprotectData =
-        (PBYTE)GetProcAddress(Crypt32, "CryptUnprotectData");
+  // crypt32.dll
+  DetourAttach((LPVOID*)&RawCryptProtectData, MyCryptProtectData);
+  DetourAttach((LPVOID*)&RawCryptUnprotectData, MyCryptUnprotectData);
 
-    MH_STATUS status =
-        MH_CreateHook(CryptProtectData, MyCryptProtectData, nullptr);
-    if (status == MH_OK) {
-      MH_EnableHook(CryptProtectData);
-    } else {
-      DebugLog(L"MH_CreateHook CryptProtectData failed:%d", status);
-    }
-    status = MH_CreateHook(CryptUnprotectData, MyCryptUnprotectData,
-                           (LPVOID*)&RawCryptUnprotectData);
-    if (status == MH_OK) {
-      MH_EnableHook(CryptUnprotectData);
-    } else {
-      DebugLog(L"MH_CreateHook CryptUnprotectData failed:%d", status);
-    }
-  }
+  // advapi32.dll
+  DetourAttach((LPVOID*)&RawLogonUserW, MyLogonUserW);
 
-  HMODULE Advapi32 = LoadLibraryW(L"Advapi32.dll");
-  if (Advapi32) {
-    PBYTE LogonUserW = (PBYTE)GetProcAddress(Advapi32, "LogonUserW");
+  // shlwapi.dll
+  DetourAttach((LPVOID*)&RawIsOS, MyIsOS);
 
-    MH_STATUS status =
-        MH_CreateHook(LogonUserW, MyLogonUserW, (LPVOID*)&RawLogonUserW);
-    if (status == MH_OK) {
-      MH_EnableHook(LogonUserW);
-    } else {
-      DebugLog(L"MH_CreateHook LogonUserW failed:%d", status);
-    }
-  }
+  // netapi32.dll
+  DetourAttach((LPVOID*)&RawNetUserGetInfo, MyNetUserGetInfo);
 
-  HMODULE Shlwapi = LoadLibraryW(L"Shlwapi.dll");
-  if (Shlwapi) {
-    PBYTE IsOS = (PBYTE)GetProcAddress(Shlwapi, "IsOS");
-
-    MH_STATUS status = MH_CreateHook(IsOS, MyIsOS, (LPVOID*)&RawIsOS);
-    if (status == MH_OK) {
-      MH_EnableHook(IsOS);
-    } else {
-      DebugLog(L"MH_CreateHook IsOS failed:%d", status);
-    }
-  }
-
-  HMODULE Netapi32 = LoadLibraryW(L"Netapi32.dll");
-  if (Netapi32) {
-    PBYTE NetUserGetInfo = (PBYTE)GetProcAddress(Netapi32, "NetUserGetInfo");
-
-    MH_STATUS status = MH_CreateHook(NetUserGetInfo, MyNetUserGetInfo,
-                                     (LPVOID*)&RawNetUserGetInfo);
-    if (status == MH_OK) {
-      MH_EnableHook(NetUserGetInfo);
-    } else {
-      DebugLog(L"MH_CreateHook NetUserGetInfo failed:%d", status);
-    }
-  }
-
-  LPVOID ppUpdateProcThreadAttribute = nullptr;
-  MH_STATUS status = MH_CreateHookApiEx(
-      L"kernel32", "UpdateProcThreadAttribute", &MyUpdateProcThreadAttribute,
-      (LPVOID*)&RawUpdateProcThreadAttribute, &ppUpdateProcThreadAttribute);
-  if (status == MH_OK) {
-    MH_EnableHook(ppUpdateProcThreadAttribute);
+  auto status = DetourTransactionCommit();
+  if (status != NO_ERROR) {
+    DebugLog(L"MakeGreen failed: %d", status);
   } else {
-    DebugLog(L"MH_CreateHookApiEx UpdateProcThreadAttribute failed: %d",
-             status);
+    DebugLog(L"MakeGreen success");
   }
 }
 
