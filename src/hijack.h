@@ -92,47 +92,12 @@ EXPORT(VerQueryValueW)
 }  // namespace hijack
 #pragma endregion
 
-#pragma region Restore the export function
-bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
-  DWORD ProtectFlag = 0;
-  if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
-                       PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
-    memcpy(BaseAddress, Buffer, nSize);
-    FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-    VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
-                     &ProtectFlag);
-    return true;
-  }
-  return false;
+void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(&(PVOID&)pTarget, pDetour);
+  DetourTransactionCommit();
 }
-
-// Restore the export function.
-void InstallJMP(PBYTE BaseAddress, uintptr_t Function) {
-  if (*BaseAddress == 0xE9) {
-    ++BaseAddress;
-    BaseAddress = BaseAddress + *(uint32_t*)BaseAddress + 4;
-  }
-#ifdef _WIN64
-  BYTE move[] = {0x48, 0xB8};  // move rax,xxL);
-  BYTE jump[] = {0xFF, 0xE0};  // jmp rax
-
-  WriteMemory(BaseAddress, move, sizeof(move));
-  BaseAddress += sizeof(move);
-
-  WriteMemory(BaseAddress, (PBYTE)&Function, sizeof(uintptr_t));
-  BaseAddress += sizeof(uintptr_t);
-
-  WriteMemory(BaseAddress, jump, sizeof(jump));
-#else
-  BYTE jump[] = {0xE9};
-  WriteMemory(BaseAddress, jump, sizeof(jump));
-  BaseAddress += sizeof(jump);
-
-  uintptr_t offset = Function - (uintptr_t)BaseAddress - 4;
-  WriteMemory(BaseAddress, (PBYTE)&offset, sizeof(offset));
-#endif  // _WIN64
-}
-#pragma endregion
 
 #pragma region Load system dll
 void LoadVersion(HINSTANCE hModule) {
@@ -160,10 +125,10 @@ void LoadVersion(HINSTANCE hModule) {
 
       HINSTANCE module = LoadLibrary(szDLLPath);
       for (size_t i = 0; i < pimExD->NumberOfNames; ++i) {
-        uintptr_t Original =
-            (uintptr_t)GetProcAddress(module, (char*)(pImageBase + pName[i]));
+        PBYTE Original =
+            (PBYTE)GetProcAddress(module, (char*)(pImageBase + pName[i]));
         if (Original) {
-          InstallJMP(pImageBase + pFunction[pNameOrdinals[i]], Original);
+          InstallDetours(pImageBase + pFunction[pNameOrdinals[i]], Original);
         }
       }
     }
