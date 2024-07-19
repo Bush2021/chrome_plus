@@ -191,7 +191,7 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   return 0;
 }
 
-// Open bookmarks in a new tab from the bookmark bar.
+// Open bookmarks in a new tab.
 bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
       config.is_bookmark_new_tab == "disabled") {
@@ -201,40 +201,11 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   HWND hwnd = WindowFromPoint(pmouse->pt);
   NodePtr top_container_view = GetTopContainerView(hwnd);
 
-  bool is_on_bookmark = IsOnBookmark(top_container_view, pmouse->pt);
+  bool is_on_bookmark = IsOnBookmark(hwnd, pmouse->pt);
   bool is_on_new_tab = IsOnNewTab(top_container_view);
 
-  if (top_container_view && is_on_bookmark && !is_on_new_tab) {
+  if (is_on_bookmark && !is_on_new_tab) {
     if (config.is_bookmark_new_tab == "foreground") {
-      SendKey(VK_MBUTTON, VK_SHIFT);
-    } else if (config.is_bookmark_new_tab == "background") {
-      SendKey(VK_MBUTTON);
-    }
-    return true;
-  }
-
-  return false;
-}
-
-// Open bookmarks in a new tab from a bookmark menu (folder).
-bool HandleBookmarkMenu(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
-      config.is_bookmark_new_tab == "disabled") {
-    return false;
-  }
-
-  HWND hwnd_from_point = WindowFromPoint(pmouse->pt);
-  HWND hwnd_from_keyboard = GetFocus();
-  NodePtr top_container_view = GetTopContainerView(hwnd_from_keyboard);
-  NodePtr menu_bar_pane = GetMenuBarPane(hwnd_from_point);
-
-  bool is_on_menu_bookmark = IsOnMenuBookmark(menu_bar_pane, pmouse->pt);
-  bool is_on_new_tab = IsOnNewTab(top_container_view);
-
-  if (top_container_view && menu_bar_pane && is_on_menu_bookmark &&
-      !is_on_new_tab) {
-    if (config.is_bookmark_new_tab == "foreground") {
-      DebugLog(L"MButton + Shift");
       SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (config.is_bookmark_new_tab == "background") {
       SendKey(VK_MBUTTON);
@@ -281,10 +252,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
 
     if (HandleBookmark(wParam, pmouse)) {
-      return 1;
-    }
-
-    if (HandleBookmarkMenu(wParam, pmouse)) {
       return 1;
     }
   } while (0);

@@ -221,27 +221,6 @@ NodePtr GetTopContainerView(HWND hwnd) {
   return top_container_view;
 }
 
-NodePtr GetMenuBarPane(HWND hwnd) {
-  NodePtr menu_bar_pane = nullptr;
-  wchar_t name[MAX_PATH];
-  if (GetClassName(hwnd, name, MAX_PATH) &&
-      wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    NodePtr pacc_main_window = nullptr;
-    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                           IID_PPV_ARGS(&pacc_main_window))) {
-      NodePtr menu_bar =
-          FindElementWithRole(pacc_main_window, ROLE_SYSTEM_MENUBAR);
-      if (menu_bar) {
-        menu_bar_pane = GetParentElement(menu_bar);
-      }
-      if (!menu_bar_pane) {
-        DebugLog(L"GetBookmarkView failed");
-      }
-    }
-  }
-  return menu_bar_pane;
-}
-
 // Gets the current number of tabs.
 int GetTabCount(NodePtr top) {
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
@@ -448,74 +427,53 @@ bool IsOnNewTab(NodePtr top) {
   return IsNameNewTab(top) || IsDocNewTab();
 }
 
-// Whether the mouse is on a bookmark in the bookmark bar.
-bool IsOnBookmark(NodePtr top, POINT pt) {
-  if (!top) {
+// Whether the mouse is on a bookmark.
+bool IsOnBookmark(HWND hwnd, POINT pt) {
+  wchar_t name[MAX_PATH];
+  if (!GetClassName(hwnd, name, MAX_PATH) ||
+      wcsstr(name, L"Chrome_WidgetWin_") != name) {
+    return false;
+  }
+  NodePtr pacc_main_window = nullptr;
+  if (S_OK != AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
+                                         IID_PPV_ARGS(&pacc_main_window))) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(
-      top,
-      [&flag, &pt](NodePtr child) {
-        if (GetAccessibleRole(child) != ROLE_SYSTEM_PUSHBUTTON) {
-          return false;
-        }
-
-        GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
-          if (!PtInRect(&rect, pt)) {
-            return;
+  TraversalAccessible(pacc_main_window, [&flag, &pt](NodePtr child) {
+    std::function<bool(NodePtr)> LambdaEnumChild =
+        [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
+      auto role = GetAccessibleRole(child);
+      if (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM) {
+        bool is_in_rect = false;
+        GetAccessibleSize(child, [&is_in_rect, &pt](const RECT& rect) {
+          if (PtInRect(&rect, pt)) {
+            is_in_rect = true;
           }
-
+        });
+        if (is_in_rect) {
           GetAccessibleDescription(child, [&flag](BSTR bstr) {
             std::wstring_view bstr_view(bstr);
-            flag = bstr_view.find_first_of(L".:") != std::wstring_view::npos &&
-                   bstr_view.substr(0, 11) != L"javascript:";
+            flag =
+                (bstr_view.find_first_of(L".:") != std::wstring_view::npos) &&
+                (bstr_view.substr(0, 11) != L"javascript:");
           });
-        });
-
-        return flag;
-      },
-      true);  // raw_traversal
-
-  return flag;
-}
-
-// Whether the mouse is on a bookmark in the menu bar (folder).
-bool IsOnMenuBookmark(NodePtr top, POINT pt) {
-  NodePtr menu_bar = FindElementWithRole(top, ROLE_SYSTEM_MENUBAR);
-  if (!menu_bar) {
-    return false;
-  }
-
-  NodePtr menu_item = FindElementWithRole(menu_bar, ROLE_SYSTEM_MENUITEM);
-  if (!menu_item) {
-    return false;
-  }
-
-  NodePtr menu_bar_pane = GetParentElement(menu_item);
-  if (!menu_bar_pane) {
-    return false;
-  }
-
-  bool flag = false;
-  TraversalAccessible(menu_bar_pane, [&flag, &pt](NodePtr child) {
-    if (GetAccessibleRole(child) != ROLE_SYSTEM_MENUITEM) {
-      return false;
-    }
-
-    GetAccessibleSize(child, [&flag, &pt, &child](RECT rect) {
-      if (!PtInRect(&rect, pt)) {
-        return;
+          if (flag) {
+            return true; // Stop traversing if found.
+          }
+        }
       }
 
-      GetAccessibleDescription(child, [&flag](BSTR bstr) {
-        std::wstring_view bstr_view(bstr);
-        flag = bstr_view.find_first_of(L".:") != std::wstring_view::npos &&
-               bstr_view.substr(0, 11) != L"javascript:";
-      });
-    });
-
+      // traverse the child nodes.
+      long child_count = 0;
+      if (S_OK == child->get_accChildCount(&child_count) && child_count > 0) {
+        TraversalAccessible(child, LambdaEnumChild, 0);
+      }
+      return flag;
+    };
+    // Start traversing.
+    TraversalAccessible(child, LambdaEnumChild, 0);
     return flag;
   });
 
