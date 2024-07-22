@@ -227,17 +227,14 @@ int GetTabCount(NodePtr top) {
   if (!page_tab_list) {
     return 0;
   }
-
   NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
   if (!page_tab) {
     return 0;
   }
-
   NodePtr page_tab_pane = GetParentElement(page_tab);
   if (!page_tab_pane) {
     return 0;
   }
-
   std::vector<NodePtr> children;
   TraversalAccessible(page_tab_pane, [&children](NodePtr child) {
     children.push_back(child);
@@ -254,7 +251,6 @@ int GetTabCount(NodePtr top) {
       ++tab_count;
     }
   }
-
   return tab_count;
 }
 
@@ -283,12 +279,10 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
   if (!page_tab_list) {
     return false;
   }
-
   NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
   if (!page_tab) {
     return false;
   }
-
   NodePtr page_tab_pane = GetParentElement(page_tab);
   if (!page_tab_pane) {
     return false;
@@ -299,16 +293,13 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
       return false;
     }
-
     GetAccessibleSize(child, [&flag, &pt](RECT rect) {
       if (PtInRect(&rect, pt)) {
         flag = true;
       }
     });
-
     return flag;
   });
-
   return flag;
 }
 
@@ -342,7 +333,6 @@ bool IsNameNewTab(NodePtr top) {
   if (!page_tab_list) {
     return false;
   }
-
   TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
       GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
@@ -352,12 +342,10 @@ bool IsNameNewTab(NodePtr top) {
     }
     return false;
   });
-
   NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
   if (!page_tab) {
     return false;
   }
-
   NodePtr page_tab_pane = GetParentElement(page_tab);
   if (!page_tab_pane) {
     return false;
@@ -365,7 +353,6 @@ bool IsNameNewTab(NodePtr top) {
 
   std::vector<std::wstring> disable_tab_names =
       StringSplit(GetDisableTabName(), L',', L"\"");
-
   TraversalAccessible(
       page_tab_pane, [&flag, &new_tab_name, &disable_tab_names](NodePtr child) {
         if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) {
@@ -468,12 +455,12 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
       // traverse the child nodes.
       long child_count = 0;
       if (S_OK == child->get_accChildCount(&child_count) && child_count > 0) {
-        TraversalAccessible(child, LambdaEnumChild, 0);
+        TraversalAccessible(child, LambdaEnumChild);
       }
       return flag;
     };
     // Start traversing.
-    TraversalAccessible(child, LambdaEnumChild, 0);
+    TraversalAccessible(child, LambdaEnumChild);
     return flag;
   });
 
@@ -486,12 +473,10 @@ bool IsOmniboxFocus(NodePtr top) {
   if (!tool_bar) {
     return false;
   }
-
   NodePtr omnibox = FindElementWithRole(tool_bar, ROLE_SYSTEM_TEXT);
   if (!omnibox) {
     return false;
   }
-
   NodePtr tool_bar_group = GetParentElement(omnibox);
   if (!tool_bar_group) {
     return false;
@@ -502,14 +487,11 @@ bool IsOmniboxFocus(NodePtr top) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_TEXT) {
       return false;
     }
-
     if (GetAccessibleState(child) & STATE_SYSTEM_FOCUSED) {
       flag = true;
     }
-
     return flag;
   });
-
   return flag;
 }
 
