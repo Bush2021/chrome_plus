@@ -428,42 +428,36 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
   }
 
   bool flag = false;
-  TraversalAccessible(pacc_main_window, [&flag, &pt](NodePtr child) {
-    std::function<bool(NodePtr)> LambdaEnumChild =
-        [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
-      auto role = GetAccessibleRole(child);
-      if (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM) {
-        bool is_in_rect = false;
-        GetAccessibleSize(child, [&is_in_rect, &pt](const RECT& rect) {
-          if (PtInRect(&rect, pt)) {
-            is_in_rect = true;
-          }
+  std::function<bool(NodePtr)> LambdaEnumChild =
+      [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
+    auto role = GetAccessibleRole(child);
+    if (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM) {
+      bool is_in_rect = false;
+      GetAccessibleSize(child, [&is_in_rect, &pt](const RECT& rect) {
+        if (PtInRect(&rect, pt)) {
+          is_in_rect = true;
+        }
+      });
+      if (is_in_rect) {
+        GetAccessibleDescription(child, [&flag](BSTR bstr) {
+          std::wstring_view bstr_view(bstr);
+          flag = (bstr_view.find_first_of(L".:") != std::wstring_view::npos) &&
+                 (bstr_view.substr(0, 11) != L"javascript:");
         });
-        if (is_in_rect) {
-          GetAccessibleDescription(child, [&flag](BSTR bstr) {
-            std::wstring_view bstr_view(bstr);
-            flag =
-                (bstr_view.find_first_of(L".:") != std::wstring_view::npos) &&
-                (bstr_view.substr(0, 11) != L"javascript:");
-          });
-          if (flag) {
-            return true; // Stop traversing if found.
-          }
+        if (flag) {
+          return true;  // Stop traversing if found.
         }
       }
-
-      // traverse the child nodes.
-      long child_count = 0;
-      if (S_OK == child->get_accChildCount(&child_count) && child_count > 0) {
-        TraversalAccessible(child, LambdaEnumChild);
-      }
-      return flag;
-    };
-    // Start traversing.
-    TraversalAccessible(child, LambdaEnumChild);
+    }
+    // traverse the child nodes.
+    long child_count = 0;
+    if (S_OK == child->get_accChildCount(&child_count) && child_count > 0) {
+      TraversalAccessible(child, LambdaEnumChild, 0);
+    }
     return flag;
-  });
-
+  };
+  // Start traversing.
+  TraversalAccessible(pacc_main_window, LambdaEnumChild, 0);
   return flag;
 }
 
