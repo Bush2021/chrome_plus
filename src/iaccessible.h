@@ -450,14 +450,11 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
       }
     }
     // traverse the child nodes.
-    long child_count = 0;
-    if (S_OK == child->get_accChildCount(&child_count) && child_count > 0) {
-      TraversalAccessible(child, LambdaEnumChild, 0);
-    }
+    TraversalAccessible(child, LambdaEnumChild);
     return flag;
   };
   // Start traversing.
-  TraversalAccessible(pacc_main_window, LambdaEnumChild, 0);
+  TraversalAccessible(pacc_main_window, LambdaEnumChild);
   return flag;
 }
 
