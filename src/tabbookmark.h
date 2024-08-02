@@ -123,18 +123,18 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pmouse->pt);
+  bool is_on_close_button = IsOnCloseButton(top_container_view, pmouse->pt);
   bool is_only_one_tab = IsOnlyOneTab(top_container_view);
-
-  if (is_on_one_tab) {
-    if (is_only_one_tab) {
-      ExecuteCommand(IDC_NEW_TAB, hwnd);
-      ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
-    } else {
-      ExecuteCommand(IDC_CLOSE_TAB, hwnd);
-    }
-    return 1;
+  if (!is_on_one_tab || is_on_close_button) {
+    return 0;
   }
-  return 0;
+  if (is_only_one_tab) {
+    ExecuteCommand(IDC_NEW_TAB, hwnd);
+    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  } else {
+    ExecuteCommand(IDC_CLOSE_TAB, hwnd);
+  }
+  return 1;
 }
 
 // Right-click to close tab (Hold Shift to show the original menu).

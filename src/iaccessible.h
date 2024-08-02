@@ -514,4 +514,24 @@ bool IsOnDialog(HWND hwnd, POINT pt) {
   return flag;
 }
 
+// Whether the mouse is on the close button of a tab.
+// Should be used together with `IsOnOneTab` to search the close button.
+bool IsOnCloseButton(NodePtr top, POINT pt) {
+  bool flag = false;
+  TraversalAccessible(
+      top,
+      [&pt, &flag](NodePtr child) {
+        if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
+          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
+            if (PtInRect(&rect, pt)) {
+              flag = true;
+            }
+          });
+        }
+        return flag;
+      },
+      true);  // raw_traversal
+  return flag;
+}
+
 #endif  // IACCESSIBLE_H_
