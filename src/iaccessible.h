@@ -201,22 +201,29 @@ NodePtr GetParentElement(NodePtr child) {
   return element;
 }
 
-NodePtr GetTopContainerView(HWND hwnd) {
-  NodePtr top_container_view = nullptr;
+NodePtr GetChromeWidgetWin(HWND hwnd) {
+  NodePtr pacc_main_window = nullptr;
   wchar_t name[MAX_PATH];
   if (GetClassName(hwnd, name, MAX_PATH) &&
       wcsstr(name, L"Chrome_WidgetWin_") == name) {
     NodePtr pacc_main_window = nullptr;
     if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
                                            IID_PPV_ARGS(&pacc_main_window))) {
-      NodePtr page_tab_list = FindPageTabList(pacc_main_window);
-      if (page_tab_list) {
-        top_container_view = GetParentElement(page_tab_list);
-      }
-      if (!top_container_view) {
-        DebugLog(L"GetTopContainerView failed");
-      }
+      return pacc_main_window;
     }
+  }
+  DebugLog(L"GetChromeWidgetWin failed");
+  return nullptr;
+}
+
+NodePtr GetTopContainerView(HWND hwnd) {
+  NodePtr top_container_view = nullptr;
+  NodePtr page_tab_list = FindPageTabList(GetChromeWidgetWin(hwnd));
+  if (page_tab_list) {
+    top_container_view = GetParentElement(page_tab_list);
+  }
+  if (!top_container_view) {
+    DebugLog(L"GetTopContainerView failed");
   }
   return top_container_view;
 }
@@ -416,17 +423,6 @@ bool IsOnNewTab(NodePtr top) {
 
 // Whether the mouse is on a bookmark.
 bool IsOnBookmark(HWND hwnd, POINT pt) {
-  wchar_t name[MAX_PATH];
-  if (!GetClassName(hwnd, name, MAX_PATH) ||
-      wcsstr(name, L"Chrome_WidgetWin_") != name) {
-    return false;
-  }
-  NodePtr pacc_main_window = nullptr;
-  if (S_OK != AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                         IID_PPV_ARGS(&pacc_main_window))) {
-    return false;
-  }
-
   bool flag = false;
   std::function<bool(NodePtr)> LambdaEnumChild =
       [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
@@ -454,7 +450,7 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
     return flag;
   };
   // Start traversing.
-  TraversalAccessible(pacc_main_window, LambdaEnumChild);
+  TraversalAccessible(GetChromeWidgetWin(hwnd), LambdaEnumChild);
   return flag;
 }
 
@@ -489,28 +485,19 @@ bool IsOmniboxFocus(NodePtr top) {
 // Whether the mouse is on the dialog box.
 bool IsOnDialog(HWND hwnd, POINT pt) {
   bool flag = false;
-  NodePtr pacc_main_window = nullptr;
-  wchar_t name[MAX_PATH];
-  if (GetClassName(hwnd, name, MAX_PATH) &&
-      wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_CLIENT,
-                                           IID_PPV_ARGS(&pacc_main_window))) {
-      TraversalAccessible(
-          pacc_main_window,
-          [&pt, &flag](NodePtr child) {
-            if (GetAccessibleRole(child) == ROLE_SYSTEM_DIALOG) {
-              GetAccessibleSize(child, [&pt, &flag](RECT rect) {
-                if (PtInRect(&rect, pt)) {
-                  flag = true;
-                }
-              });
+  TraversalAccessible(
+      GetChromeWidgetWin(hwnd),
+      [&pt, &flag](NodePtr child) {
+        if (GetAccessibleRole(child) == ROLE_SYSTEM_DIALOG) {
+          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
+            if (PtInRect(&rect, pt)) {
+              flag = true;
             }
-            return flag;
-          },
-          true);  // raw_traversal
-      return flag;
-    }
-  }
+          });
+        }
+        return flag;
+      },
+      true);  // raw_traversal
   return flag;
 }
 
