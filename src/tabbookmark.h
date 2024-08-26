@@ -203,7 +203,12 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  NodePtr top_container_view = GetTopContainerView(hwnd);
+  NodePtr top_container_view = GetTopContainerView(
+      GetFocus());  // Must use `GetFocus()`, otherwise when opening bookmarks
+                    // in a bookmark folder (and similar expanded menus),
+                    // `top_container_view` cannot be obtained, making it
+                    // impossible to correctly determine `is_on_new_tab`. See
+                    // #98.
 
   bool is_on_bookmark = IsOnBookmark(hwnd, pt);
   bool is_on_new_tab = IsOnNewTab(top_container_view);
