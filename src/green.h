@@ -173,8 +173,6 @@ void MakeGreen() {
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"MakeGreen failed: %d", status);
-  } else {
-    DebugLog(L"MakeGreen success");
   }
 }
 
