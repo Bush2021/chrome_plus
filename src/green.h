@@ -8,6 +8,7 @@ auto RawCryptUnprotectData = CryptUnprotectData;
 auto RawLogonUserW = LogonUserW;
 auto RawIsOS = IsOS;
 auto RawNetUserGetInfo = NetUserGetInfo;
+auto RawGetVolumeInformationW = GetVolumeInformationW;
 
 BOOL WINAPI FakeGetComputerName(_Out_ LPTSTR lpBuffer,
                                 _Inout_ LPDWORD lpnSize) {
@@ -22,7 +23,16 @@ BOOL WINAPI FakeGetVolumeInformation(_In_opt_ LPCTSTR lpRootPathName,
                                      _Out_opt_ LPDWORD lpFileSystemFlags,
                                      _Out_opt_ LPTSTR lpFileSystemNameBuffer,
                                      _In_ DWORD nFileSystemNameSize) {
-  return false;
+  if (lpVolumeSerialNumber != nullptr) {
+    DebugLog(L"GetVolumeInformation modified");
+    return false;
+  } else {
+    DebugLog(L"GetVolumeInformation passthrough");
+    return RawGetVolumeInformationW(
+        lpRootPathName, lpVolumeNameBuffer, nVolumeNameSize,
+        lpVolumeSerialNumber, lpMaximumComponentLength, lpFileSystemFlags,
+        lpFileSystemNameBuffer, nFileSystemNameSize);
+  }
 }
 
 enum ProcessCreationMitigationPolicy : DWORD64 {
@@ -122,7 +132,7 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
 
 void MakeGreen() {
   auto RawGetComputerNameW = GetComputerNameW;
-  auto RawGetVolumeInformationW = GetVolumeInformationW;
+  // auto RawGetVolumeInformationW = GetVolumeInformationW;
   auto RawCryptProtectData = CryptProtectData;
 
   DetourTransactionBegin();
@@ -151,6 +161,8 @@ void MakeGreen() {
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"MakeGreen failed: %d", status);
+  } else {
+    DebugLog(L"MakeGreen success");
   }
 }
 
