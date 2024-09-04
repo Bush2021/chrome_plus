@@ -30,8 +30,6 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawMapViewOfFile failed %d", status);
-    } else {
-      DebugLog(L"Unhook RawMapViewOfFile success");
     }
 
     if (buffer) {
@@ -103,8 +101,6 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFileMapping failed %d", status);
-    } else {
-      DebugLog(L"Unhook RawCreateFileMapping success");
     }
 
     DetourTransactionBegin();
@@ -113,8 +109,6 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawMapViewOfFile failed %d", status);
-    } else {
-      DebugLog(L"Hook RawMapViewOfFile success");
     }
 
     return resources_pak_map;
@@ -144,8 +138,6 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawCreateFileMapping failed %d", status);
-    } else {
-      DebugLog(L"Hook RawCreateFileMapping success");
     }
 
     // No more hook needed.
@@ -155,8 +147,6 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFile failed %d", status);
-    } else {
-      DebugLog(L"Unhook RawCreateFile success");
     }
   }
 
@@ -170,8 +160,6 @@ void PakPatch() {
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"Hook RawCreateFile failed %d", status);
-  } else {
-    DebugLog(L"Hook RawCreateFile success");
   }
 }
 
