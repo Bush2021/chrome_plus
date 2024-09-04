@@ -8,12 +8,28 @@ auto RawCryptUnprotectData = CryptUnprotectData;
 auto RawLogonUserW = LogonUserW;
 auto RawIsOS = IsOS;
 auto RawNetUserGetInfo = NetUserGetInfo;
+auto RawGetVolumeInformationW = GetVolumeInformationW;
 
 BOOL WINAPI FakeGetComputerName(_Out_ LPTSTR lpBuffer,
                                 _Inout_ LPDWORD lpnSize) {
   return false;
 }
 
+// This function checks if the lpVolumeSerialNumber parameter is provided.
+// If lpVolumeSerialNumber is not null, the function returns false. This
+// behavior is implemented for portability reasons, as seen in the following
+// reference:
+// https://source.chromium.org/chromium/chromium/src/+/main:rlz/win/lib/machine_id_win.cc;l=41;drc=3dd5eb19b88fb0246061e21fc6098830bead0edb
+//
+// If lpVolumeSerialNumber is null, the function calls RawGetVolumeInformationW
+// and returns its result. This is necessary because other parts of the codebase
+// may require the actual volume information, such as the
+// lpMaximumComponentLength parameter, as seen in the following reference:
+// https://source.chromium.org/chromium/chromium/src/+/main:base/files/file_util_win.cc;drc=5b01e9f5bff328ba66e415103ca50ae940328fde;l=1071
+//
+// Returns:
+// - FALSE if lpVolumeSerialNumber is not null.
+// - The result of RawGetVolumeInformationW otherwise.
 BOOL WINAPI FakeGetVolumeInformation(_In_opt_ LPCTSTR lpRootPathName,
                                      _Out_opt_ LPTSTR lpVolumeNameBuffer,
                                      _In_ DWORD nVolumeNameSize,
@@ -22,7 +38,14 @@ BOOL WINAPI FakeGetVolumeInformation(_In_opt_ LPCTSTR lpRootPathName,
                                      _Out_opt_ LPDWORD lpFileSystemFlags,
                                      _Out_opt_ LPTSTR lpFileSystemNameBuffer,
                                      _In_ DWORD nFileSystemNameSize) {
-  return false;
+  if (lpVolumeSerialNumber != nullptr) {
+    return false;
+  } else {
+    return RawGetVolumeInformationW(
+        lpRootPathName, lpVolumeNameBuffer, nVolumeNameSize,
+        lpVolumeSerialNumber, lpMaximumComponentLength, lpFileSystemFlags,
+        lpFileSystemNameBuffer, nFileSystemNameSize);
+  }
 }
 
 enum ProcessCreationMitigationPolicy : DWORD64 {
@@ -122,7 +145,6 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
 
 void MakeGreen() {
   auto RawGetComputerNameW = GetComputerNameW;
-  auto RawGetVolumeInformationW = GetVolumeInformationW;
   auto RawCryptProtectData = CryptProtectData;
 
   DetourTransactionBegin();
