@@ -87,6 +87,12 @@ std::wstring GetTranslateKey() {
                       : std::wstring(L"");
 }
 
+// 无需验证直接查看密码
+bool IsShowPassword() {
+  return ::GetPrivateProfileIntW(L"General", L"ShowPassword", 1,
+                                 kIniPath.c_str()) != 0;
+}
+
 // 保留最后一个标签
 bool IsKeepLastTab() {
   return ::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1,

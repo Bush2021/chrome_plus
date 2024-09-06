@@ -161,6 +161,7 @@ void MakeGreen() {
   DetourAttach((LPVOID*)&RawCryptProtectData, MyCryptProtectData);
   DetourAttach((LPVOID*)&RawCryptUnprotectData, MyCryptUnprotectData);
 
+  if (IsShowPassword()) {
   // advapi32.dll
   DetourAttach((LPVOID*)&RawLogonUserW, MyLogonUserW);
 
@@ -169,6 +170,7 @@ void MakeGreen() {
 
   // netapi32.dll
   DetourAttach((LPVOID*)&RawNetUserGetInfo, MyNetUserGetInfo);
+  }
 
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
