@@ -93,6 +93,12 @@ bool IsShowPassword() {
                                  kIniPath.c_str()) != 0;
 }
 
+// 强制启用 win32k
+bool IsWin32K() {
+  return ::GetPrivateProfileIntW(L"general", L"win32k", 0, kIniPath.c_str()) !=
+         0;
+}
+
 // 保留最后一个标签
 bool IsKeepLastTab() {
   return ::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1,

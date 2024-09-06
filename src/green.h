@@ -67,8 +67,10 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
     *policy_value_1 &= ~static_cast<DWORD64>(
         ProcessCreationMitigationPolicy::BlockNonMicrosoftBinariesAlwaysOn);
-    // *policy_value_1 &=
-    //     ~PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON;
+    if (IsWin32K()) {
+      *policy_value_1 &= static_cast<DWORD64>(
+          ProcessCreationMitigationPolicy::Win32kSystemCallDisableAlwaysOn);
+    }
   }
   return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute,
                                       lpValue, cbSize, lpPreviousValue,
