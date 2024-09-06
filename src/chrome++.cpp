@@ -50,7 +50,7 @@ void ChromePlusCommand(LPWSTR param) {
 
 int Loader() {
   // Hard patch.
-  MakePatch();
+  // MakePatch();
 
   // Only main interface.
   LPWSTR param = GetCommandLineW();
