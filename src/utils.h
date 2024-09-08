@@ -268,24 +268,24 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path) {
 
 // Debug log function.
 void DebugLog(const wchar_t* format, ...) {
-  //  va_list args;
-  //
-  //  va_start(args, format);
-  //  auto str = Format(format, args);
-  //  va_end(args);
-  //
-  //  str = Format(L"[chrome++] %s\n", str.c_str());
-  //
-  //  std::string nstr = wstring_to_string(str);
-  //  const char* cstr = nstr.c_str();
-  //
-  //  FILE* fp = nullptr;
-  //  std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
-  //  _wfopen_s(&fp, logPath.c_str(), L"a+");
-  //  if (fp) {
-  //    fwrite(cstr, strlen(cstr), 1, fp);
-  //    fclose(fp);
-  //  }
+   va_list args;
+  
+   va_start(args, format);
+   auto str = Format(format, args);
+   va_end(args);
+  
+   str = Format(L"[chrome++] %s\n", str.c_str());
+  
+   std::string nstr = wstring_to_string(str);
+   const char* cstr = nstr.c_str();
+  
+   FILE* fp = nullptr;
+   std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+   _wfopen_s(&fp, logPath.c_str(), L"a+");
+   if (fp) {
+     fwrite(cstr, strlen(cstr), 1, fp);
+     fclose(fp);
+   }
 }
 
 // Window and message processing functions.
@@ -366,7 +366,7 @@ void SendKey(T&&... keys) {
   inputs.reserve(keys_.size() * 2);
   for (auto& key : keys_) {
     INPUT input = {0};
-    // 修正鼠标消息
+    // Adjust mouse messages
     switch (key) {
       case VK_RBUTTON:
         input.type = INPUT_MOUSE;
@@ -398,7 +398,7 @@ void SendKey(T&&... keys) {
   }
   for (auto& key : keys_) {
     INPUT input = {0};
-    // 修正鼠标消息
+    // Adjust mouse messages
     switch (key) {
       case VK_RBUTTON:
         input.type = INPUT_MOUSE;
