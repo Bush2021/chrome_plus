@@ -3,13 +3,6 @@
 
 const std::wstring kIniPath = GetAppDir() + L"\\chrome++.ini";
 
-bool IsIniExist() {
-  if (PathFileExists(kIniPath.data())) {
-    return true;
-  }
-  return false;
-}
-
 std::wstring GetIniString(const std::wstring& section,
                           const std::wstring& key,
                           const std::wstring& default_value) {
@@ -30,7 +23,7 @@ std::wstring GetIniString(const std::wstring& section,
 }
 
 std::wstring GetCrCommandLine() {
-  return IsIniExist() ? GetIniString(L"General", L"CommandLine", L"") : L"";
+  return GetIniString(L"General", L"CommandLine", L"");
 }
 
 std::wstring CanonicalizePath(const std::wstring& path) {
@@ -41,10 +34,6 @@ std::wstring CanonicalizePath(const std::wstring& path) {
 
 std::wstring GetDirPath(const std::wstring& dirType) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dirType);
-
-  if (!IsIniExist()) {
-    return path;
-  }
 
   std::wstring DirBuffer(MAX_PATH, '\0');
   ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(),
@@ -72,13 +61,11 @@ std::wstring GetDiskCacheDir() {
 }
 
 std::wstring GetBosskey() {
-  return IsIniExist() ? GetIniString(L"General", L"Bosskey", L"")
-                      : std::wstring(L"");
+  return GetIniString(L"General", L"Bosskey", L"");
 }
 
 std::wstring GetTranslateKey() {
-  return IsIniExist() ? GetIniString(L"General", L"TranslateKey", L"")
-                      : std::wstring(L"");
+  return GetIniString(L"General", L"TranslateKey", L"");
 }
 
 // View password without verification
@@ -151,8 +138,7 @@ bool IsNewTabDisable() {
 
 // Customize disabled tab page name
 std::wstring GetDisableTabName() {
-  return IsIniExist() ? GetIniString(L"Tabs", L"new_tab_disable_name", L"")
-                      : L"";
+  return GetIniString(L"Tabs", L"new_tab_disable_name", L"");
 }
 
 #endif  // CONFIG_H_
