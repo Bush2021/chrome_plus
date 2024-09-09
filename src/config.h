@@ -23,7 +23,12 @@ std::wstring GetIniString(const std::wstring& section,
 }
 
 std::wstring GetCrCommandLine() {
-  return GetIniString(L"General", L"CommandLine", L"");
+  auto commandLine = GetIniString(L"general", L"command_line", L"");
+  if (!commandLine.empty()) {
+    return commandLine;
+  }
+  return GetIniString(L"General", L"CommandLine", L""); // Deprecated
+  return L"";
 }
 
 std::wstring CanonicalizePath(const std::wstring& path) {
@@ -36,9 +41,16 @@ std::wstring GetDirPath(const std::wstring& dirType) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dirType);
 
   std::wstring DirBuffer(MAX_PATH, '\0');
-  ::GetPrivateProfileStringW(L"General", (dirType + L"Dir").c_str(),
+  ::GetPrivateProfileStringW(L"general", (dirType + L"_dir").c_str(),
                              path.c_str(), &DirBuffer[0], MAX_PATH,
                              kIniPath.c_str());
+
+  // Deprecated
+  if (DirBuffer[0] == 0) {
+    ::GetPrivateProfileStringW(L"general", (dirType + L"dir").c_str(),
+                               path.c_str(), &DirBuffer[0], MAX_PATH,
+                               kIniPath.c_str());
+  }
 
   if (DirBuffer[0] == 0) {
     DirBuffer = path;
@@ -53,24 +65,32 @@ std::wstring GetDirPath(const std::wstring& dirType) {
 }
 
 std::wstring GetUserDataDir() {
-  return GetDirPath(L"Data");
+  return GetDirPath(L"data");
 }
 
 std::wstring GetDiskCacheDir() {
-  return GetDirPath(L"Cache");
+  return GetDirPath(L"cache");
 }
 
 std::wstring GetBosskey() {
-  return GetIniString(L"General", L"Bosskey", L"");
+  auto key = GetIniString(L"general", L"boss_key", L"");
+  if (!key.empty()) {
+    return key;
+  }
+  return GetIniString(L"General", L"Bosskey", L"");  // Deprecated
 }
 
 std::wstring GetTranslateKey() {
-  return GetIniString(L"General", L"TranslateKey", L"");
+  auto key = GetIniString(L"general", L"translate_key", L"");
+  if (!key.empty()) {
+    return key;
+  }
+  return GetIniString(L"General", L"TranslateKey", L""); // Deprecated
 }
 
 // View password without verification
 bool IsShowPassword() {
-  return ::GetPrivateProfileIntW(L"General", L"ShowPassword", 1,
+  return ::GetPrivateProfileIntW(L"general", L"show_password", 1,
                                  kIniPath.c_str()) != 0;
 }
 
@@ -81,32 +101,32 @@ bool IsWin32K() {
 }
 
 bool IsKeepLastTab() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"keep_last_tab", 1,
+  return ::GetPrivateProfileIntW(L"tabs", L"keep_last_tab", 1,
                                  kIniPath.c_str()) != 0;
 }
 
 bool IsDoubleClickClose() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"double_click_close", 1,
+  return ::GetPrivateProfileIntW(L"tabs", L"double_click_close", 1,
                                  kIniPath.c_str()) != 0;
 }
 
 bool IsRightClickClose() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"right_click_close", 0,
+  return ::GetPrivateProfileIntW(L"tabs", L"right_click_close", 0,
                                  kIniPath.c_str()) != 0;
 }
 
 bool IsWheelTab() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab", 1, kIniPath.c_str()) !=
+  return ::GetPrivateProfileIntW(L"tabs", L"wheel_tab", 1, kIniPath.c_str()) !=
          0;
 }
 
 bool IsWheelTabWhenPressRightButton() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"wheel_tab_when_press_rbutton", 1,
+  return ::GetPrivateProfileIntW(L"tabs", L"wheel_tab_when_press_rbutton", 1,
                                  kIniPath.c_str()) != 0;
 }
 
 std::string IsOpenUrlNewTabFun() {
-  int value = ::GetPrivateProfileIntW(L"Tabs", L"open_url_new_tab", 0,
+  int value = ::GetPrivateProfileIntW(L"tabs", L"open_url_new_tab", 0,
                                       kIniPath.c_str());
   switch (value) {
     case 1:
@@ -119,7 +139,7 @@ std::string IsOpenUrlNewTabFun() {
 }
 
 std::string IsBookmarkNewTab() {
-  int value = ::GetPrivateProfileIntW(L"Tabs", L"open_bookmark_new_tab", 0,
+  int value = ::GetPrivateProfileIntW(L"tabs", L"open_bookmark_new_tab", 0,
                                       kIniPath.c_str());
   switch (value) {
     case 1:
@@ -132,13 +152,13 @@ std::string IsBookmarkNewTab() {
 }
 
 bool IsNewTabDisable() {
-  return ::GetPrivateProfileIntW(L"Tabs", L"new_tab_disable", 1,
+  return ::GetPrivateProfileIntW(L"tabs", L"new_tab_disable", 1,
                                  kIniPath.c_str()) != 0;
 }
 
 // Customize disabled tab page name
 std::wstring GetDisableTabName() {
-  return GetIniString(L"Tabs", L"new_tab_disable_name", L"");
+  return GetIniString(L"tabs", L"new_tab_disable_name", L"");
 }
 
 #endif  // CONFIG_H_
