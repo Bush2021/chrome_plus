@@ -1,8 +1,6 @@
 #ifndef CONFIG_H_
 #define CONFIG_H_
 
-const std::wstring kIniPath = GetAppDir() + L"\\chrome++.ini";
-
 std::wstring GetCrCommandLine() {
   auto commandLine = GetIniString(L"general", L"command_line", L"");
   if (!commandLine.empty()) {
