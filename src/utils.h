@@ -246,6 +246,8 @@ bool isEndWith(const wchar_t* s, const wchar_t* sub) {
   return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
+const std::wstring kIniPath = GetAppDir() + L"\\chrome++.ini";
+
 // Prase the INI file.
 std::wstring GetIniString(const std::wstring& section,
                           const std::wstring& key,
