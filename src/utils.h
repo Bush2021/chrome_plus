@@ -246,6 +246,33 @@ bool isEndWith(const wchar_t* s, const wchar_t* sub) {
   return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
+// Prase the INI file.
+std::wstring GetIniString(const std::wstring& section,
+                          const std::wstring& key,
+                          const std::wstring& default_value) {
+  std::vector<TCHAR> buffer(100);
+  DWORD bytesread = 0;
+  do {
+    bytesread = ::GetPrivateProfileStringW(
+        section.c_str(), key.c_str(), default_value.c_str(), buffer.data(),
+        (DWORD)buffer.size(), kIniPath.c_str());
+    if (bytesread >= buffer.size() - 1) {
+      buffer.resize(buffer.size() * 2);
+    } else {
+      break;
+    }
+  } while (true);
+
+  return std::wstring(buffer.data());
+}
+
+// Canonicalize the path.
+std::wstring CanonicalizePath(const std::wstring& path) {
+  TCHAR temp[MAX_PATH];
+  ::PathCanonicalize(temp, path.data());
+  return std::wstring(temp);
+}
+
 // Get the absolute path.
 std::wstring GetAbsolutePath(const std::wstring& path) {
   wchar_t buffer[MAX_PATH];

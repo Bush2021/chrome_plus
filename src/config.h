@@ -3,64 +3,34 @@
 
 const std::wstring kIniPath = GetAppDir() + L"\\chrome++.ini";
 
-std::wstring GetIniString(const std::wstring& section,
-                          const std::wstring& key,
-                          const std::wstring& default_value) {
-  std::vector<TCHAR> buffer(100);
-  DWORD bytesread = 0;
-  do {
-    bytesread = ::GetPrivateProfileStringW(
-        section.c_str(), key.c_str(), default_value.c_str(), buffer.data(),
-        (DWORD)buffer.size(), kIniPath.c_str());
-    if (bytesread >= buffer.size() - 1) {
-      buffer.resize(buffer.size() * 2);
-    } else {
-      break;
-    }
-  } while (true);
-
-  return std::wstring(buffer.data());
-}
-
 std::wstring GetCrCommandLine() {
   auto commandLine = GetIniString(L"general", L"command_line", L"");
   if (!commandLine.empty()) {
     return commandLine;
   }
-  return GetIniString(L"General", L"CommandLine", L""); // Deprecated
+  return GetIniString(L"General", L"CommandLine", L"");  // Deprecated
   return L"";
-}
-
-std::wstring CanonicalizePath(const std::wstring& path) {
-  TCHAR temp[MAX_PATH];
-  ::PathCanonicalize(temp, path.data());
-  return std::wstring(temp);
 }
 
 std::wstring GetDirPath(const std::wstring& dirType) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dirType);
-
   std::wstring DirBuffer(MAX_PATH, '\0');
   ::GetPrivateProfileStringW(L"general", (dirType + L"_dir").c_str(),
                              path.c_str(), &DirBuffer[0], MAX_PATH,
                              kIniPath.c_str());
-
   // Deprecated
   if (DirBuffer[0] == 0) {
     ::GetPrivateProfileStringW(L"general", (dirType + L"dir").c_str(),
                                path.c_str(), &DirBuffer[0], MAX_PATH,
                                kIniPath.c_str());
   }
-
   if (DirBuffer[0] == 0) {
     DirBuffer = path;
   }
 
   std::wstring ExpandedPath = ExpandEnvironmentPath(DirBuffer);
-
   ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
   std::wstring Dir = GetAbsolutePath(ExpandedPath);
-
   return Dir;
 }
 
@@ -85,7 +55,7 @@ std::wstring GetTranslateKey() {
   if (!key.empty()) {
     return key;
   }
-  return GetIniString(L"General", L"TranslateKey", L""); // Deprecated
+  return GetIniString(L"General", L"TranslateKey", L"");  // Deprecated
 }
 
 // View password without verification
