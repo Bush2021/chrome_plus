@@ -71,8 +71,12 @@ BOOL CALLBACK SearchChromeWindow(HWND hWnd, LPARAM lParam) {
         0)  // || wcscmp(buff, L"Chrome_WidgetWin_2")==0 || wcscmp(buff,
             // L"SysShadow")==0 )
     {
-      ShowWindow(hWnd, SW_HIDE);
-      hwnd_list.push_back(hWnd);
+      DWORD pid;
+      GetWindowThreadProcessId(hWnd, &pid);
+      if (pid == GetCurrentProcessId()) {
+        ShowWindow(hWnd, SW_HIDE);
+        hwnd_list.push_back(hWnd);
+      }
     }
   }
   return true;
