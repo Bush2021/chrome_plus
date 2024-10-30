@@ -27,7 +27,7 @@ The key is to ensure that `version.dll` is placed in the same directory as `chro
 ## Compatibility
 * All browsers based on the latest stable branches of Chromium are theoretically supported.
 * Only the latest stable version of Chrome is tested, and maintenance is not guaranteed.
-* If the DLL is not properly loaded, try to [set DLL] (https://github.com/Bush2021/chrome_plus/blob/main/setdll/).
+* If the DLL is not properly loaded, try to [set DLL](https://github.com/Bush2021/chrome_plus/blob/main/setdll/).
 
 ## License
 * Versions 1.5.4 and earlier are licensed under MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).

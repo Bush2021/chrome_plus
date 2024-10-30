@@ -1,0 +1,38 @@
+name: 错误反馈
+description: "提交 Chrome++ Bug"
+title: "[Bug] "
+body:
+  - type: checkboxes
+    id: ensure
+    attributes:
+      label: 验证步骤
+      description: 在提交之前，请勾选以下适用选项以证明您已经阅读并理解了以下要求，否则该 issue 将被关闭。
+      options:
+        - label: 我仔细看过 [INI 配置文件](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) 并理解了每个配置项的作用。
+          required: true
+        - label: 我未在 [Issue Tracker](https://github.com/Bush2021/chrome_plus/issues) 中寻找过我要提出的问题。
+          required: false
+        - label: 我提供了可用于重现我报告的错误的最简配置。
+          required: true
+        - label: 我确保使用中文描述问题。
+          required: true
+
+  - type: textarea
+    attributes:
+      label: 版本信息
+      description: 请提供 `chrome://version/` 的截图。
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      render: yaml
+      label: 配置文件
+      description: 请粘贴用于复现问题的最简 `chrome++.ini` 内容。
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 描述
+      description: 请提供错误的详细描述以及重现错误的步骤
+    validations:
+      required: true

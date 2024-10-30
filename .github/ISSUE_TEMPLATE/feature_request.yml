@@ -1,0 +1,24 @@
+name: Feature Request
+description: Suggest improvements for this project
+title: "[Feature] "
+body:
+  - type: checkboxes
+    id: ensure
+    attributes:
+      label: Verification Steps
+      description: Before submitting, please check the following applicable options to prove that you have read and understood the following requirements, otherwise the issue will be closed.
+      options:
+        - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and understand the function of each configuration item.
+          required: true
+        - label: I have not searched for the feature request I want to propose in the [Issue Tracker](https://github.com/Bush2021/chrome_plus/issues) and did not find it.
+          required: true
+        - label: I am willing to create a pull request to implement the feature I proposed, otherwise I understand that the issue is likely to be closed.
+          required: true
+        - label: I make sure to describe the feature in English.
+          required: true
+  - type: textarea
+    attributes:
+      label: Description
+      description: Please provide a detailed description of the feature, rather than vague statements.
+    validations:
+      required: true
