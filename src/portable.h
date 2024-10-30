@@ -56,13 +56,13 @@ std::wstring GetCommand(LPWSTR param) {
 
       args.push_back(L"--disable-features=WinSboxNoFakeGdiInit");
 
-      {
-        auto userdata = GetUserDataDir();
+      auto userdata = GetUserDataDir();
+      if (!userdata.empty()) {
         args.push_back(L"--user-data-dir=" + userdata);
       }
 
-      {
-        auto diskcache = GetDiskCacheDir();
+      auto diskcache = GetDiskCacheDir();
+      if (!diskcache.empty()) {
         args.push_back(L"--disk-cache-dir=" + diskcache);
       }
 

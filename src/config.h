@@ -7,29 +7,30 @@ std::wstring GetCrCommandLine() {
     return commandLine;
   }
   return GetIniString(L"General", L"CommandLine", L"");  // Deprecated
-  return L"";
 }
 
-std::wstring GetDirPath(const std::wstring& dirType) {
-  std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dirType);
-  std::wstring DirBuffer(MAX_PATH, '\0');
-  ::GetPrivateProfileStringW(L"general", (dirType + L"_dir").c_str(),
-                             path.c_str(), &DirBuffer[0], MAX_PATH,
-                             kIniPath.c_str());
-  // Deprecated
-  if (DirBuffer[0] == 0) {
-    ::GetPrivateProfileStringW(L"general", (dirType + L"dir").c_str(),
-                               path.c_str(), &DirBuffer[0], MAX_PATH,
-                               kIniPath.c_str());
-  }
-  if (DirBuffer[0] == 0) {
-    DirBuffer = path;
+std::wstring GetDirPath(const std::wstring& dir_type) {
+  std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dir_type);
+  std::wstring dir_key = dir_type + L"_dir";
+  std::wstring dir_buffer = GetIniString(L"general", dir_key, path);
+
+  if (dir_buffer == L"none") {
+    return L"";
   }
 
-  std::wstring ExpandedPath = ExpandEnvironmentPath(DirBuffer);
-  ReplaceStringIni(ExpandedPath, L"%app%", GetAppDir());
-  std::wstring Dir = GetAbsolutePath(ExpandedPath);
-  return Dir;
+  if (dir_buffer.empty()) {  // Deprecated
+    dir_key = dir_type + L"dir";
+    dir_buffer = GetIniString(L"general", dir_key, path);
+  }
+
+  if (dir_buffer.empty()) {
+    dir_buffer = path;
+  }
+
+  std::wstring expanded_path = ExpandEnvironmentPath(dir_buffer);
+  ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
+  std::wstring dir = GetAbsolutePath(expanded_path);
+  return dir;
 }
 
 std::wstring GetUserDataDir() {
