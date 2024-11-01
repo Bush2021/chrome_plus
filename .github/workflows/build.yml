@@ -1,11 +1,23 @@
 name: Build
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - ".clang-format"
+      - ".gitignore"
+      - "README.md"
+      - "README_CN.md"
+      - "LICENSE"
+      - "setdll/**"
+      - "src/version.h"
+      - ".github/ISSUE_TEMPLATE/**"
   workflow_dispatch:
     inputs:
       version:
         description: 'Release version (SemVer)'
-        required: true # WIP: not required in alpha build
+        required: true
 
 jobs:
   build:
@@ -31,11 +43,19 @@ jobs:
       - name: Update version.h
         shell: bash
         run: |
-          VERSION="${{ github.event.inputs.version }}"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
-          sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
-          sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+          if [ "${{ github.event_name }}" == "push" ]; then
+            COMMIT_HASH=$(git rev-parse --short HEAD)
+            VERSION="alpha-${COMMIT_HASH}"
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+            sed -i '/#define RELEASE_VER_STR/,/TOSTRING(RELEASE_VER_FIX)/c\#define RELEASE_VER_STR "'"$VERSION"'"' src/version.h
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
+            sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h 
+            sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+          fi
 
       - name: Setup VC-LTL
         run: nuget install VC-LTL
@@ -52,12 +72,13 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build_${{ matrix.arch }}
+          name: version-${{ matrix.arch }}-${{ env.VERSION }}
           path: build/release/*
 
   create_pr:
     needs: build
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -74,32 +95,36 @@ jobs:
         with:
           path: build_artifacts
 
-      - name: Update SetDll
-        run: |
-          mv build_artifacts/build_x86/version.dll chrome++32.dll
-          mv build_artifacts/build_x64/version.dll chrome++64.dll
-          cp chrome++32.dll setdll/
-          cp chrome++64.dll setdll/
-          cp src/chrome++.ini setdll/
-          rm setdll/setdll.7z || true
-          cd setdll
-          7z a ../setdll.7z ./*
-          cd ..
-          mv setdll.7z setdll/
-
-          git add setdll/
-          git commit -m "Update setdll binaries"
-          git push origin release --force
+      - name: Install 7zz
+        run: sudo apt install 7zip
 
       - name: Update version.h
         run: |
           VERSION="${{ github.event.inputs.version }}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
           sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
           sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           git add src/version.h
           git commit -m "Bump version"
+
+      - name: Update SetDll
+        run: |
+          mv build_artifacts/version-x86-${{ env.VERSION }}/version.dll chrome++32.dll
+          mv build_artifacts/version-x64-${{ env.VERSION }}/version.dll chrome++64.dll
+          cp chrome++32.dll setdll/
+          cp chrome++64.dll setdll/
+          cp src/chrome++.ini setdll/
+          rm setdll/setdll.7z || true
+          cd setdll
+          7zz a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z ./*
+          cd ..
+          mv setdll.7z setdll/
+
+          git add setdll/
+          git commit -m "Update setdll binaries"
+          git push origin release --force
 
       - name: Create Pull Request
         env:

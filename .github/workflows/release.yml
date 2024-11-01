@@ -7,9 +7,6 @@ on:
     paths:
       - 'src/version.h'
 
-env:
-  GH_TOKEN: ${{ secrets.TOKEN }}
-
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -22,10 +19,9 @@ jobs:
           fetch-depth: 0
 
       - name: Get Last Tag
-        id: get_last_tag
         run: |
           LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) || echo "0.0.0")
-          echo "last_tag=$LAST_TAG" >> $GITHUB_ENV
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
 
       - name: Get Version from version.h
         run: |
@@ -39,12 +35,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ env.VERSION }}" -m "Release ${{ env.VERSION }}"
+          git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
 
       - name: Generate Release Notes
         run: |
           chmod +x .github/genReleaseNote.sh
-          .github/genReleaseNote.sh -v ${{ env.last_tag }}...${{ env.VERSION }}
+          .github/genReleaseNote.sh -v ${{ env.LAST_TAG }}...${{ env.VERSION }}
 
       - name: Get Latest Workflow Run
         id: workflow
@@ -62,17 +58,19 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.workflow.outputs.run_id }}
 
+      - name: Install 7zz
+        run: sudo apt install 7zip
+
       - name: Package All Artifacts
-        shell: bash
         run: |
           mkdir -p artifacts/x86/{App,Data,Cache}
           mkdir -p artifacts/x64/{App,Data,Cache}
           mkdir -p artifacts/arm64/{App,Data,Cache}
-          cp -r build_artifacts/build_x86/* artifacts/x86/App/
-          cp -r build_artifacts/build_x64/* artifacts/x64/App/
-          cp -r build_artifacts/build_arm64/* artifacts/arm64/App/
+          cp -r build_artifacts/version-x86-${{ env.VERSION }}/* artifacts/x86/App/
+          cp -r build_artifacts/version-x64-${{ env.VERSION }}/* artifacts/x64/App/
+          cp -r build_artifacts/version-arm64-${{ env.VERSION }}/* artifacts/arm64/App/
           cd artifacts
-          7z a ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
+          7zz a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
           cd ..
 
       - name: Create Release
