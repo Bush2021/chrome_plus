@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/version.h'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Get Last Tag
+        run: |
+          LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) || echo "0.0.0")
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
+
+      - name: Get Version from version.h
+        run: |
+          MAJOR=$(grep '#define RELEASE_VER_MAIN' src/version.h | awk '{print $3}')
+          MINOR=$(grep '#define RELEASE_VER_SUB' src/version.h | awk '{print $3}')
+          PATCH=$(grep '#define RELEASE_VER_FIX' src/version.h | awk '{print $3}')
+          VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
+
+      - name: Generate Release Notes
+        run: |
+          chmod +x .github/genReleaseNote.sh
+          .github/genReleaseNote.sh -v ${{ env.LAST_TAG }}...${{ env.VERSION }}
+
+      - name: Get Latest Workflow Run
+        id: workflow
+        run: |
+          RUN_ID=$(gh api repos/${{ github.repository }}/actions/workflows/build.yml/runs \
+            --jq '.workflow_runs[0].id')
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build_artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.workflow.outputs.run_id }}
+
+      - name: Install 7zz
+        run: sudo apt install 7zip
+
+      - name: Package All Artifacts
+        run: |
+          mkdir -p artifacts/x86/{App,Data,Cache}
+          mkdir -p artifacts/x64/{App,Data,Cache}
+          mkdir -p artifacts/arm64/{App,Data,Cache}
+          cp -r build_artifacts/version-x86-${{ env.VERSION }}/* artifacts/x86/App/
+          cp -r build_artifacts/version-x64-${{ env.VERSION }}/* artifacts/x64/App/
+          cp -r build_artifacts/version-arm64-${{ env.VERSION }}/* artifacts/arm64/App/
+          cd artifacts
+          7zz a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
+          cd ..
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
+          body_path: release.md
+          tag_name: ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
