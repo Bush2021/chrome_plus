@@ -1,43 +1,112 @@
-name: Build Chrome++
+name: Build
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (SemVer)'
+        required: true # WIP: not required in alpha build
 
 jobs:
   build:
     strategy:
       matrix:
-        include: [
-            { name: Chrome++_x86, arch: x86 },
-            { name: Chrome++_x64, arch: x64 },
-            { name: Chrome++_arm64, arch: arm64 }
-        ]
+        include:
+          - name: build_x86
+            arch: x86
+          - name: build_x64
+            arch: x64
+          - name: build_arm64
+            arch: arm64
 
     name: ${{ matrix.name }}
-
     runs-on: windows-latest
 
     steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v4
-      with:
-        submodules: 'true'
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
 
-    - name: Setup VC-LTL
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget install VC-LTL
+      - name: Update version.h
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
+          sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
+          sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
 
-    - name: Setup Xmake
-      uses: xmake-io/github-action-setup-xmake@v1
+      - name: Setup VC-LTL
+        run: nuget install VC-LTL
 
-    - name: Configure Xmake
-      run: xmake f -a ${{ matrix.arch }}
+      - name: Setup Xmake
+        uses: xmake-io/github-action-setup-xmake@v1
 
-    - name: Build Chrome++
-      run: xmake
+      - name: Configure Xmake
+        run: xmake f -a ${{ matrix.arch }}
 
-    - name: Upload DLL
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.name }}
-        path: build/release
+      - name: Build Chrome++
+        run: xmake
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_${{ matrix.arch }}
+          path: build/release/*
+
+  create_pr:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Git Configurations
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build_artifacts
+
+      - name: Update SetDll
+        run: |
+          mv build_artifacts/build_x86/version.dll chrome++32.dll
+          mv build_artifacts/build_x64/version.dll chrome++64.dll
+          cp chrome++32.dll setdll/
+          cp chrome++64.dll setdll/
+          cp src/chrome++.ini setdll/
+          rm setdll/setdll.7z || true
+          cd setdll
+          7z a ../setdll.7z ./*
+          cd ..
+          mv setdll.7z setdll/
+
+          git add setdll/
+          git commit -m "Update setdll binaries"
+          git push origin release --force
+
+      - name: Update version.h
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
+          sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
+          sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+          git add src/version.h
+          git commit -m "Bump version"
+
+      - name: Create Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          git push origin release
+          gh pr create --base main --head release --title "build(release): bump version to ${{ github.event.inputs.version }}" --body "Bump version to ${{ github.event.inputs.version }}"
+
+      - name: Output Run ID
+        run: echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_OUTPUT
