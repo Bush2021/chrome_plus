@@ -69,22 +69,28 @@ std::wstring GetCommand(LPWSTR param) {
   return JoinArgsString(args, L" ");
 }
 
-void LaunchOnExit() {
-  auto launch_on_exit = StringSplit(GetLaunchOnExit(), L';', L"");
-  if (launch_on_exit.empty()) {
+void LaunchCommands(const std::wstring& get_commands,
+                    std::vector<HANDLE>* program_handles) {
+  auto commands = StringSplit(get_commands, L';', L"");
+  if (commands.empty()) {
     return;
   }
-  for (const auto& command : launch_on_exit) {
+  for (const auto& command : commands) {
     std::wstring expanded_path = ExpandEnvironmentPath(command);
     ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
-    RunExecute(expanded_path.c_str(), SW_HIDE);
+    HANDLE handle = RunExecute(expanded_path.c_str(), SW_HIDE);
+    if (program_handles != nullptr && handle != nullptr) {
+      program_handles->push_back(handle);
+    }
   }
 }
 
 void Portable(LPWSTR param) {
+  std::vector <HANDLE> program_handles = {nullptr};
+  LaunchCommands(GetLaunchOnStartup(), &program_handles);
+
   wchar_t path[MAX_PATH];
   ::GetModuleFileName(nullptr, path, MAX_PATH);
-
   std::wstring args = GetCommand(param);
 
   SHELLEXECUTEINFO sei = {0};
@@ -98,7 +104,7 @@ void Portable(LPWSTR param) {
   if (ShellExecuteEx(&sei)) {
     WaitForSingleObject(sei.hProcess, INFINITE);
     CloseHandle(sei.hProcess);
-    LaunchOnExit();
+    LaunchCommands(GetLaunchOnExit(), nullptr);
     ExitProcess(0);
   }
 }

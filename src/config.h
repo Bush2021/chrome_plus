@@ -8,6 +8,9 @@ std::wstring GetCrCommandLine() {
   }
   return GetIniString(L"General", L"CommandLine", L"");  // Deprecated
 }
+std::wstring GetLaunchOnStartup() {
+  return GetIniString(L"general", L"launch_on_startup", L"");
+}
 
 std::wstring GetLaunchOnExit() {
   return GetIniString(L"general", L"launch_on_exit", L"");
