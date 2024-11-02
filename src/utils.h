@@ -168,6 +168,34 @@ bool ReplaceStringInPlace(std::string& subject,
   return find;
 }
 
+std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
+  if (str.find(L' ') == std::wstring::npos)
+    return std::move(str);
+
+  std::wstring escaped(L"\"");
+  for (auto c : str) {
+    if (c == L'"')
+      escaped += L'"';
+    escaped += c;
+  }
+  escaped += L'"';
+  return std::move(escaped);
+}
+
+std::wstring JoinArgsString(std::vector<std::wstring> lines,
+                            const std::wstring& delimiter) {
+  std::wstring text;
+  bool first = true;
+  for (auto& line : lines) {
+    if (!first)
+      text += delimiter;
+    else
+      first = false;
+    text += QuoteSpaceIfNeeded(line);
+  }
+  return text;
+}
+
 // Memory and module search functions.
 // Search memory.
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
@@ -332,6 +360,35 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
   // hwnd = GetForegroundWindow();
   // PostMessage(hwnd, WM_SYSCOMMAND, id, 0);
   ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
+}
+
+HANDLE RunExecute(const wchar_t* command, WORD show = SW_SHOW) {
+  int nArgs = 0;
+  std::vector<std::wstring> command_line;
+  LPWSTR* szArglist = CommandLineToArgvW(command, &nArgs);
+  for (int i = 0; i < nArgs; ++i) {
+    command_line.push_back(QuoteSpaceIfNeeded(szArglist[i]));
+  }
+  LocalFree(szArglist);
+
+  SHELLEXECUTEINFO ShExecInfo = {0};
+  ShExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
+  ShExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+  ShExecInfo.lpFile = command_line[0].c_str();
+  ShExecInfo.nShow = show;
+
+  std::wstring parameter;
+  for (size_t i = 1; i < command_line.size(); ++i) {
+    parameter += command_line[i];
+    parameter += L" ";
+  }
+  if (command_line.size() > 1) {
+    ShExecInfo.lpParameters = parameter.c_str();
+  }
+  if (ShellExecuteEx(&ShExecInfo)) {
+    return ShExecInfo.hProcess;
+  }
+  return nullptr;
 }
 
 bool IsFullScreen(HWND hwnd) {

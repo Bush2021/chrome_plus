@@ -1,34 +1,6 @@
 #ifndef PORTABLE_H_
 #define PORTABLE_H_
 
-std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
-  if (str.find(L' ') == std::wstring::npos)
-    return std::move(str);
-
-  std::wstring escaped(L"\"");
-  for (auto c : str) {
-    if (c == L'"')
-      escaped += L'"';
-    escaped += c;
-  }
-  escaped += L'"';
-  return std::move(escaped);
-}
-
-std::wstring JoinArgsString(std::vector<std::wstring> lines,
-                            const std::wstring& delimiter) {
-  std::wstring text;
-  bool first = true;
-  for (auto& line : lines) {
-    if (!first)
-      text += delimiter;
-    else
-      first = false;
-    text += QuoteSpaceIfNeeded(line);
-  }
-  return text;
-}
-
 // Construct new command line with portable mode.
 std::wstring GetCommand(LPWSTR param) {
   std::vector<std::wstring> args;
@@ -97,6 +69,18 @@ std::wstring GetCommand(LPWSTR param) {
   return JoinArgsString(args, L" ");
 }
 
+void LaunchOnExit() {
+  auto launch_on_exit = StringSplit(GetLaunchOnExit(), L';', L"");
+  if (launch_on_exit.empty()) {
+    return;
+  }
+  for (const auto& command : launch_on_exit) {
+    std::wstring expanded_path = ExpandEnvironmentPath(command);
+    ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
+    RunExecute(expanded_path.c_str(), SW_HIDE);
+  }
+}
+
 void Portable(LPWSTR param) {
   wchar_t path[MAX_PATH];
   ::GetModuleFileName(nullptr, path, MAX_PATH);
@@ -109,9 +93,12 @@ void Portable(LPWSTR param) {
   sei.lpVerb = L"open";
   sei.lpFile = path;
   sei.nShow = SW_SHOWNORMAL;
-
   sei.lpParameters = args.c_str();
+
   if (ShellExecuteEx(&sei)) {
+    WaitForSingleObject(sei.hProcess, INFINITE);
+    CloseHandle(sei.hProcess);
+    LaunchOnExit();
     ExitProcess(0);
   }
 }

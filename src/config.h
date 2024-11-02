@@ -9,6 +9,10 @@ std::wstring GetCrCommandLine() {
   return GetIniString(L"General", L"CommandLine", L"");  // Deprecated
 }
 
+std::wstring GetLaunchOnExit() {
+  return GetIniString(L"general", L"launch_on_exit", L"");
+}
+
 std::wstring GetDirPath(const std::wstring& dir_type) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dir_type);
   std::wstring dir_key = dir_type + L"_dir";
