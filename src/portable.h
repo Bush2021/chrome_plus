@@ -82,7 +82,8 @@ bool IsFirstRun() {
 }
 
 void LaunchCommands(const std::wstring& get_commands,
-                    std::vector<HANDLE>* program_handles) {
+                    std::vector<HANDLE>* program_handles,
+                    int show_command) {
   auto commands = StringSplit(
       get_commands, L';',
       L"");  // Quotes should not be used as they can cause errors with paths
@@ -94,7 +95,7 @@ void LaunchCommands(const std::wstring& get_commands,
   for (const auto& command : commands) {
     std::wstring expanded_path = ExpandEnvironmentPath(command);
     ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
-    HANDLE handle = RunExecute(expanded_path.c_str(), SW_HIDE);
+    HANDLE handle = RunExecute(expanded_path.c_str(), show_command);
     if (program_handles != nullptr && handle != nullptr) {
       program_handles->push_back(handle);
     }
@@ -113,7 +114,7 @@ void Portable(LPWSTR param) {
   std::vector<HANDLE> program_handles = {nullptr};
   bool first_run = IsFirstRun();
   if (first_run) {
-    LaunchCommands(GetLaunchOnStartup(), &program_handles);
+    LaunchCommands(GetLaunchOnStartup(), &program_handles, SW_SHOW);
   }
 
   wchar_t path[MAX_PATH];
@@ -133,7 +134,7 @@ void Portable(LPWSTR param) {
       WaitForSingleObject(sei.hProcess, INFINITE);
       CloseHandle(sei.hProcess);
       KillLaunchOnExit(&program_handles);
-      LaunchCommands(GetLaunchOnExit(), nullptr);
+      LaunchCommands(GetLaunchOnExit(), nullptr, SW_HIDE);
     }
     ExitProcess(0);
   }
