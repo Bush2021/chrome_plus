@@ -104,17 +104,6 @@ std::vector<std::wstring> StringSplit(const std::wstring& str,
   return result;
 }
 
-// Replace string in INI file.
-void ReplaceStringIni(std::wstring& subject,
-                      const std::wstring& search,
-                      const std::wstring& replace) {
-  size_t pos = 0;
-  while ((pos = subject.find(search, pos)) != std::wstring::npos) {
-    subject.replace(pos, search.length(), replace);
-    pos += replace.length();
-  }
-}
-
 // Compression html.
 std::string& ltrim(std::string& s) {
   s.erase(s.begin(), std::find_if(s.begin(), s.end(),
@@ -161,6 +150,19 @@ bool ReplaceStringInPlace(std::string& subject,
   bool find = false;
   size_t pos = 0;
   while ((pos = subject.find(search, pos)) != std::string::npos) {
+    subject.replace(pos, search.length(), replace);
+    pos += replace.length();
+    find = true;
+  }
+  return find;
+}
+
+bool ReplaceStringInPlace(std::wstring& subject,
+                          const std::wstring& search,
+                          const std::wstring& replace) {
+  bool find = false;
+  size_t pos = 0;
+  while ((pos = subject.find(search, pos)) != std::wstring::npos) {
     subject.replace(pos, search.length(), replace);
     pos += replace.length();
     find = true;

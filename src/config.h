@@ -40,7 +40,7 @@ std::wstring GetDirPath(const std::wstring& dir_type) {
   }
 
   std::wstring expanded_path = ExpandEnvironmentPath(dir_buffer);
-  ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
+  ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
   std::wstring dir = GetAbsolutePath(expanded_path);
   return dir;
 }

@@ -94,7 +94,7 @@ void LaunchCommands(const std::wstring& get_commands,
   }
   for (const auto& command : commands) {
     std::wstring expanded_path = ExpandEnvironmentPath(command);
-    ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
+    ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
     HANDLE handle = RunExecute(expanded_path.c_str(), show_command);
     if (program_handles != nullptr && handle != nullptr) {
       program_handles->push_back(handle);
