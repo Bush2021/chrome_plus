@@ -83,7 +83,11 @@ bool IsFirstRun() {
 
 void LaunchCommands(const std::wstring& get_commands,
                     std::vector<HANDLE>* program_handles) {
-  auto commands = StringSplit(get_commands, L';', L"");
+  auto commands = StringSplit(
+      get_commands, L';',
+      L"");  // Quotes should not be used as they can cause errors with paths
+             // that contain spaces. Since semicolons rarely appear in names and
+             // commands, they are used as delimiters.
   if (commands.empty()) {
     return;
   }
