@@ -1,34 +1,6 @@
 #ifndef PORTABLE_H_
 #define PORTABLE_H_
 
-std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
-  if (str.find(L' ') == std::wstring::npos)
-    return std::move(str);
-
-  std::wstring escaped(L"\"");
-  for (auto c : str) {
-    if (c == L'"')
-      escaped += L'"';
-    escaped += c;
-  }
-  escaped += L'"';
-  return std::move(escaped);
-}
-
-std::wstring JoinArgsString(std::vector<std::wstring> lines,
-                            const std::wstring& delimiter) {
-  std::wstring text;
-  bool first = true;
-  for (auto& line : lines) {
-    if (!first)
-      text += delimiter;
-    else
-      first = false;
-    text += QuoteSpaceIfNeeded(line);
-  }
-  return text;
-}
-
 // Construct new command line with portable mode.
 std::wstring GetCommand(LPWSTR param) {
   std::vector<std::wstring> args;
@@ -97,10 +69,56 @@ std::wstring GetCommand(LPWSTR param) {
   return JoinArgsString(args, L" ");
 }
 
+bool IsFirstRun() {
+  HANDLE hMutex =
+      CreateMutexW(nullptr, TRUE, L"Global\\ChromePlusFirstRunMutex");
+  if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
+    if (hMutex) {
+      CloseHandle(hMutex);
+    }
+    return false;
+  }
+  return true;
+}
+
+void LaunchCommands(const std::wstring& get_commands,
+                    int show_command,
+                    std::vector<HANDLE>* program_handles) {
+  auto commands = StringSplit(
+      get_commands, L';',
+      L"");  // Quotes should not be used as they can cause errors with paths
+             // that contain spaces. Since semicolons rarely appear in names and
+             // commands, they are used as delimiters.
+  if (commands.empty()) {
+    return;
+  }
+  for (const auto& command : commands) {
+    std::wstring expanded_path = ExpandEnvironmentPath(command);
+    ReplaceStringIni(expanded_path, L"%app%", GetAppDir());
+    HANDLE handle = RunExecute(expanded_path.c_str(), show_command);
+    if (program_handles != nullptr && handle != nullptr) {
+      program_handles->push_back(handle);
+    }
+  }
+}
+
+void KillLaunchOnExit(std::vector<HANDLE>* program_handles) {
+  if (IsKillLaunchOnExit() && program_handles != nullptr) {
+    for (auto handle : *program_handles) {
+      TerminateProcess(handle, 0);
+    }
+  }
+}
+
 void Portable(LPWSTR param) {
+  std::vector<HANDLE> program_handles = {nullptr};
+  bool first_run = IsFirstRun();
+  if (first_run) {
+    LaunchCommands(GetLaunchOnStartup(), SW_SHOW, &program_handles);
+  }
+
   wchar_t path[MAX_PATH];
   ::GetModuleFileName(nullptr, path, MAX_PATH);
-
   std::wstring args = GetCommand(param);
 
   SHELLEXECUTEINFO sei = {0};
@@ -109,9 +127,15 @@ void Portable(LPWSTR param) {
   sei.lpVerb = L"open";
   sei.lpFile = path;
   sei.nShow = SW_SHOWNORMAL;
-
   sei.lpParameters = args.c_str();
+
   if (ShellExecuteEx(&sei)) {
+    if (first_run) {
+      WaitForSingleObject(sei.hProcess, INFINITE);
+      CloseHandle(sei.hProcess);
+      KillLaunchOnExit(&program_handles);
+      LaunchCommands(GetLaunchOnExit(), SW_HIDE, nullptr);
+    }
     ExitProcess(0);
   }
 }
