@@ -82,8 +82,8 @@ bool IsFirstRun() {
 }
 
 void LaunchCommands(const std::wstring& get_commands,
-                    std::vector<HANDLE>* program_handles,
-                    int show_command) {
+                    int show_command,
+                    std::vector<HANDLE>* program_handles) {
   auto commands = StringSplit(
       get_commands, L';',
       L"");  // Quotes should not be used as they can cause errors with paths
@@ -114,7 +114,7 @@ void Portable(LPWSTR param) {
   std::vector<HANDLE> program_handles = {nullptr};
   bool first_run = IsFirstRun();
   if (first_run) {
-    LaunchCommands(GetLaunchOnStartup(), &program_handles, SW_SHOW);
+    LaunchCommands(GetLaunchOnStartup(), SW_SHOW, &program_handles);
   }
 
   wchar_t path[MAX_PATH];
@@ -134,7 +134,7 @@ void Portable(LPWSTR param) {
       WaitForSingleObject(sei.hProcess, INFINITE);
       CloseHandle(sei.hProcess);
       KillLaunchOnExit(&program_handles);
-      LaunchCommands(GetLaunchOnExit(), nullptr, SW_HIDE);
+      LaunchCommands(GetLaunchOnExit(), SW_HIDE, nullptr);
     }
     ExitProcess(0);
   }
