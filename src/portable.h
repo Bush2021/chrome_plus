@@ -69,6 +69,18 @@ std::wstring GetCommand(LPWSTR param) {
   return JoinArgsString(args, L" ");
 }
 
+bool IsFirstRun() {
+  HANDLE hMutex =
+      CreateMutexW(nullptr, TRUE, L"Global\\ChromePlusFirstRunMutex");
+  if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
+    if (hMutex) {
+      CloseHandle(hMutex);
+    }
+    return false;
+  }
+  return true;
+}
+
 void LaunchCommands(const std::wstring& get_commands,
                     std::vector<HANDLE>* program_handles) {
   auto commands = StringSplit(get_commands, L';', L"");
@@ -85,9 +97,20 @@ void LaunchCommands(const std::wstring& get_commands,
   }
 }
 
+void KillLaunchOnExit(std::vector<HANDLE>* program_handles) {
+  if (IsKillLaunchOnExit() && program_handles != nullptr) {
+    for (auto handle : *program_handles) {
+      TerminateProcess(handle, 0);
+    }
+  }
+}
+
 void Portable(LPWSTR param) {
-  std::vector <HANDLE> program_handles = {nullptr};
-  LaunchCommands(GetLaunchOnStartup(), &program_handles);
+  std::vector<HANDLE> program_handles = {nullptr};
+  bool first_run = IsFirstRun();
+  if (first_run) {
+    LaunchCommands(GetLaunchOnStartup(), &program_handles);
+  }
 
   wchar_t path[MAX_PATH];
   ::GetModuleFileName(nullptr, path, MAX_PATH);
@@ -102,9 +125,12 @@ void Portable(LPWSTR param) {
   sei.lpParameters = args.c_str();
 
   if (ShellExecuteEx(&sei)) {
-    WaitForSingleObject(sei.hProcess, INFINITE);
-    CloseHandle(sei.hProcess);
-    LaunchCommands(GetLaunchOnExit(), nullptr);
+    if (first_run) {
+      WaitForSingleObject(sei.hProcess, INFINITE);
+      CloseHandle(sei.hProcess);
+      KillLaunchOnExit(&program_handles);
+      LaunchCommands(GetLaunchOnExit(), nullptr);
+    }
     ExitProcess(0);
   }
 }
