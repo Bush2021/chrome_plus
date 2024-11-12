@@ -18,6 +18,14 @@ if [ -z "$version_range" ]; then
   exit 1
 fi
 
+repo_url=$(git config --get remote.origin.url)
+if [ -z "$repo_url" ]; then
+  echo "Could not determine the repository URL. Please ensure you are in a git repository." >&2
+  exit 1
+fi
+
+repo_url=${repo_url%.git}
+
 new_commits=$(git log --pretty=format:"* %h %s by @%an" --grep="^feat" -i $version_range | sort -f | uniq)
 if [ -n "$new_commits" ]; then
   echo "## New" >> release.md
@@ -39,4 +47,4 @@ if [ -n "$maint_commits" ]; then
   echo "" >> release.md
 fi
 
-echo "**Full Changelog**: https://github.com/KdeInit/chrome_plus/compare/$version_range" >> release.md
+echo "**Full Changelog**: $repo_url/compare/$version_range" >> release.md
