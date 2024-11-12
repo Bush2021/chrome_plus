@@ -39,8 +39,8 @@ jobs:
 
       - name: Generate Release Notes
         run: |
-          chmod +x .github/genReleaseNote.sh
-          .github/genReleaseNote.sh -v ${{ env.LAST_TAG }}...${{ env.VERSION }}
+          chmod +x .github/workflows/genReleaseNote.sh
+          .github/workflows/genReleaseNote.sh -v ${{ env.LAST_TAG }}...${{ env.VERSION }}
 
       - name: Get Latest Workflow Run
         id: workflow
