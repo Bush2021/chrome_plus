@@ -70,6 +70,9 @@ std::wstring GetCommand(LPWSTR param) {
 }
 
 bool IsFirstRun() {
+  if (GetLaunchOnStartup().empty() && GetLaunchOnExit().empty()) {
+    return false;
+  }
   HANDLE hMutex =
       CreateMutexW(nullptr, TRUE, L"Global\\ChromePlusFirstRunMutex");
   if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
