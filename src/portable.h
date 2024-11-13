@@ -69,16 +69,13 @@ std::wstring GetCommand(LPWSTR param) {
   return JoinArgsString(args, L" ");
 }
 
+HANDLE hMutex = nullptr;
 bool IsFirstRun() {
   if (GetLaunchOnStartup().empty() && GetLaunchOnExit().empty()) {
     return false;
   }
-  HANDLE hMutex =
-      CreateMutexW(nullptr, TRUE, L"Global\\ChromePlusFirstRunMutex");
+  hMutex = CreateMutexW(nullptr, TRUE, L"Global\\ChromePlusFirstRunMutex");
   if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
-    if (hMutex) {
-      CloseHandle(hMutex);
-    }
     return false;
   }
   return true;
@@ -135,7 +132,7 @@ void Portable(LPWSTR param) {
   if (ShellExecuteEx(&sei)) {
     if (first_run) {
       WaitForSingleObject(sei.hProcess, INFINITE);
-      CloseHandle(sei.hProcess);
+      CloseHandle(hMutex);
       KillLaunchOnExit(&program_handles);
       LaunchCommands(GetLaunchOnExit(), SW_HIDE, nullptr);
     }
