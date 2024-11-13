@@ -69,6 +69,9 @@ jobs:
           cp -r build_artifacts/version-x86-${{ env.VERSION }}/* artifacts/x86/App/
           cp -r build_artifacts/version-x64-${{ env.VERSION }}/* artifacts/x64/App/
           cp -r build_artifacts/version-arm64-${{ env.VERSION }}/* artifacts/arm64/App/
+          cp src/chrome++.ini artifacts/x86/App/
+          cp src/chrome++.ini artifacts/x64/App/
+          cp src/chrome++.ini artifacts/arm64/App/
           cd artifacts
           7zz a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
           cd ..
