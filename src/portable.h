@@ -72,7 +72,8 @@ std::wstring GetCommand(LPWSTR param) {
 HANDLE hMutex = nullptr;
 bool IsFirstRun() {
   DWORD pid = GetCurrentProcessId();
-  std::wstring mutex_name = L"Global\\ChromePlusFirstRunMutex" + std::to_wstring(pid);
+  std::wstring mutex_name =
+      L"Global\\ChromePlusFirstRunMutex" + std::to_wstring(pid);
   hMutex = CreateMutexW(nullptr, TRUE, mutex_name.c_str());
   if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
     return false;
@@ -110,10 +111,13 @@ void KillLaunchOnExit(std::vector<HANDLE>* program_handles) {
 }
 
 void Portable(LPWSTR param) {
-  std::vector<HANDLE> program_handles = {nullptr};
   bool first_run = IsFirstRun();
-  if (first_run) {
-    LaunchCommands(GetLaunchOnStartup(), SW_SHOW, &program_handles);
+  auto launch_on_startup = GetLaunchOnStartup();
+  auto launch_on_exit = GetLaunchOnExit();
+  std::vector<HANDLE> program_handles = {nullptr};
+
+  if (first_run && !launch_on_startup.empty()) {
+    LaunchCommands(launch_on_startup, SW_SHOW, &program_handles);
   }
 
   wchar_t path[MAX_PATH];
@@ -129,11 +133,15 @@ void Portable(LPWSTR param) {
   sei.lpParameters = args.c_str();
 
   if (ShellExecuteEx(&sei)) {
-    if (first_run) {
+    if (first_run && !launch_on_exit.empty()) {
+      // `WaitForSingleObject` causes IDM floating bar not to be displayed.
+      // Hence, end users should be reminded to avoid using this feature until a
+      // better method is implemented. See:
+      // https://github.com/Bush2021/chrome_plus/issues/130
       WaitForSingleObject(sei.hProcess, INFINITE);
       CloseHandle(hMutex);
       KillLaunchOnExit(&program_handles);
-      LaunchCommands(GetLaunchOnExit(), SW_HIDE, nullptr);
+      LaunchCommands(launch_on_exit, SW_HIDE, nullptr);
     }
     ExitProcess(0);
   }
