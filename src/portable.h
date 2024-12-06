@@ -71,9 +71,6 @@ std::wstring GetCommand(LPWSTR param) {
 
 HANDLE hMutex = nullptr;
 bool IsFirstRun() {
-  if (GetLaunchOnStartup().empty() && GetLaunchOnExit().empty()) {
-    return false;
-  }
   DWORD pid = GetCurrentProcessId();
   std::wstring mutex_name = L"Global\\ChromePlusFirstRunMutex" + std::to_wstring(pid);
   hMutex = CreateMutexW(nullptr, TRUE, mutex_name.c_str());
