@@ -74,7 +74,9 @@ bool IsFirstRun() {
   if (GetLaunchOnStartup().empty() && GetLaunchOnExit().empty()) {
     return false;
   }
-  hMutex = CreateMutexW(nullptr, TRUE, L"Global\\ChromePlusFirstRunMutex");
+  DWORD pid = GetCurrentProcessId();
+  std::wstring mutex_name = L"Global\\ChromePlusFirstRunMutex" + std::to_wstring(pid);
+  hMutex = CreateMutexW(nullptr, TRUE, mutex_name.c_str());
   if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
     return false;
   }
