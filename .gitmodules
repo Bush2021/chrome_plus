@@ -4,3 +4,6 @@
 [submodule "detours"]
 	path = detours
 	url = https://github.com/microsoft/Detours
+[submodule "setdll"]
+	path = setdll
+	url = https://github.com/Bush2021/setdll.git
