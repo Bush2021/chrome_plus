@@ -58,9 +58,6 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.workflow.outputs.run_id }}
 
-      - name: Install 7zz
-        run: sudo apt install 7zip
-
       - name: Package All Artifacts
         run: |
           mkdir -p artifacts/x86/{App,Data,Cache}
@@ -73,7 +70,7 @@ jobs:
           cp src/chrome++.ini artifacts/x64/App/
           cp src/chrome++.ini artifacts/arm64/App/
           cd artifacts
-          7zz a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
+          7z a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
           cd ..
 
       - name: Create Release

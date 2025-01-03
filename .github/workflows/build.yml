@@ -2,13 +2,19 @@ name: Build
 
 on:
   push:
-    branches:
-      - main
     paths-ignore:
       - ".clang-format"
       - ".gitignore"
-      - "README.md"
-      - "README_CN.md"
+      - "*.md"
+      - "LICENSE"
+      - "setdll/**"
+      - "src/version.h"
+      - ".github/ISSUE_TEMPLATE/**"
+  pull_request:
+    paths-ignore:
+      - ".clang-format"
+      - ".gitignore"
+      - "*.md"
       - "LICENSE"
       - "setdll/**"
       - "src/version.h"
@@ -95,9 +101,6 @@ jobs:
         with:
           path: build_artifacts
 
-      - name: Install 7zz
-        run: sudo apt install 7zip
-
       - name: Update version.h
         run: |
           VERSION="${{ github.event.inputs.version }}"
@@ -118,7 +121,7 @@ jobs:
           cp src/chrome++.ini setdll/
           rm setdll/setdll.7z || true
           cd setdll
-          7zz a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z ./*
+          7z a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z ./*
           cd ..
           mv setdll.7z setdll/
 
