@@ -112,23 +112,6 @@ jobs:
           git add src/version.h
           git commit -m "Bump version"
 
-      - name: Update SetDll
-        run: |
-          mv build_artifacts/version-x86-${{ env.VERSION }}/version.dll chrome++32.dll
-          mv build_artifacts/version-x64-${{ env.VERSION }}/version.dll chrome++64.dll
-          cp chrome++32.dll setdll/
-          cp chrome++64.dll setdll/
-          cp src/chrome++.ini setdll/
-          rm setdll/setdll.7z || true
-          cd setdll
-          7z a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z ./*
-          cd ..
-          mv setdll.7z setdll/
-
-          git add setdll/
-          git commit -m "Update setdll binaries"
-          git push origin release --force
-
       - name: Create Pull Request
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
