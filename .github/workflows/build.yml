@@ -111,6 +111,7 @@ jobs:
           sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           git add src/version.h
           git commit -m "Bump version"
+          git push origin release --force
 
       - name: Create Pull Request
         env:
