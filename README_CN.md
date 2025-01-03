@@ -27,7 +27,7 @@ English instruction: [https://github.com/Bush2021/chrome_plus/blob/main/README.m
 ## 兼容性
 * 理论上支持所有基于 Chromium 最新稳定分支的浏览器。
 * 只可能针对 Chrome 最新稳定版进行测试，不保证维护。
-* 如果遇到 DLL 未正确加载的问题，可尝试 [强制注入 DLL](https://github.com/Bush2021/chrome_plus/blob/main/setdll/)。
+* 如果遇到 DLL 未正确加载的问题，可尝试 [强制注入 DLL](https://github.com/Bush2021/setdll/)。
 
 ## 许可证
 * 1.5.4 及以前的版本使用 MIT 许可证，版权所有者为 [Shuax](https://github.com/shuax/)。
