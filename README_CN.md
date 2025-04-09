@@ -22,7 +22,7 @@ English instruction: [https://github.com/Bush2021/chrome_plus/blob/main/README.m
 采用 GitHub Actions 自动编译发布，下载地址：[https://github.com/Bush2021/chrome_plus/releases](https://github.com/Bush2021/chrome_plus/releases)。
 
 ## 安装
-核心是确保将 `version.dll` 放入 `chrome.exe` 同一目录。建议下载 [Chrome 离线安装包](https://github.com/Bush2021/chrome_installer)，解压两次得到 Chrome 程序文件，将其放入 App 文件夹即可。
+请确保将 `version.dll` 放入 `chrome.exe` 同一目录。建议下载 [Chrome 离线安装包](https://github.com/Bush2021/chrome_installer)，解压两次得到 Chrome 程序文件，将其放入 [App](https://github.com/Bush2021/chrome_plus/releases/latest) 文件夹即可。
 
 ## 兼容性
 * 理论上支持所有基于 Chromium 最新稳定分支的浏览器。
