@@ -22,12 +22,12 @@
 Built and released automatically using GitHub Actions. Download link: https://github.com/Bush2021/chrome_plus/releases/.
 
 ## Installation
-The key is to ensure that `version.dll` is placed in the same directory as `chrome.exe`. It’s recommended to download the [Chrome offline installation package](https://github.com/Bush2021/chrome_installer), extract it twice to obtain the Chrome program files, and then place them in the App folder.
+Please make sure to put `version.dll` in the same directory as `chrome.exe`. It's recommended to download the [Chrome offline installer package](https://github.com/Bush2021/chrome_installer), extract it twice to get the Chrome program files, and then place them in the [App](https://github.com/Bush2021/chrome_plus/releases/latest) folder.
 
 ## Compatibility
 * All browsers based on the latest stable branches of Chromium are theoretically supported.
 * Only the latest stable version of Chrome is tested, and maintenance is not guaranteed.
-* If the DLL is not properly loaded, try to [set DLL](https://github.com/Bush2021/chrome_plus/blob/main/setdll/).
+* If the DLL is not properly loaded, try to [set DLL](https://github.com/Bush2021/setdll/).
 
 ## License
 * Versions 1.5.4 and earlier are licensed under MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
