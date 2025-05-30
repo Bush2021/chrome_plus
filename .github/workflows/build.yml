@@ -12,8 +12,6 @@ on:
       - ".github/ISSUE_TEMPLATE/**"
       - ".github/workflows/delete_old_workflow_runs.yml"
       - ".github/workflows/genReleaseNote.sh"
-  pull_request_target:
-    branches: main
   workflow_dispatch:
     inputs:
       version:
