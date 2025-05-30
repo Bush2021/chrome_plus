@@ -89,6 +89,7 @@ void HideAndShow() {
     for (auto r_iter = hwnd_list.rbegin(); r_iter != hwnd_list.rend();
          ++r_iter) {
       ShowWindow(*r_iter, SW_SHOW);
+      SetForegroundWindow(*r_iter);
     }
     hwnd_list.clear();
   }
