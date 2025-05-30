@@ -5,6 +5,11 @@
 
 HHOOK mouse_hook = nullptr;
 
+static POINT g_lmbDownPoint = {0, 0};  // Stores the point of WM_LBUTTONDOWN
+static bool g_lmbDownProcessedForClick =
+    false;  // True if WM_LBUTTONDOWN occurred and hasn't been paired with a
+            // WM_LBUTTONUP yet for click processing
+
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key) {
   return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
@@ -201,6 +206,15 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return false;
   }
 
+  POINT ptCurrent = pmouse->pt;
+  int dragThresholdX = GetSystemMetrics(SM_CXDRAG);
+  int dragThresholdY = GetSystemMetrics(SM_CYDRAG);
+
+  if (abs(ptCurrent.x - g_lmbDownPoint.x) > dragThresholdX ||
+      abs(ptCurrent.y - g_lmbDownPoint.y) > dragThresholdY) {
+    return false;
+  }
+
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   NodePtr top_container_view = GetTopContainerView(
@@ -230,41 +244,56 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
   }
 
-  do {
-    if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
-      break;
-    }
-    PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
+  PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
 
-    // Defining a `dwExtraInfo` value to prevent hook the message sent by
-    // Chrome++ itself.
-    if (pmouse->dwExtraInfo == MAGIC_CODE) {
-      break;
-    }
+  // Defining a `dwExtraInfo` value to prevent hook the message sent by
+  // Chrome++ itself.
+  if (pmouse->dwExtraInfo == MAGIC_CODE) {
+    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+  }
 
-    if (HandleMouseWheel(wParam, lParam, pmouse)) {
-      return 1;
-    }
+  // Record LBUTTONDOWN position and set flag
+  if (wParam == WM_LBUTTONDOWN) {
+    g_lmbDownPoint = pmouse->pt;
+    g_lmbDownProcessedForClick = true;
+  }
 
-    if (HandleDoubleClick(wParam, pmouse) != 0) {
-      // Do not return 1. Returning 1 could cause the keep_tab to fail
-      // or trigger double-click operations consecutively when the user
-      // double-clicks on the tab page rapidly and repeatedly.
-    }
+  LRESULT result = 0;  // 0 for CallNextHookEx, 1 for handled
 
+  // Simplified handler chain (replaces the do-while(0) structure for clarity
+  // with state management)
+  if (HandleMouseWheel(wParam, lParam, pmouse)) {
+    result = 1;
+  } else {
+    int doubleClickResult =
+        HandleDoubleClick(wParam, pmouse);  // Capture result for clarity
+    if (doubleClickResult != 0) {
+      // As per original comment, HandleDoubleClick returning non-zero
+      // does not mean the message is fully "handled" to stop propagation here.
+      // So, 'result' is not set to 1.
+    }
+    // Continue checking other handlers even if HandleDoubleClick did something.
     if (HandleRightClick(wParam, pmouse) != 0) {
-      return 1;
+      result = 1;
+    } else if (HandleMiddleClick(wParam, pmouse) != 0) {
+      result = 1;
+    } else if (HandleBookmark(
+                   wParam, pmouse)) {  // HandleBookmark now includes drag check
+      result = 1;
     }
+  }
 
-    if (HandleMiddleClick(wParam, pmouse) != 0) {
-      return 1;
-    }
+  // Reset the flag if the current message is WM_LBUTTONUP,
+  // after all handlers have had a chance to process it for this event.
+  if (wParam == WM_LBUTTONUP) {
+    g_lmbDownProcessedForClick = false;
+  }
 
-    if (HandleBookmark(wParam, pmouse)) {
-      return 1;
-    }
-  } while (0);
-  return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+  if (result == 1) {
+    return 1;  // Message handled, do not pass to next hook
+  } else {
+    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+  }
 }
 
 int HandleKeepTab(WPARAM wParam) {
