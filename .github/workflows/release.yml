@@ -104,13 +104,6 @@ jobs:
           files: |
             Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
             setdll.7z
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
-            setdll.7z
           body_path: release.md
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
