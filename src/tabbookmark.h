@@ -4,6 +4,7 @@
 #include "iaccessible.h"
 
 HHOOK mouse_hook = nullptr;
+static POINT kLButtonDownPoint = {-1, -1};
 
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key) {
@@ -201,6 +202,16 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return false;
   }
 
+  // Add drag detection logic for
+  // https://github.com/Bush2021/chrome_plus/issues/152
+  int dragThresholdX = GetSystemMetrics(SM_CXDRAG);
+  int dragThresholdY = GetSystemMetrics(SM_CYDRAG);
+  int dx = pmouse->pt.x - kLButtonDownPoint.x;
+  int dy = pmouse->pt.y - kLButtonDownPoint.y;
+  if (abs(dx) > dragThresholdX || abs(dy) > dragThresholdY) {
+    return false;
+  }
+
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   NodePtr top_container_view = GetTopContainerView(
@@ -239,6 +250,12 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     // Defining a `dwExtraInfo` value to prevent hook the message sent by
     // Chrome++ itself.
     if (pmouse->dwExtraInfo == MAGIC_CODE) {
+      break;
+    }
+
+    // Record LBUTTONDOWN position
+    if (wParam == WM_LBUTTONDOWN) {
+      kLButtonDownPoint = pmouse->pt;
       break;
     }
 
