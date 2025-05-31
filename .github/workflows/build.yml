@@ -2,17 +2,16 @@ name: Build
 
 on:
   push:
-    branches:
-      - main
     paths-ignore:
       - ".clang-format"
       - ".gitignore"
-      - "README.md"
-      - "README_CN.md"
+      - "*.md"
       - "LICENSE"
       - "setdll/**"
       - "src/version.h"
       - ".github/ISSUE_TEMPLATE/**"
+      - ".github/workflows/delete_old_workflow_runs.yml"
+      - ".github/workflows/genReleaseNote.sh"
   workflow_dispatch:
     inputs:
       version:
@@ -90,14 +89,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b release
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: build_artifacts
-
-      - name: Install 7zz
-        run: sudo apt install 7zip
-
       - name: Update version.h
         run: |
           VERSION="${{ github.event.inputs.version }}"
@@ -107,23 +98,7 @@ jobs:
           sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
           sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           git add src/version.h
-          git commit -m "Bump version"
-
-      - name: Update SetDll
-        run: |
-          mv build_artifacts/version-x86-${{ env.VERSION }}/version.dll chrome++32.dll
-          mv build_artifacts/version-x64-${{ env.VERSION }}/version.dll chrome++64.dll
-          cp chrome++32.dll setdll/
-          cp chrome++64.dll setdll/
-          cp src/chrome++.ini setdll/
-          rm setdll/setdll.7z || true
-          cd setdll
-          7zz a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z ./*
-          cd ..
-          mv setdll.7z setdll/
-
-          git add setdll/
-          git commit -m "Update setdll binaries"
+          git commit -m "build(release): bump version to $VERSION"
           git push origin release --force
 
       - name: Create Pull Request

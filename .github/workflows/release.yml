@@ -51,15 +51,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get SetDll Latest Release
+        id: setdll
+        run: |
+          RELEASE_INFO=$(gh api repos/Bush2021/setdll/releases/latest)
+          DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r '.assets[0].browser_download_url')
+          echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
           path: build_artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.workflow.outputs.run_id }}
-
-      - name: Install 7zz
-        run: sudo apt install 7zip
 
       - name: Package All Artifacts
         run: |
@@ -73,13 +79,31 @@ jobs:
           cp src/chrome++.ini artifacts/x64/App/
           cp src/chrome++.ini artifacts/arm64/App/
           cd artifacts
-          7zz a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
+          7z a -mx=9 -m0=lzma2 -mmt=on ../Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z *
+          cd ..
+
+      - name: Package SetDll
+        run: |
+          mkdir -p setdll_package_contents
+          wget -O setdll_latest.7z ${{ steps.setdll.outputs.download_url }}
+          7z x setdll_latest.7z -o./setdll_package_contents
+          rm setdll_latest.7z
+          cp ./build_artifacts/version-x86-${{ env.VERSION }}/version.dll ./setdll_package_contents/version-x86.dll
+          cp ./build_artifacts/version-x64-${{ env.VERSION }}/version.dll ./setdll_package_contents/version-x64.dll
+          cp ./build_artifacts/version-arm64-${{ env.VERSION }}/version.dll ./setdll_package_contents/version-arm64.dll
+          cp ./src/chrome++.ini ./setdll_package_contents/chrome++.ini
+          cd setdll_package_contents
+          echo "Contents of 'setdll_package_contents' directory before zipping:"
+          ls -Al
+          7z a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z *
           cd ..
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
+          files: |
+            Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
+            setdll.7z
           body_path: release.md
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
