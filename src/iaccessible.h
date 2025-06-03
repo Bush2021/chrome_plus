@@ -2,7 +2,6 @@
 #define IACCESSIBLE_H_
 
 #include <oleacc.h>
-#pragma comment(lib, "oleacc.lib")
 
 #include <wrl/client.h>
 #include <thread>

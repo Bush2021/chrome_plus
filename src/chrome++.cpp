@@ -1,14 +1,13 @@
+#include "version.h"
+
 #include <windows.h>
-#include <stdio.h>
 #include <psapi.h>
+#include <stdio.h>
 
 HMODULE hInstance;
-
 #define MAGIC_CODE 0x1603ABD9
 
 #include "detours.h"
-#include "version.h"
-
 #include "hijack.h"
 #include "utils.h"
 #include "patch.h"
