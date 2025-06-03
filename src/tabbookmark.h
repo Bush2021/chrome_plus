@@ -195,20 +195,23 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   return 0;
 }
 
-// Open bookmarks in a new tab.
-bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
-      config.is_bookmark_new_tab == "disabled") {
-    return false;
-  }
-
+// Check if mouse movement is a drag operation.
+// Since `MouseProc` hook doesn't handle any drag-related events,
+// this detection can return early to avoid interference.
+bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
   // Add drag detection logic for
   // https://github.com/Bush2021/chrome_plus/issues/152
   int dragThresholdX = GetSystemMetrics(SM_CXDRAG);
   int dragThresholdY = GetSystemMetrics(SM_CYDRAG);
   int dx = pmouse->pt.x - kLButtonDownPoint.x;
   int dy = pmouse->pt.y - kLButtonDownPoint.y;
-  if (abs(dx) > dragThresholdX || abs(dy) > dragThresholdY) {
+  return (abs(dx) > dragThresholdX || abs(dy) > dragThresholdY);
+}
+
+// Open bookmarks in a new tab.
+bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+  if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
+      config.is_bookmark_new_tab == "disabled") {
     return false;
   }
 
@@ -256,6 +259,11 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     // Record LBUTTONDOWN position
     if (wParam == WM_LBUTTONDOWN) {
       kLButtonDownPoint = pmouse->pt;
+      break;
+    }
+
+    // Check for drag operations and return early if detected
+    if (wParam == WM_LBUTTONUP && HandleDrag(pmouse)) {
       break;
     }
 
