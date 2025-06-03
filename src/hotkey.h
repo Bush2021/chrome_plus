@@ -89,6 +89,11 @@ void HideAndShow() {
     for (auto r_iter = hwnd_list.rbegin(); r_iter != hwnd_list.rend();
          ++r_iter) {
       ShowWindow(*r_iter, SW_SHOW);
+      SetWindowPos(*r_iter, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+      SetForegroundWindow(*r_iter);
+      SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+      SetActiveWindow(*r_iter);
+      // SetFocus(*r_iter);
     }
     hwnd_list.clear();
   }
