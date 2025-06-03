@@ -20,6 +20,7 @@ HMODULE hInstance;
 #include "green.h"
 
 typedef int (*Startup)();
+static bool kExit = false;
 Startup ExeMain = nullptr;
 
 void ChromePlus() {
@@ -44,6 +45,8 @@ void ChromePlusCommand(LPWSTR param) {
     Portable(param);
   } else {
     ChromePlus();
+    LaunchCommands(GetLaunchOnStartup());
+    kExit = true;
   }
 }
 
@@ -89,6 +92,9 @@ BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv) {
     LoadSysDll(hModule);
 
     InstallLoader();
+  } else if (dwReason == DLL_PROCESS_DETACH && ::kExit) {
+    LaunchCommands(GetLaunchOnExit());
+    kExit = false;
   }
   return TRUE;
 }

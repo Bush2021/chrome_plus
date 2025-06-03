@@ -362,6 +362,32 @@ void ExecuteCommand(int id, HWND hwnd = 0) {
   ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
 }
 
+void LaunchCommands(const std::wstring& get_commands) {
+  auto commands = StringSplit(
+      get_commands, L';',
+      L"");  // Quotes should not be used as they can cause errors with paths
+             // that contain spaces. Since semicolons rarely appear in names and
+             // commands, they are used as delimiters.
+  if (commands.empty()) {
+    return;
+  }
+  for (const auto& command : commands) {
+    std::wstring expanded_path = ExpandEnvironmentPath(command);
+    ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
+
+    // Using `start` launches the command in a new window asynchronously,
+    // avoiding blocking Chrome's main thread. For more details:
+    // https://github.com/Bush2021/chrome_plus/issues/130#issuecomment-2925782726
+    // https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/start
+    //  `cmd /c` ensures the command window exits after execution, preventing
+    //  the "Not enough memory resources are available to process this command"
+    //  error even when all commands run successfully.
+    std::wstring cmd = L"start \"chrome++ cmd\" cmd /c \"" + expanded_path + L"\"";
+    _wsystem(cmd.c_str());
+  }
+}
+
+[[maybe_unused]]
 HANDLE RunExecute(const wchar_t* command, WORD show = SW_SHOW) {
   int nArgs = 0;
   std::vector<std::wstring> command_line;
