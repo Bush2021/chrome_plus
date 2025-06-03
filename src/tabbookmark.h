@@ -4,7 +4,7 @@
 #include "iaccessible.h"
 
 HHOOK mouse_hook = nullptr;
-static POINT kLButtonDownPoint = {-1, -1};
+static POINT lbutton_down_point = {-1, -1};
 
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key) {
@@ -201,10 +201,10 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
   // Add drag detection logic for
   // https://github.com/Bush2021/chrome_plus/issues/152
-  int dragThresholdX = GetSystemMetrics(SM_CXDRAG);
-  int dragThresholdY = GetSystemMetrics(SM_CYDRAG);
-  int dx = pmouse->pt.x - kLButtonDownPoint.x;
-  int dy = pmouse->pt.y - kLButtonDownPoint.y;
+  static int dragThresholdX = GetSystemMetrics(SM_CXDRAG);
+  static int dragThresholdY = GetSystemMetrics(SM_CYDRAG);
+  int dx = pmouse->pt.x - lbutton_down_point.x;
+  int dy = pmouse->pt.y - lbutton_down_point.y;
   return (abs(dx) > dragThresholdX || abs(dy) > dragThresholdY);
 }
 
@@ -258,7 +258,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
     // Record LBUTTONDOWN position
     if (wParam == WM_LBUTTONDOWN) {
-      kLButtonDownPoint = pmouse->pt;
+      lbutton_down_point = pmouse->pt;
       break;
     }
 
