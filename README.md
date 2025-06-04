@@ -1,7 +1,7 @@
 # Chrome++
 [![LICENSE](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
 
-中文说明: https://github.com/Bush2021/chrome_plus/blob/main/README_CN.md
+English | [简体中文](README_CN.md)
 
 ## Features
 * Double-click to close tab.
@@ -16,7 +16,7 @@
 * Customize hotkeys to translate web page.
 * Portable design (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow custom Chromium command line switches.
-* For more features, see [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini).
+* For more features, see [INI configuration file](src/chrome++.ini).
 
 ## Download
 Built and released automatically using GitHub Actions. Download link: https://github.com/Bush2021/chrome_plus/releases/.
@@ -32,13 +32,11 @@ Please make sure to put `version.dll` in the same directory as `chrome.exe`. It'
 ## License
 * Versions 1.5.4 and earlier are licensed under MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
 * Version 1.5.5 - 1.5.9 are licensed under MIT license, with modifications made by contributors to this repository based on Shuax's version.
-* Versions 1.6.0 and later are licensed under GPL-3.0 license.
+* Versions 1.6.0 and later are licensed under [GPL-3.0 license](LICENSE).
 
 ## Thanks
+* All [contributors](https://github.com/Bush2021/chrome_plus/graphs/contributors)
 * Original Author [Shuax](https://github.com/shuax/)
 * Revision code [provider](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1) for version 1.5.5
-* [虫子樱桃](https://github.com/czyt/)
-* [York Waugh](https://github.com/YorkWaugh/)
 * [面向大海](https://github.com/mxdh/)
 * [Ho Cheung](https://github.com/gz83/)
-* [Ritchie1108](https://github.com/Ritchie1108/)

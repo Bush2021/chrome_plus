@@ -1,7 +1,7 @@
 # Chrome++
 [![LICENSE](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
 
-English instruction: [https://github.com/Bush2021/chrome_plus/blob/main/README.md](https://github.com/Bush2021/chrome_plus/blob/main/README.md)
+简体中文 | [English](README.md)
 
 ## 功能
 - 双击关闭标签页。
@@ -16,7 +16,7 @@ English instruction: [https://github.com/Bush2021/chrome_plus/blob/main/README.m
 - 自定义快捷键进行网页翻译。
 - 便携化（不兼容原版数据，可以重装系统换电脑不丢数据）。
 - 可以自定义 Chromium 命令行开关。
-- 更多功能参见 [INI 配置文件](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini)。
+- 更多功能参见 [INI 配置文件](src/chrome++.ini)。
 
 ## 获取
 采用 GitHub Actions 自动编译发布，下载地址：[https://github.com/Bush2021/chrome_plus/releases](https://github.com/Bush2021/chrome_plus/releases)。
@@ -32,13 +32,11 @@ English instruction: [https://github.com/Bush2021/chrome_plus/blob/main/README.m
 ## 许可证
 * 1.5.4 及以前的版本使用 MIT 许可证，版权所有者为 [Shuax](https://github.com/shuax/)。
 * 1.5.5 - 1.5.9 版本使用 MIT 许可证，由本仓库贡献者在 Shuax 版本上进行修改。
-* 1.6.0 以后的版本使用 GPL-3.0 许可证。
+* 1.6.0 以后的版本使用 [GPL-3.0 许可证](LICENSE)。
 
 ## 致谢
+* 所有[贡献者](https://github.com/Bush2021/chrome_plus/graphs/contributors)
 * 原作者 [Shuax](https://github.com/shuax/)
 * 1.5.5 修改代码[提供者](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1)
-* [虫子樱桃](https://github.com/czyt/)
-* [York Waugh](https://github.com/YorkWaugh/)
 * [面向大海](https://github.com/mxdh/)
 * [Ho Cheung](https://github.com/gz83/)
-* [Ritchie1108](https://github.com/Ritchie1108/)

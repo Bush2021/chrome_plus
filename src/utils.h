@@ -26,11 +26,11 @@
 #define IDC_SELECT_TAB_6 34024
 #define IDC_SELECT_TAB_7 34025
 #define IDC_SELECT_LAST_TAB 34026
-#define IDC_SHOW_TRANSLATE 35009
-#define IDC_UPGRADE_DIALOG 40024
 #define IDC_FULLSCREEN 34030
-#define IDC_CLOSE_FIND_OR_STOP 37003
+#define IDC_SHOW_TRANSLATE 35009
 #define IDC_WINDOW_CLOSE_OTHER_TABS 35023
+#define IDC_CLOSE_FIND_OR_STOP 37003
+#define IDC_UPGRADE_DIALOG 40024
 
 // String manipulation function.
 std::wstring Format(const wchar_t* format, va_list args) {
@@ -382,7 +382,7 @@ void LaunchCommands(const std::wstring& get_commands) {
     //  `cmd /c` ensures the command window exits after execution, preventing
     //  the "Not enough memory resources are available to process this command"
     //  error even when all commands run successfully.
-    std::wstring cmd = L"start \"chrome++ cmd\" cmd /c \"" + expanded_path + L"\"";
+    std::wstring cmd = LR"(start "chrome++ cmd" cmd /c ")" + expanded_path + LR"(")";
     _wsystem(cmd.c_str());
   }
 }

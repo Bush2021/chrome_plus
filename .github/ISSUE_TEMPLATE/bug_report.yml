@@ -10,7 +10,7 @@ body:
       options:
         - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and understand the function of each configuration item.
           required: true
-        - label: I have not searched for the problem I want to raise in the [Issue Tracker](https://github.com/Bush2021/chrome_plus/issues).
+        - label: I have not searched for the problem I want to raise in the [Issues Tracker](https://github.com/Bush2021/chrome_plus/issues).
           required: false
         - label: I have provided the simplest configuration that can be used to reproduce the error I reported.
           required: true
@@ -36,3 +36,11 @@ body:
       description: Please provide a detailed description of the error and the steps to reproduce the error.
     validations:
       required: true
+  - type: textarea
+    attributes:
+      label: Attachments (Optional)
+      description: |
+        You can upload relevant screenshots, videos, or other files here to help illustrate the problem.
+        Please drag and drop files into this area or use the paste function.
+    validations:
+      required: false
