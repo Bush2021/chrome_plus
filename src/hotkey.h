@@ -3,6 +3,11 @@
 
 #include <iterator>
 
+#include <endpointvolume.h>
+#include <mmdeviceapi.h>
+#include <audiopolicy.h>
+#include <tlhelp32.h>
+
 UINT ParseHotkeys(const wchar_t* keys) {
   UINT mo = 0;
   UINT vk = 0;
@@ -82,20 +87,102 @@ BOOL CALLBACK SearchChromeWindow(HWND hWnd, LPARAM lParam) {
   return true;
 }
 
+std::vector<DWORD> GetAppPids() {
+  std::vector<DWORD> pids;
+  wchar_t current_exe_path[MAX_PATH];
+  GetModuleFileNameW(nullptr, current_exe_path, MAX_PATH);
+  wchar_t* exe_name = wcsrchr(current_exe_path, L'\\');
+  if (exe_name) {
+    ++exe_name;
+  } else {
+    exe_name = current_exe_path;
+  }
+  
+  HANDLE h_snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (h_snapshot == INVALID_HANDLE_VALUE) return pids;
+  
+  PROCESSENTRY32W pe32;
+  pe32.dwSize = sizeof(PROCESSENTRY32W);
+  
+  if (Process32FirstW(h_snapshot, &pe32)) {
+    do {
+      if (wcsicmp(pe32.szExeFile, exe_name) == 0) {
+        pids.push_back(pe32.th32ProcessID);
+      }
+    } while (Process32NextW(h_snapshot, &pe32));
+  }
+  
+  CloseHandle(h_snapshot);
+  return pids;
+}
+
+void MuteProcess(const std::vector<DWORD>& pids, bool bMute) {
+  CoInitialize(nullptr);
+  IMMDeviceEnumerator* pEnumerator = nullptr;
+  IMMDevice* pDevice = nullptr;
+  IAudioSessionManager2* pManager = nullptr;
+  IAudioSessionEnumerator* pSessionEnumerator = nullptr;
+
+  CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                   IID_PPV_ARGS(&pEnumerator));
+  pEnumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &pDevice);
+  pDevice->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL, nullptr,
+                    (void**)&pManager);
+  pManager->GetSessionEnumerator(&pSessionEnumerator);
+
+  int nSessionCount = 0;
+  pSessionEnumerator->GetCount(&nSessionCount);
+  for (int i = 0; i < nSessionCount; ++i) {
+    IAudioSessionControl* pSession = nullptr;
+    pSessionEnumerator->GetSession(i, &pSession);
+    IAudioSessionControl2* pSession2 = nullptr;
+    if (SUCCEEDED(pSession->QueryInterface(__uuidof(IAudioSessionControl2),
+                                           (void**)&pSession2))) {
+      DWORD sessionPid = 0;
+      pSession2->GetProcessId(&sessionPid);
+      
+      // Check if the session PID is in the list of Chrome's PIDs
+      for (DWORD pid : pids) {
+        if (sessionPid == pid) {
+          ISimpleAudioVolume* pVolume = nullptr;
+          if (SUCCEEDED(pSession2->QueryInterface(__uuidof(ISimpleAudioVolume),
+                                                  (void**)&pVolume))) {
+            pVolume->SetMute(bMute, nullptr);
+            pVolume->Release();
+          }
+          break;
+        }
+      }
+      pSession2->Release();
+    }
+    pSession->Release();
+  }
+
+  pSessionEnumerator->Release();
+  pManager->Release();
+  pDevice->Release();
+  pEnumerator->Release();
+  CoUninitialize();
+}
+
 void HideAndShow() {
+  auto chrome_pids = GetAppPids();
   if (!is_hide) {
     EnumWindows(SearchChromeWindow, 0);
+    MuteProcess(chrome_pids, true);
   } else {
     for (auto r_iter = hwnd_list.rbegin(); r_iter != hwnd_list.rend();
          ++r_iter) {
       ShowWindow(*r_iter, SW_SHOW);
       SetWindowPos(*r_iter, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
       SetForegroundWindow(*r_iter);
-      SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+      SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0,
+                   SWP_NOMOVE | SWP_NOSIZE);
       SetActiveWindow(*r_iter);
       // SetFocus(*r_iter);
     }
     hwnd_list.clear();
+    MuteProcess(chrome_pids, false);
   }
   is_hide = !is_hide;
 }
