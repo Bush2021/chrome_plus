@@ -28,12 +28,12 @@ std::wstring GetCommand(LPWSTR param) {
 
       args.push_back(L"--disable-features=WinSboxNoFakeGdiInit");
 
-      auto userdata = GetUserDataDir();
+      auto userdata = config.GetUserDataDir();
       if (!userdata.empty()) {
         args.push_back(L"--user-data-dir=" + userdata);
       }
 
-      auto diskcache = GetDiskCacheDir();
+      auto diskcache = config.GetDiskCacheDir();
       if (!diskcache.empty()) {
         args.push_back(L"--disk-cache-dir=" + diskcache);
       }
@@ -44,7 +44,7 @@ std::wstring GetCommand(LPWSTR param) {
       // Repeat the above process until the -- sign no longer exists in the
       // string
       {
-        auto cr_command_line = GetCrCommandLine();
+        auto cr_command_line = config.GetCommandLine();
         std::wstring temp = cr_command_line;
         while (true) {
           auto pos = temp.find(L"--");

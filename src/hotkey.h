@@ -135,12 +135,12 @@ void Hotkey(const std::wstring& keys, HotkeyAction action) {
 }
 
 void GetHotkey() {
-  std::wstring bossKey = GetBosskey();
+  std::wstring bossKey = config.GetBossKey();
   if (!bossKey.empty()) {
     Hotkey(bossKey, HideAndShow);
   }
 
-  std::wstring translateKey = GetTranslateKey();
+  std::wstring translateKey = config.GetTranslateKey();
   if (!translateKey.empty()) {
     Hotkey(translateKey, Translate);
   }

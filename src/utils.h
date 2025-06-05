@@ -257,12 +257,6 @@ uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
 
 // Path and file manipulation functions.
 // Get the directory where the application is located.
-std::wstring GetAppDir() {
-  wchar_t path[MAX_PATH];
-  ::GetModuleFileName(nullptr, path, MAX_PATH);
-  ::PathRemoveFileSpec(path);
-  return path;
-}
 
 bool isEndWith(const wchar_t* s, const wchar_t* sub) {
   if (!s || !sub)
@@ -274,7 +268,15 @@ bool isEndWith(const wchar_t* s, const wchar_t* sub) {
   return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
 }
 
-const std::wstring kIniPath = GetAppDir() + L"\\chrome++.ini";
+std::wstring GetAppDir() {
+  wchar_t path[MAX_PATH];
+  ::GetModuleFileName(nullptr, path, MAX_PATH);
+  ::PathRemoveFileSpec(path);
+  return path;
+}
+
+const std::wstring kAppDir = GetAppDir();
+const std::wstring kIniPath = kAppDir + L"\\chrome++.ini";
 
 // Prase the INI file.
 std::wstring GetIniString(const std::wstring& section,
@@ -337,7 +339,7 @@ void DebugLog(const wchar_t* format, ...) {
 //   const char* cstr = nstr.c_str();
 
 //   FILE* fp = nullptr;
-//   std::wstring logPath = GetAppDir() + L"\\Chrome++_Debug.log";
+//   std::wstring logPath = kAppDir + L"\\Chrome++_Debug.log";
 //   _wfopen_s(&fp, logPath.c_str(), L"a+");
 //   if (fp) {
 //     fwrite(cstr, strlen(cstr), 1, fp);
@@ -373,7 +375,7 @@ void LaunchCommands(const std::wstring& get_commands) {
   }
   for (const auto& command : commands) {
     std::wstring expanded_path = ExpandEnvironmentPath(command);
-    ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
+    ReplaceStringInPlace(expanded_path, L"%app%", kAppDir);
 
     // Using `start` launches the command in a new window asynchronously,
     // avoiding blocking Chrome's main thread. For more details:

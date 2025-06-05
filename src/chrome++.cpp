@@ -27,7 +27,7 @@ void ChromePlus() {
   // Shortcut.
   SetAppId();
 
-  // Portable hajack patch.
+  // Portable hijack patch.
   MakeGreen();
 
   // Enhancement of the address bar, tab, and bookmark.
@@ -45,7 +45,7 @@ void ChromePlusCommand(LPWSTR param) {
     Portable(param);
   } else {
     ChromePlus();
-    LaunchCommands(GetLaunchOnStartup());
+    LaunchCommands(config.GetLaunchOnStartup());
     should_run_exit_cmd = true;
   }
 }
@@ -93,7 +93,7 @@ BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv) {
 
     InstallLoader();
   } else if (dwReason == DLL_PROCESS_DETACH && ::should_run_exit_cmd) {
-    LaunchCommands(GetLaunchOnExit());
+    LaunchCommands(config.GetLaunchOnExit());
     should_run_exit_cmd = false;
   }
   return TRUE;

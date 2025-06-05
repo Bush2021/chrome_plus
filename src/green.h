@@ -67,7 +67,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
     *policy_value_1 &= ~static_cast<DWORD64>(
         ProcessCreationMitigationPolicy::BlockNonMicrosoftBinariesAlwaysOn);
-    if (IsWin32K()) {
+    if (config.IsWin32K()) {
       *policy_value_1 &= static_cast<DWORD64>(
           ProcessCreationMitigationPolicy::Win32kSystemCallDisableAlwaysOn);
     }
@@ -163,7 +163,7 @@ void MakeGreen() {
   DetourAttach((LPVOID*)&RawCryptProtectData, MyCryptProtectData);
   DetourAttach((LPVOID*)&RawCryptUnprotectData, MyCryptUnprotectData);
 
-  if (IsShowPassword()) {
+  if (config.IsShowPassword()) {
   // advapi32.dll
   DetourAttach((LPVOID*)&RawLogonUserW, MyLogonUserW);
 

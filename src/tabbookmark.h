@@ -15,7 +15,7 @@ bool IsPressed(int key) {
 // fault tolerance to prevent users from directly closing the window when
 // they click too fast.
 bool IsNeedKeep(NodePtr top_container_view) {
-  if (!IsKeepLastTab()) {
+  if (!config.IsKeepLastTab()) {
     return false;
   }
 
@@ -53,30 +53,10 @@ NodePtr HandleFindBar(HWND hwnd, POINT pt) {
   return top_container_view;
 }
 
-class IniConfig {
- public:
-  IniConfig()
-      : is_double_click_close(IsDoubleClickClose()),
-        is_right_click_close(IsRightClickClose()),
-        is_wheel_tab(IsWheelTab()),
-        is_wheel_tab_when_press_right_button(IsWheelTabWhenPressRightButton()),
-        is_bookmark_new_tab(IsBookmarkNewTab()),
-        is_open_url_new_tab(IsOpenUrlNewTabFun()) {}
-
-  bool is_double_click_close;
-  bool is_right_click_close;
-  bool is_wheel_tab;
-  bool is_wheel_tab_when_press_right_button;
-  std::string is_bookmark_new_tab;
-  std::string is_open_url_new_tab;
-};
-
-IniConfig config;
-
 // Use the mouse wheel to switch tabs
 bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_MOUSEWHEEL ||
-      (!config.is_wheel_tab && !config.is_wheel_tab_when_press_right_button)) {
+      (!config.IsWheelTab() && !config.IsWheelTabWhenPressRightButton())) {
     return false;
   }
 
@@ -87,7 +67,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
   // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
-  if (config.is_wheel_tab && IsOnTheTabBar(top_container_view, pmouse->pt)) {
+  if (config.IsWheelTab() && IsOnTheTabBar(top_container_view, pmouse->pt)) {
     hwnd = GetTopWnd(hwnd);
     if (zDelta > 0) {
       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
@@ -98,7 +78,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   // If it is used to switch tabs when the right button is held.
-  if (config.is_wheel_tab_when_press_right_button && IsPressed(VK_RBUTTON)) {
+  if (config.IsWheelTabWhenPressRightButton() && IsPressed(VK_RBUTTON)) {
     hwnd = GetTopWnd(hwnd);
     if (zDelta > 0) {
       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
@@ -113,7 +93,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 
 // Double-click to close tab.
 int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_LBUTTONDBLCLK || !config.is_double_click_close) {
+  if (wParam != WM_LBUTTONDBLCLK || !config.IsDoubleClickClose()) {
     return 0;
   }
 
@@ -142,7 +122,7 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 // Right-click to close tab (Hold Shift to show the original menu).
 int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (wParam != WM_RBUTTONUP || IsPressed(VK_SHIFT) ||
-      !config.is_right_click_close) {
+      !config.IsRightClickClose()) {
     return 0;
   }
 
@@ -210,8 +190,9 @@ bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
 
 // Open bookmarks in a new tab.
 bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+  const auto& mode = config.GetBookmarkNewTabMode();
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
-      config.is_bookmark_new_tab == "disabled") {
+      mode == "disabled") {
     return false;
   }
 
@@ -228,9 +209,9 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   bool is_on_new_tab = IsOnNewTab(top_container_view);
 
   if (is_on_bookmark && !is_on_new_tab) {
-    if (config.is_bookmark_new_tab == "foreground") {
+    if (mode == "foreground") {
       SendKey(VK_MBUTTON, VK_SHIFT);
-    } else if (config.is_bookmark_new_tab == "background") {
+    } else if (mode == "background") {
       SendKey(VK_MBUTTON);
     }
     return true;
@@ -325,16 +306,16 @@ int HandleKeepTab(WPARAM wParam) {
 }
 
 int HandleOpenUrlNewTab(WPARAM wParam) {
-  if (!(config.is_open_url_new_tab != "disabled" && wParam == VK_RETURN &&
-        !IsPressed(VK_MENU))) {
+  const auto& mode = config.GetOpenUrlNewTabMode();
+  if (!(mode != "disabled" && wParam == VK_RETURN && !IsPressed(VK_MENU))) {
     return 0;
   }
 
   NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
   if (IsOmniboxFocus(top_container_view) && !IsOnNewTab(top_container_view)) {
-    if (config.is_open_url_new_tab == "foreground") {
+    if (mode == "foreground") {
       SendKey(VK_MENU, VK_RETURN);
-    } else if (config.is_open_url_new_tab == "background") {
+    } else if (mode == "background") {
       SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
     }
     return 1;

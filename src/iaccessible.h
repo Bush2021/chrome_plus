@@ -310,7 +310,7 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
 }
 
 bool IsOnlyOneTab(NodePtr top) {
-  if (!IsKeepLastTab()) {
+  if (!config.IsKeepLastTab()) {
     return false;
   }
   auto tab_count = GetTabCount(top);
@@ -358,7 +358,7 @@ bool IsNameNewTab(NodePtr top) {
   }
 
   std::vector<std::wstring> disable_tab_names =
-      StringSplit(GetDisableTabName(), L',', L"\"");
+      StringSplit(config. GetDisableTabName(), L',', L"\"");
   TraversalAccessible(
       page_tab_pane, [&flag, &new_tab_name, &disable_tab_names](NodePtr child) {
         if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) {
@@ -383,7 +383,7 @@ bool IsNameNewTab(NodePtr top) {
 // Determine whether it is a new tab page from the document value of the tab
 // page.
 bool IsDocNewTab() {
-  auto cr_command_line = GetCrCommandLine();
+  auto cr_command_line = config.GetCommandLine();
   if (cr_command_line.find(L"--force-renderer-accessibility") ==
       std::wstring::npos) {
     return false;
@@ -414,7 +414,7 @@ bool IsDocNewTab() {
 }
 
 bool IsOnNewTab(NodePtr top) {
-  if (!IsNewTabDisable()) {
+  if (!config.IsNewTabDisable()) {
     return false;
   }
   return IsNameNewTab(top) || IsDocNewTab();
