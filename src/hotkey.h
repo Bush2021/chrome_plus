@@ -11,11 +11,10 @@
 UINT ParseHotkeys(const wchar_t* keys) {
   UINT mo = 0;
   UINT vk = 0;
-
   std::wstring temp = keys;
   std::vector<std::wstring> key_parts = StringSplit(temp, L'+', L"");
 
-  std::unordered_map<std::wstring, UINT> keyMap = {
+  std::unordered_map<std::wstring, UINT> key_map = {
       {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
       {L"win", MOD_WIN},      {L"left", VK_LEFT},     {L"right", VK_RIGHT},
       {L"up", VK_UP},         {L"down", VK_DOWN},     {L"←", VK_LEFT},
@@ -28,16 +27,16 @@ UINT ParseHotkeys(const wchar_t* keys) {
   };
 
   for (auto& key : key_parts) {
-    std::wstring lowerKey;
-    std::transform(key.begin(), key.end(), std::back_inserter(lowerKey),
+    std::wstring lower_key;
+    std::transform(key.begin(), key.end(), std::back_inserter(lower_key),
                    ::tolower);
 
-    if (keyMap.count(lowerKey)) {
-      if (lowerKey == L"shift" || lowerKey == L"ctrl" || lowerKey == L"alt" ||
-          lowerKey == L"win") {
-        mo |= keyMap[lowerKey];
+    if (key_map.count(lower_key)) {
+      if (lower_key == L"shift" || lower_key == L"ctrl" || lower_key == L"alt" ||
+          lower_key == L"win") {
+        mo |= key_map[lower_key];
       } else {
-        vk = keyMap[lowerKey];
+        vk = key_map[lower_key];
       }
     } else {
       TCHAR wch = key[0];
@@ -50,9 +49,9 @@ UINT ParseHotkeys(const wchar_t* keys) {
       } else if (wch == 'F' || wch == 'f')  // Parse the F1-F24 function keys.
       {
         if (isdigit(key[1])) {
-          int FX = _wtoi(&key[1]);
-          if (FX >= 1 && FX <= 24)
-            vk = VK_F1 + FX - 1;
+          int fx = _wtoi(&key[1]);
+          if (fx >= 1 && fx <= 24)
+            vk = VK_F1 + fx - 1;
         }
       }
     }
@@ -68,19 +67,19 @@ static bool is_hide = false;
 
 static std::vector<HWND> hwnd_list;
 
-BOOL CALLBACK SearchChromeWindow(HWND hWnd, LPARAM lParam) {
-  if (IsWindowVisible(hWnd)) {
+BOOL CALLBACK SearchChromeWindow(HWND hwnd, LPARAM lparam) {
+  if (IsWindowVisible(hwnd)) {
     wchar_t buff[256];
-    GetClassNameW(hWnd, buff, 255);
+    GetClassNameW(hwnd, buff, 255);
     if (wcscmp(buff, L"Chrome_WidgetWin_1") ==
         0)  // || wcscmp(buff, L"Chrome_WidgetWin_2")==0 || wcscmp(buff,
             // L"SysShadow")==0 )
     {
       DWORD pid;
-      GetWindowThreadProcessId(hWnd, &pid);
+      GetWindowThreadProcessId(hwnd, &pid);
       if (pid == GetCurrentProcessId()) {
-        ShowWindow(hWnd, SW_HIDE);
-        hwnd_list.push_back(hWnd);
+        ShowWindow(hwnd, SW_HIDE);
+        hwnd_list.push_back(hwnd);
       }
     }
   }
@@ -98,70 +97,69 @@ std::vector<DWORD> GetAppPids() {
     exe_name = current_exe_path;
   }
   
-  HANDLE h_snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-  if (h_snapshot == INVALID_HANDLE_VALUE) return pids;
+  HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snapshot == INVALID_HANDLE_VALUE) return pids;
   
   PROCESSENTRY32W pe32;
   pe32.dwSize = sizeof(PROCESSENTRY32W);
   
-  if (Process32FirstW(h_snapshot, &pe32)) {
+  if (Process32FirstW(snapshot, &pe32)) {
     do {
       if (wcsicmp(pe32.szExeFile, exe_name) == 0) {
         pids.push_back(pe32.th32ProcessID);
       }
-    } while (Process32NextW(h_snapshot, &pe32));
+    } while (Process32NextW(snapshot, &pe32));
   }
   
-  CloseHandle(h_snapshot);
+  CloseHandle(snapshot);
   return pids;
 }
 
-void MuteProcess(const std::vector<DWORD>& pids, bool bMute) {
+void MuteProcess(const std::vector<DWORD>& pids, bool b_mute) {
   CoInitialize(nullptr);
-  IMMDeviceEnumerator* pEnumerator = nullptr;
-  IMMDevice* pDevice = nullptr;
-  IAudioSessionManager2* pManager = nullptr;
-  IAudioSessionEnumerator* pSessionEnumerator = nullptr;
+  IMMDeviceEnumerator* enumerator = nullptr;
+  IMMDevice* device = nullptr;
+  IAudioSessionManager2* manager = nullptr;
+  IAudioSessionEnumerator* session_enumerator = nullptr;
 
   CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
-                   IID_PPV_ARGS(&pEnumerator));
-  pEnumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &pDevice);
-  pDevice->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL, nullptr,
-                    (void**)&pManager);
-  pManager->GetSessionEnumerator(&pSessionEnumerator);
+                   IID_PPV_ARGS(&enumerator));
+  enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
+  device->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL, nullptr,
+                    (void**)&manager);
+  manager->GetSessionEnumerator(&session_enumerator);
 
-  int nSessionCount = 0;
-  pSessionEnumerator->GetCount(&nSessionCount);
-  for (int i = 0; i < nSessionCount; ++i) {
-    IAudioSessionControl* pSession = nullptr;
-    pSessionEnumerator->GetSession(i, &pSession);
-    IAudioSessionControl2* pSession2 = nullptr;
-    if (SUCCEEDED(pSession->QueryInterface(__uuidof(IAudioSessionControl2),
-                                           (void**)&pSession2))) {
-      DWORD sessionPid = 0;
-      pSession2->GetProcessId(&sessionPid);
-      
-      // Check if the session PID is in the list of Chrome's PIDs
+  int session_count = 0;
+  session_enumerator->GetCount(&session_count);
+  for (int i = 0; i < session_count; ++i) {
+    IAudioSessionControl* session = nullptr;
+    session_enumerator->GetSession(i, &session);
+    IAudioSessionControl2* session2 = nullptr;
+    if (SUCCEEDED(session->QueryInterface(__uuidof(IAudioSessionControl2),
+                                           (void**)&session2))) {
+      DWORD session_pid = 0;
+      session2->GetProcessId(&session_pid);
+
       for (DWORD pid : pids) {
-        if (sessionPid == pid) {
-          ISimpleAudioVolume* pVolume = nullptr;
-          if (SUCCEEDED(pSession2->QueryInterface(__uuidof(ISimpleAudioVolume),
-                                                  (void**)&pVolume))) {
-            pVolume->SetMute(bMute, nullptr);
-            pVolume->Release();
+        if (session_pid == pid) {
+          ISimpleAudioVolume* volume = nullptr;
+          if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
+                                                  (void**)&volume))) {
+            volume->SetMute(b_mute, nullptr);
+            volume->Release();
           }
           break;
         }
       }
-      pSession2->Release();
+      session2->Release();
     }
-    pSession->Release();
+    session->Release();
   }
 
-  pSessionEnumerator->Release();
-  pManager->Release();
-  pDevice->Release();
-  pEnumerator->Release();
+  session_enumerator->Release();
+  manager->Release();
+  device->Release();
+  enumerator->Release();
   CoUninitialize();
 }
 
@@ -222,14 +220,14 @@ void Hotkey(const std::wstring& keys, HotkeyAction action) {
 }
 
 void GetHotkey() {
-  std::wstring bossKey = config.GetBossKey();
-  if (!bossKey.empty()) {
-    Hotkey(bossKey, HideAndShow);
+  std::wstring boss_key = config.GetBossKey();
+  if (!boss_key.empty()) {
+    Hotkey(boss_key, HideAndShow);
   }
 
-  std::wstring translateKey = config.GetTranslateKey();
-  if (!translateKey.empty()) {
-    Hotkey(translateKey, Translate);
+  std::wstring translate_key = config.GetTranslateKey();
+  if (!translate_key.empty()) {
+    Hotkey(translate_key, Translate);
   }
 }
 

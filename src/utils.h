@@ -8,9 +8,8 @@
 #include <vector>
 
 #include <windows.h>
-#include <Shlwapi.h>
-
-#include "FastSearch.h"
+#include <shlwapi.h>
+#include "fastsearch.h"
 
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
 #define IDC_NEW_TAB 34014
