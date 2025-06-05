@@ -34,16 +34,20 @@ bool IsNeedKeep(NodePtr top_container_view) {
 }
 
 // If the top_container_view is not found at the first time, try to close the
-// find-in-page bar and find the top_container_view again.
+// find-in-page bar and find the `top_container_view` again.
 NodePtr HandleFindBar(HWND hwnd, POINT pt) {
-  // If the mouse is clicked directly on the find-in-page bar, follow Chrome's
-  // original logic. Otherwise, clicking the button on the find-in-page bar may
-  // directly close the find-in-page bar.
-  if (IsOnDialog(hwnd, pt)) {
-    return nullptr;
-  }
+  // Since Chrome 131 (possibly starting from this version), the UI structure
+  // has changed and searching for `IsOnDialog` is no longer applicable; we now
+  // search for `IsOnPane` instead. This issue only occurs when the bookmarks
+  // bar is visible. In most scenarios, this change has no side effects. The
+  // only known issue: when the find-in-page bar is open, closing other tabs or
+  // clicking the bookmarks bar will also close the find-in-page bar. Related
+  // issue: https://github.com/Bush2021/chrome_plus/issues/157
   NodePtr top_container_view = GetTopContainerView(hwnd);
   if (!top_container_view) {
+    if (IsOnPane(hwnd, pt) || IsOnDialog(hwnd, pt)) {
+      return nullptr;
+    }
     ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
     top_container_view = GetTopContainerView(hwnd);
     if (!top_container_view) {

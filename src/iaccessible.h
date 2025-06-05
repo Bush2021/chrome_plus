@@ -482,6 +482,7 @@ bool IsOmniboxFocus(NodePtr top) {
 }
 
 // Whether the mouse is on the dialog box.
+[[maybe_unused]]
 bool IsOnDialog(HWND hwnd, POINT pt) {
   bool flag = false;
   TraversalAccessible(
@@ -518,6 +519,32 @@ bool IsOnCloseButton(NodePtr top, POINT pt) {
       },
       true);  // raw_traversal
   return flag;
+}
+
+// Whether the mouse is on a pane.
+bool IsOnPane(HWND hwnd, POINT pt) {
+  wchar_t name[MAX_PATH];
+  if (GetClassName(hwnd, name, MAX_PATH) &&
+      wcsstr(name, L"Chrome_WidgetWin_") == name) {
+    NodePtr pacc_main_window = nullptr;
+    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_CLIENT,
+                                           IID_PPV_ARGS(&pacc_main_window))) {
+      bool flag = false;
+      TraversalAccessible(
+          pacc_main_window, [&flag, &pt](NodePtr child) {
+            if (GetAccessibleRole(child) == ROLE_SYSTEM_PANE) {
+              GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
+                if (PtInRect(&rect, pt)) {
+                  flag = true;
+                }
+              });
+            }
+            return flag;
+          });
+      return flag;
+    }
+  }
+  return false;
 }
 
 #endif  // IACCESSIBLE_H_
