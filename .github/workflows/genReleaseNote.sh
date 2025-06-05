@@ -40,7 +40,7 @@ if [ -n "$fix_commits" ]; then
   echo "" >> release.md
 fi
 
-maint_commits=$(git log --pretty=format:"* %h %s by @%an" --grep="^chore\|^docs\|^refactor" -i $version_range | sort -f | uniq)
+maint_commits=$(git log --pretty=format:"* %h %s by @%an" --grep="^chore\|^docs\|^refactor\|^perf" -i $version_range | sort -f | uniq)
 if [ -n "$maint_commits" ]; then
   echo "## Maintenance" >> release.md
   echo "$maint_commits" >> release.md
