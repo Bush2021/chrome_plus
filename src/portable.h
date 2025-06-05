@@ -8,6 +8,18 @@ std::wstring GetCommand(LPWSTR param) {
   int argc;
   LPWSTR* argv = CommandLineToArgvW(param, &argc);
 
+  bool has_user_data_dir = false;
+  bool has_disk_cache_dir = false;
+  for (int i = 0; i < argc; ++i) {
+    std::wstring arg = argv[i];
+    if (arg.find(L"--user-data-dir=") == 0) {
+      has_user_data_dir = true;
+    }
+    if (arg.find(L"--disk-cache-dir=") == 0) {
+      has_disk_cache_dir = true;
+    }
+  }
+
   int insert_pos = 0;
   for (int i = 0; i < argc; ++i) {
     if (std::wstring(argv[i]).find(L"--") != std::wstring::npos ||
@@ -28,14 +40,17 @@ std::wstring GetCommand(LPWSTR param) {
 
       args.push_back(L"--disable-features=WinSboxNoFakeGdiInit");
 
-      auto userdata = config.GetUserDataDir();
-      if (!userdata.empty()) {
-        args.push_back(L"--user-data-dir=" + userdata);
+      if (!has_user_data_dir) {
+        auto userdata = config.GetUserDataDir();
+        if (!userdata.empty()) {
+          args.push_back(L"--user-data-dir=" + userdata);
+        }
       }
-
-      auto diskcache = config.GetDiskCacheDir();
-      if (!diskcache.empty()) {
-        args.push_back(L"--disk-cache-dir=" + diskcache);
+      if (!has_disk_cache_dir) {
+        auto diskcache = config.GetDiskCacheDir();
+        if (!diskcache.empty()) {
+          args.push_back(L"--disk-cache-dir=" + diskcache);
+        }
       }
 
       // Get the command line and append parameters
