@@ -115,7 +115,8 @@ std::vector<DWORD> GetAppPids() {
   return pids;
 }
 
-void MuteProcess(const std::vector<DWORD>& pids, bool b_mute) {
+static std::unordered_map<DWORD, bool> original_mute_states;
+void MuteProcess(const std::vector<DWORD>& pids, bool set_mute, bool save_mute_state = false) {
   CoInitialize(nullptr);
   IMMDeviceEnumerator* enumerator = nullptr;
   IMMDevice* device = nullptr;
@@ -145,7 +146,21 @@ void MuteProcess(const std::vector<DWORD>& pids, bool b_mute) {
           ISimpleAudioVolume* volume = nullptr;
           if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
                                                   (void**)&volume))) {
-            volume->SetMute(b_mute, nullptr);
+            if (save_mute_state) {
+              BOOL is_muted;
+              volume->GetMute(&is_muted);
+              original_mute_states[pid] = (is_muted == TRUE);
+            }
+            
+            if (set_mute) {
+              volume->SetMute(TRUE, nullptr);
+            } else {
+              // Only unmute if the original state was not muted beforehand
+              auto it = original_mute_states.find(pid);
+              if (it != original_mute_states.end() && !it->second) {
+                volume->SetMute(FALSE, nullptr);
+              }
+            }
             volume->Release();
           }
           break;
@@ -166,8 +181,9 @@ void MuteProcess(const std::vector<DWORD>& pids, bool b_mute) {
 void HideAndShow() {
   auto chrome_pids = GetAppPids();
   if (!is_hide) {
+    original_mute_states.clear();
     EnumWindows(SearchChromeWindow, 0);
-    MuteProcess(chrome_pids, true);
+    MuteProcess(chrome_pids, true, true);
   } else {
     for (auto r_iter = hwnd_list.rbegin(); r_iter != hwnd_list.rend();
          ++r_iter) {
@@ -177,7 +193,6 @@ void HideAndShow() {
       SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0,
                    SWP_NOMOVE | SWP_NOSIZE);
       SetActiveWindow(*r_iter);
-      // SetFocus(*r_iter);
     }
     hwnd_list.clear();
     MuteProcess(chrome_pids, false);
