@@ -105,7 +105,7 @@ std::vector<DWORD> GetAppPids() {
   
   if (Process32FirstW(snapshot, &pe32)) {
     do {
-      if (wcsicmp(pe32.szExeFile, exe_name) == 0) {
+      if (_wcsicmp(pe32.szExeFile, exe_name) == 0) {
         pids.push_back(pe32.th32ProcessID);
       }
     } while (Process32NextW(snapshot, &pe32));

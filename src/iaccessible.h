@@ -205,7 +205,6 @@ NodePtr GetChromeWidgetWin(HWND hwnd) {
   wchar_t name[MAX_PATH];
   if (GetClassName(hwnd, name, MAX_PATH) &&
       wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    NodePtr pacc_main_window = nullptr;
     if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
                                            IID_PPV_ARGS(&pacc_main_window))) {
       return pacc_main_window;

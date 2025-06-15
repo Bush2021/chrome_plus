@@ -4,14 +4,25 @@ add_rules("mode.debug", "mode.release")
 
 set_warnings("more")
 
-add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE", "_CRT_SECURE_NO_WARNINGS", "_CRT_NONSTDC_NO_DEPRECATE")
+add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE")
 add_cxflags("/utf-8")
 set_languages("c++17")
 
 if is_mode("release") then
+    set_exceptions("none")
+    set_runtimes("MT")
     add_defines("NDEBUG")
-    add_cxflags("/O2", "/Os", "/Gy", "/MT", "/EHsc", "/fp:precise")
+    add_cxflags("/O2", "/Os", "/Gy", "/MP", "/fp:precise")
     add_ldflags("/DYNAMICBASE", "/LTCG")
+end
+
+if is_mode("debug") then
+    set_optimize("none")
+    set_runtimes("MTd")
+    set_symbols("debug")
+    add_defines("_DEBUG")
+    add_cxflags("/Od", "/MP", "/fp:precise")
+    add_ldflags("/DYNAMICBASE")
 end
 
 -- add_links("gdiplus", "kernel32", "user32", "gdi32", "winspool", "comdlg32")
@@ -24,13 +35,13 @@ target("detours")
 
 target("chrome_plus")
     set_kind("shared")
-    set_targetdir("$(buildir)/release")
+    set_targetdir("$(builddir)/release")
     set_basename("version")
     add_deps("detours")
     add_files("src/*.cpp")
     add_files("src/*.rc")
     add_links("kernel32", "user32", "shell32", "oleaut32", "propsys", "shlwapi", "crypt32", "advapi32", "netapi32", "ole32", "oleacc")
     after_build(function (target)
-        os.rm("$(buildir)/release/version.exp")
-        os.rm("$(buildir)/release/version.lib")
+        os.rm("$(builddir)/release/version.exp")
+        os.rm("$(builddir)/release/version.lib")
     end)
