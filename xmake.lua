@@ -10,7 +10,7 @@ set_languages("c++17")
 
 if is_mode("release") then
     add_defines("NDEBUG")
-    add_cxflags("/O2", "/Os", "/Gy", "/MT", "/MP", "/EHsc", "/fp:precise")
+    add_cxflags("/O2", "/Os", "/Gy", "/MT", "/MP", "/EHsc", "/EHs-", "/fp:precise")
     add_ldflags("/DYNAMICBASE", "/LTCG")
 end
 
