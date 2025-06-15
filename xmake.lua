@@ -4,7 +4,7 @@ add_rules("mode.debug", "mode.release")
 
 set_warnings("more")
 
-add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE", "_CRT_SECURE_NO_WARNINGS", "_CRT_NONSTDC_NO_DEPRECATE")
+add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE")
 add_cxflags("/utf-8")
 set_languages("c++17")
 
