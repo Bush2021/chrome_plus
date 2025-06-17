@@ -1,5 +1,5 @@
-﻿#ifndef PAKFILE_H_
-#define PAKFILE_H_
+﻿#ifndef CHROME_PLUS_SRC_PAKFILE_H_
+#define CHROME_PLUS_SRC_PAKFILE_H_
 
 #pragma warning(disable : 4334)
 #pragma warning(disable : 4267)
@@ -175,4 +175,4 @@ void TraversalGZIPFile(uint8_t* buffer, Function f) {
   } while (pak_entry->resource_id != 0);
 }
 
-#endif  // PAKFILE_H_
+#endif  // CHROME_PLUS_SRC_PAKFILE_H_
