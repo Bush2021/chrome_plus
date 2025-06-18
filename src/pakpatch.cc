@@ -40,8 +40,9 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
 
     if (buffer) {
       // Traverse the gzip file.
-      TraversalGZIPFile((BYTE*)buffer, [=](uint8_t* begin, uint32_t size,
-                                           uint32_t& new_len) {
+      TraversalGZIPFile(static_cast<BYTE*>(buffer), [=](uint8_t* begin,
+                                                        uint32_t size,
+                                                        size_t& new_len) {
         bool changed = false;
 
         BYTE search_start[] = R"(</settings-about-page>)";
