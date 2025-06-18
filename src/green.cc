@@ -6,8 +6,9 @@
 #include <processthreadsapi.h>
 #include <shlwapi.h>
 
-#include "config.h"
 #include "detours.h"
+
+#include "config.h"
 #include "utils.h"
 
 namespace {

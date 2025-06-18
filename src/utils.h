@@ -76,9 +76,6 @@ uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m);
 uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m);
 uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m);
 
-// Path and file manipulation functions
-bool isEndWith(const wchar_t* s, const wchar_t* sub);
-
 // Parse the INI file
 std::wstring GetIniString(const std::wstring& section,
                           const std::wstring& key,

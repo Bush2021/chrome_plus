@@ -35,7 +35,7 @@ target("detours")
 
 target("chrome_plus")
     set_kind("shared")
-    set_targetdir("$(builddir)/release")
+    set_targetdir("$(builddir)/$(mode)")
     set_basename("version")
     add_deps("detours")
     add_files("src/*.cc")

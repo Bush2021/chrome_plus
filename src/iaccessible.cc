@@ -1,13 +1,13 @@
 #include "iaccessible.h"
 
+#include <windows.h>
+
 #include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
-
-#include <windows.h>
 
 #include "config.h"
 #include "utils.h"
