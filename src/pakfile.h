@@ -17,6 +17,8 @@ extern "C"
 #define PACK4_FILE_VERSION (4)
 #define PACK5_FILE_VERSION (5)
 
+#include "utils.h"
+
 struct PAK4_HEADER {
   uint32_t num_entries;
   uint8_t encodeing;

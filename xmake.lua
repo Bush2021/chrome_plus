@@ -6,7 +6,7 @@ set_warnings("more")
 
 add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE")
 add_cxflags("/utf-8")
-set_languages("c++17")
+set_languages("c++20")
 
 if is_mode("release") then
     set_exceptions("none")
@@ -42,6 +42,11 @@ target("chrome_plus")
     add_files("src/*.rc")
     add_links("kernel32", "user32", "shell32", "oleaut32", "propsys", "shlwapi", "crypt32", "advapi32", "netapi32", "ole32", "oleacc")
     after_build(function (target)
-        os.rm("$(builddir)/release/version.exp")
-        os.rm("$(builddir)/release/version.lib")
+        if is_mode("release") then
+            for _, file in ipairs(os.files("$(builddir)/release/*")) do
+                if not file:endswith("dll") then
+                    os.rm(file)
+                end
+            end
+        end
     end)
