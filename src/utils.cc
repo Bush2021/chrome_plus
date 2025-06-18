@@ -79,7 +79,7 @@ std::vector<std::wstring> StringSplit(const std::wstring& str,
         name.back() == enclosure.back()) {
       name.erase(name.size() - 1);
     }
-    result.push_back(name);
+    result.emplace_back(std::move(name));
     start = end + 1;
     end = str.find(delim, start);
   }
@@ -93,7 +93,7 @@ std::vector<std::wstring> StringSplit(const std::wstring& str,
         name.back() == enclosure.back()) {
       name.erase(name.size() - 1);
     }
-    result.push_back(name);
+    result.emplace_back(std::move(name));
   }
   return result;
 }
@@ -122,11 +122,11 @@ std::vector<std::string> split(const std::string& text, char sep) {
   std::size_t start = 0, end = 0;
   while ((end = text.find(sep, start)) != std::string::npos) {
     std::string temp = text.substr(start, end - start);
-    tokens.push_back(temp);
+    tokens.emplace_back(std::move(temp));
     start = end + 1;
   }
   std::string temp = text.substr(start);
-  tokens.push_back(temp);
+  tokens.emplace_back(std::move(temp));
   return tokens;
 }
 
@@ -171,8 +171,9 @@ std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
 
   std::wstring escaped(L"\"");
   for (auto c : str) {
-    if (c == L'"')
+    if (c == L'"') {
       escaped += L'"';
+    }
     escaped += c;
   }
   escaped += L'"';
@@ -184,10 +185,11 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines,
   std::wstring text;
   bool first = true;
   for (auto& line : lines) {
-    if (!first)
+    if (!first) {
       text += delimiter;
-    else
+    } else {
       first = false;
+    }
     text += QuoteSpaceIfNeeded(line);
   }
   return text;
@@ -255,18 +257,6 @@ bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
 }
 
 // Path and file manipulation functions.
-// Get the directory where the application is located.
-
-bool isEndWith(const wchar_t* s, const wchar_t* sub) {
-  if (!s || !sub)
-    return false;
-  size_t len1 = wcslen(s);
-  size_t len2 = wcslen(sub);
-  if (len2 > len1)
-    return false;
-  return !_memicmp(s + len1 - len2, sub, len2 * sizeof(wchar_t));
-}
-
 std::wstring GetIniString(const std::wstring& section,
                           const std::wstring& key,
                           const std::wstring& default_value) {
@@ -343,8 +333,9 @@ HWND GetTopWnd(HWND hwnd) {
 }
 
 void ExecuteCommand(int id, HWND hwnd) {
-  if (hwnd == 0)
+  if (hwnd == 0) {
     hwnd = GetForegroundWindow();
+  }
   // hwnd = GetTopWnd(hwnd);
   // hwnd = GetForegroundWindow();
   // PostMessage(hwnd, WM_SYSCOMMAND, id, 0);
@@ -371,7 +362,8 @@ void LaunchCommands(const std::wstring& get_commands) {
     //  `cmd /c` ensures the command window exits after execution, preventing
     //  the "Not enough memory resources are available to process this command"
     //  error even when all commands run successfully.
-    std::wstring cmd = LR"(start "chrome++ cmd" cmd /c ")" + expanded_path + LR"(")";
+    std::wstring cmd =
+        LR"(start "chrome++ cmd" cmd /c ")" + expanded_path + LR"(")";
     _wsystem(cmd.c_str());
   }
 }
@@ -417,10 +409,11 @@ bool IsFullScreen(HWND hwnd) {
 void SendOneMouse(int mouse) {
   // Swap the left and right mouse buttons (if defined).
   if (::GetSystemMetrics(SM_SWAPBUTTON) == TRUE) {
-    if (mouse == MOUSEEVENTF_RIGHTDOWN)
+    if (mouse == MOUSEEVENTF_RIGHTDOWN) {
       mouse = MOUSEEVENTF_LEFTDOWN;
-    else if (mouse == MOUSEEVENTF_RIGHTUP)
+    } else if (mouse == MOUSEEVENTF_RIGHTUP) {
       mouse = MOUSEEVENTF_LEFTUP;
+    }
   }
 
   INPUT input[1];

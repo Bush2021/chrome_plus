@@ -16,7 +16,7 @@
 #include "utils.h"
 #include "version.h"
 
-typedef int (*Startup)();
+using Startup = int (*)();
 static bool should_run_exit_cmd = false;
 Startup ExeMain = nullptr;
 

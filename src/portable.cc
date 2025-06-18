@@ -1,6 +1,7 @@
 #include "portable.h"
 
 #include <shellapi.h>
+
 #include <vector>
 
 #include "config.h"
@@ -38,25 +39,26 @@ std::wstring GetCommand(LPWSTR param) {
   }
   for (int i = 0; i < argc; ++i) {
     // Preserve former arguments.
-    if (i)
-      args.push_back(argv[i]);
+    if (i) {
+      args.emplace_back(argv[i]);
+    }
 
     // Append new arguments.
     if (i == insert_pos) {
-      args.push_back(L"--portable");
+      args.emplace_back(L"--portable");
 
-      args.push_back(L"--disable-features=WinSboxNoFakeGdiInit");
+      args.emplace_back(L"--disable-features=WinSboxNoFakeGdiInit");
 
       if (!has_user_data_dir) {
         auto userdata = config.GetUserDataDir();
         if (!userdata.empty()) {
-          args.push_back(L"--user-data-dir=" + userdata);
+          args.emplace_back(L"--user-data-dir=" + userdata);
         }
       }
       if (!has_disk_cache_dir) {
         auto diskcache = config.GetDiskCacheDir();
         if (!diskcache.empty()) {
-          args.push_back(L"--disk-cache-dir=" + diskcache);
+          args.emplace_back(L"--disk-cache-dir=" + diskcache);
         }
       }
 
@@ -76,10 +78,10 @@ std::wstring GetCommand(LPWSTR param) {
           } else {
             auto pos2 = temp.find(L" --", pos);
             if (pos2 == std::wstring::npos) {
-              args.push_back(temp);
+              args.emplace_back(temp);
               break;
             } else {
-              args.push_back(temp.substr(pos, pos2 - pos));
+              args.emplace_back(temp.substr(pos, pos2 - pos));
               temp = temp.substr(0, pos) + temp.substr(pos2 + 1);
             }
           }

@@ -5,6 +5,7 @@
 #include <propkey.h>
 
 #include "detours.h"
+
 #include "utils.h"
 
 namespace {

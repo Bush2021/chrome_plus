@@ -1,12 +1,5 @@
 #include "hotkey.h"
 
-#include <algorithm>
-#include <iterator>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <vector>
-
 #include <windows.h>
 
 #include <audiopolicy.h>
@@ -14,12 +7,20 @@
 #include <mmdeviceapi.h>
 #include <tlhelp32.h>
 
+#include <algorithm>
+#include <iterator>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <vector>
+
 #include "config.h"
 #include "utils.h"
 
 namespace {
 
-typedef void (*HotkeyAction)();
+// typedef void (*HotkeyAction)();
+using HotkeyAction = void (*)();
 
 // Static variables for internal use
 bool is_hide = false;
@@ -62,16 +63,18 @@ UINT ParseHotkeys(const wchar_t* keys) {
       TCHAR wch = key[0];
       if (key.length() == 1)  // Parse single characters A-Z, 0-9, etc.
       {
-        if (isalnum(wch))
+        if (isalnum(wch)) {
           vk = toupper(wch);
-        else
+        } else {
           vk = LOWORD(VkKeyScan(wch));
+        }
       } else if (wch == 'F' || wch == 'f')  // Parse the F1-F24 function keys.
       {
         if (isdigit(key[1])) {
           int fx = _wtoi(&key[1]);
-          if (fx >= 1 && fx <= 24)
+          if (fx >= 1 && fx <= 24) {
             vk = VK_F1 + fx - 1;
+          }
         }
       }
     }
@@ -94,7 +97,7 @@ BOOL CALLBACK SearchChromeWindow(HWND hwnd, LPARAM lparam) {
       GetWindowThreadProcessId(hwnd, &pid);
       if (pid == GetCurrentProcessId()) {
         ShowWindow(hwnd, SW_HIDE);
-        hwnd_list.push_back(hwnd);
+        hwnd_list.emplace_back(hwnd);
       }
     }
   }
@@ -113,8 +116,9 @@ std::vector<DWORD> GetAppPids() {
   }
 
   HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-  if (snapshot == INVALID_HANDLE_VALUE)
+  if (snapshot == INVALID_HANDLE_VALUE) {
     return pids;
+  }
 
   PROCESSENTRY32W pe32;
   pe32.dwSize = sizeof(PROCESSENTRY32W);
@@ -122,7 +126,7 @@ std::vector<DWORD> GetAppPids() {
   if (Process32FirstW(snapshot, &pe32)) {
     do {
       if (_wcsicmp(pe32.szExeFile, exe_name) == 0) {
-        pids.push_back(pe32.th32ProcessID);
+        pids.emplace_back(pe32.th32ProcessID);
       }
     } while (Process32NextW(snapshot, &pe32));
   }

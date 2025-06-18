@@ -17,61 +17,62 @@ namespace {
 #pragma pack(push)
 #pragma pack(1)
 
-#define PACK4_FILE_VERSION (4)
-#define PACK5_FILE_VERSION (5)
+constexpr int kPack4FileVersion = 4;
+constexpr int kPack5FileVersion = 5;
 
-struct PAK4_HEADER {
+struct Pak4Header {
   uint32_t num_entries;
-  uint8_t encodeing;
+  uint8_t encoding;
 };
 
-struct PAK5_HEADER {
-  uint32_t encodeing;
+struct Pak5Header {
+  uint32_t encoding;
   uint16_t resource_count;
   uint16_t alias_count;
 };
 
-struct PAK_ENTRY {
+struct PakEntry {
   uint16_t resource_id;
   uint32_t file_offset;
 };
 
-struct PAK_ALIAS {
+struct PakAlias {
   uint16_t resource_id;
   uint16_t entry_index;
 };
 #pragma pack(pop)
 
 bool CheckHeader(uint8_t* buffer,
-                 PAK_ENTRY*& pak_entry,
-                 PAK_ENTRY*& end_entry) {
+                 PakEntry*& pak_entry,
+                 PakEntry*& end_entry) {
   uint32_t version = *(uint32_t*)buffer;
 
-  if (version != PACK4_FILE_VERSION && version != PACK5_FILE_VERSION)
+  if (version != kPack4FileVersion && version != kPack5FileVersion)
     return false;
 
-  if (version == PACK4_FILE_VERSION) {
-    PAK4_HEADER* pak_header = (PAK4_HEADER*)(buffer + sizeof(uint32_t));
-    if (pak_header->encodeing != 1)
+  if (version == kPack4FileVersion) {
+    Pak4Header* pak_header = (Pak4Header*)(buffer + sizeof(uint32_t));
+    if (pak_header->encoding != 1)
       return false;
 
-    pak_entry = (PAK_ENTRY*)(buffer + sizeof(uint32_t) + sizeof(PAK4_HEADER));
+    pak_entry = (PakEntry*)(buffer + sizeof(uint32_t) + sizeof(Pak4Header));
     end_entry = pak_entry + pak_header->num_entries;
   }
 
-  if (version == PACK5_FILE_VERSION) {
-    PAK5_HEADER* pak_header = (PAK5_HEADER*)(buffer + sizeof(uint32_t));
-    if (pak_header->encodeing != 1)
+  if (version == kPack5FileVersion) {
+    Pak5Header* pak_header = (Pak5Header*)(buffer + sizeof(uint32_t));
+    if (pak_header->encoding != 1)
       return false;
 
-    pak_entry = (PAK_ENTRY*)(buffer + sizeof(uint32_t) + sizeof(PAK5_HEADER));
+    pak_entry = (PakEntry*)(buffer + sizeof(uint32_t) + sizeof(Pak5Header));
     end_entry = pak_entry + pak_header->resource_count;
   }
 
   // In order to save the "next item" of the last item,
   // the id of this special item must be 0
-  if (!end_entry || end_entry->resource_id != 0)
+  if (!end_entry || end_entry->resource_id != 0) {
     return false;
+  }
 
   return true;
 }
@@ -79,14 +80,15 @@ bool CheckHeader(uint8_t* buffer,
 void PakFind(uint8_t* buffer,
              uint8_t* pos,
              std::function<void(uint8_t*, uint32_t)> f) {
-  PAK_ENTRY* pak_entry = nullptr;
-  PAK_ENTRY* end_entry = nullptr;
+  PakEntry* pak_entry = nullptr;
+  PakEntry* end_entry = nullptr;
 
-  if (!CheckHeader(buffer, pak_entry, end_entry))
+  if (!CheckHeader(buffer, pak_entry, end_entry)) {
     return;
+  }
 
   do {
-    PAK_ENTRY* next_entry = pak_entry + 1;
+    PakEntry* next_entry = pak_entry + 1;
     if (pos >= buffer + pak_entry->file_offset &&
         pos <= buffer + next_entry->file_offset) {
       f(buffer + pak_entry->file_offset,
@@ -101,14 +103,15 @@ void PakFind(uint8_t* buffer,
 
 void TraversalGZIPFile(uint8_t* buffer,
                        std::function<bool(uint8_t*, uint32_t, size_t&)>&& f) {
-  PAK_ENTRY* pak_entry = nullptr;
-  PAK_ENTRY* end_entry = nullptr;
+  PakEntry* pak_entry = nullptr;
+  PakEntry* end_entry = nullptr;
 
-  if (!CheckHeader(buffer, pak_entry, end_entry))
+  if (!CheckHeader(buffer, pak_entry, end_entry)) {
     return;
+  }
 
   do {
-    PAK_ENTRY* next_entry = pak_entry + 1;
+    PakEntry* next_entry = pak_entry + 1;
     size_t old_size = next_entry->file_offset - pak_entry->file_offset;
 
     if (old_size < 10 * 1024) {
@@ -126,8 +129,9 @@ void TraversalGZIPFile(uint8_t* buffer,
 
     uint32_t original_size = *(uint32_t*)(buffer + next_entry->file_offset - 4);
     uint8_t* unpack_buffer = (uint8_t*)malloc(original_size);
-    if (!unpack_buffer)
+    if (!unpack_buffer) {
       return;
+    }
 
     struct mini_gzip gz;
     mini_gz_start(&gz, buffer + pak_entry->file_offset, old_size);
@@ -165,8 +169,9 @@ void TraversalGZIPFile(uint8_t* buffer,
           // DebugLog(L"gzip compress error %d %d", compress_size, old_size);
         }
 
-        if (compress_buffer)
+        if (compress_buffer) {
           free(compress_buffer);
+        }
       }
     }
 

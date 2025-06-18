@@ -96,35 +96,44 @@ void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
   DetourTransactionCommit();
 }
 
-void LoadVersion(HINSTANCE hModule) {
-  PBYTE pImageBase = (PBYTE)hModule;
-  PIMAGE_DOS_HEADER pimDH = (PIMAGE_DOS_HEADER)pImageBase;
-  if (pimDH->e_magic == IMAGE_DOS_SIGNATURE) {
-    PIMAGE_NT_HEADERS pimNH = (PIMAGE_NT_HEADERS)(pImageBase + pimDH->e_lfanew);
-    if (pimNH->Signature == IMAGE_NT_SIGNATURE) {
-      PIMAGE_EXPORT_DIRECTORY pimExD =
-          (PIMAGE_EXPORT_DIRECTORY)(pImageBase +
-                                    pimNH->OptionalHeader
-                                        .DataDirectory
-                                            [IMAGE_DIRECTORY_ENTRY_EXPORT]
-                                        .VirtualAddress);
-      DWORD* pName = (DWORD*)(pImageBase + pimExD->AddressOfNames);
-      DWORD* pFunction = (DWORD*)(pImageBase + pimExD->AddressOfFunctions);
-      WORD* pNameOrdinals = (WORD*)(pImageBase + pimExD->AddressOfNameOrdinals);
+void LoadVersion(HINSTANCE module_handle) {
+  auto image_base = reinterpret_cast<PBYTE>(module_handle);
+  auto dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(image_base);
+  if (dos_header->e_magic == IMAGE_DOS_SIGNATURE) {
+    auto nt_headers =
+        reinterpret_cast<PIMAGE_NT_HEADERS>(image_base + dos_header->e_lfanew);
+    if (nt_headers->Signature == IMAGE_NT_SIGNATURE) {
+      auto export_directory = reinterpret_cast<PIMAGE_EXPORT_DIRECTORY>(
+          image_base +
+          nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT]
+              .VirtualAddress);
+      auto name_table = reinterpret_cast<DWORD*>(
+          image_base + export_directory->AddressOfNames);
+      auto function_table = reinterpret_cast<DWORD*>(
+          image_base + export_directory->AddressOfFunctions);
+      auto ordinals_table = reinterpret_cast<WORD*>(
+          image_base + export_directory->AddressOfNameOrdinals);
 
-      wchar_t szSysDirectory[MAX_PATH + 1];
-      GetSystemDirectory(szSysDirectory, MAX_PATH);
+      wchar_t system_directory[MAX_PATH + 1];
+      GetSystemDirectory(system_directory, MAX_PATH);
 
-      wchar_t szDLLPath[MAX_PATH + 1];
-      lstrcpy(szDLLPath, szSysDirectory);
-      lstrcat(szDLLPath, TEXT("\\version.dll"));
+      wchar_t dll_path[MAX_PATH + 1];
+      lstrcpy(dll_path, system_directory);
+      lstrcat(dll_path, TEXT("\\version.dll"));
 
-      HINSTANCE module = LoadLibrary(szDLLPath);
-      for (size_t i = 0; i < pimExD->NumberOfNames; ++i) {
-        PBYTE Original =
-            (PBYTE)GetProcAddress(module, (char*)(pImageBase + pName[i]));
-        if (Original) {
-          InstallDetours(pImageBase + pFunction[pNameOrdinals[i]], Original);
+      HINSTANCE original_dll_handle = LoadLibrary(dll_path);
+      if (!original_dll_handle) {
+        return;
+      }
+
+      for (size_t i = 0; i < export_directory->NumberOfNames; ++i) {
+        auto function_name =
+            reinterpret_cast<char*>(image_base + name_table[i]);
+        auto original_function = reinterpret_cast<PBYTE>(
+            GetProcAddress(original_dll_handle, function_name));
+        if (original_function) {
+          InstallDetours(image_base + function_table[ordinals_table[i]],
+                         original_function);
         }
       }
     }

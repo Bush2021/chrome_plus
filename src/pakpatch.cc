@@ -2,7 +2,10 @@
 
 #include <windows.h>
 
+#include <string>
+
 #include "detours.h"
+
 #include "pakfile.h"
 #include "utils.h"
 #include "version.h"
@@ -63,7 +66,9 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
                 R"(hidden="true")");
           }
 
-          const char prouct_title[] = R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR R"( modified version</div>)";
+          const char prouct_title[] =
+              R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR
+              R"( modified version</div>)";
           ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)",
                                prouct_title);
 
@@ -135,7 +140,7 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
                               lpSecurityAttributes, dwCreationDisposition,
                               dwFlagsAndAttributes, hTemplateFile);
 
-  if (isEndWith(lpFileName, L"resources.pak")) {
+  if (std::wstring(lpFileName).ends_with(L"resources.pak")) {
     resources_pak_file = file;
     resources_pak_size = GetFileSize(resources_pak_file, nullptr);
 
