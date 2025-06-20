@@ -213,10 +213,10 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
                     // #98.
 
   bool is_on_bookmark = IsOnBookmark(hwnd, pt);
+  bool is_on_expanded_list = IsOnExpandedList(hwnd, pt);
   bool is_on_new_tab = IsOnNewTab(top_container_view);
-  bool is_omnibox_focus = IsOmniboxFocus(top_container_view);
 
-  if (is_on_bookmark && !is_on_new_tab && !is_omnibox_focus) {
+  if (is_on_bookmark && !is_on_expanded_list && !is_on_new_tab) {
     if (mode == "foreground") {
       SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (mode == "background") {
