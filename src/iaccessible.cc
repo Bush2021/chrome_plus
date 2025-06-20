@@ -461,6 +461,29 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
   return flag;
 }
 
+// Expanded drop-down list in the address bar
+bool IsOnExpandedList(HWND hwnd, POINT pt) {
+  bool flag = false;
+  std::function<bool(NodePtr)> LambdaEnumChild =
+      [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
+    if (GetAccessibleRole(child) == ROLE_SYSTEM_LIST &&
+        (GetAccessibleState(child) & STATE_SYSTEM_EXPANDED)) {
+      GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
+        if (PtInRect(&rect, pt)) {
+          flag = true;
+        }
+      });
+      if (flag) {
+        return true;
+      }
+    }
+    TraversalAccessible(child, LambdaEnumChild);
+    return flag;
+  };
+  TraversalAccessible(GetChromeWidgetWin(hwnd), LambdaEnumChild);
+  return flag;
+}
+
 // Whether the omnibox is focused.
 bool IsOmniboxFocus(NodePtr top) {
   NodePtr tool_bar = FindElementWithRole(top, ROLE_SYSTEM_TOOLBAR);

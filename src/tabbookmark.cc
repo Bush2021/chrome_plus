@@ -213,8 +213,16 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
                     // #98.
 
   bool is_on_bookmark = IsOnBookmark(hwnd, pt);
-  bool is_on_new_tab = IsOnNewTab(top_container_view);
+  bool is_on_expanded_list = IsOnExpandedList(hwnd, pt);
+  if (is_on_bookmark && is_on_expanded_list) {
+    // This is only used to determine the expanded dropdown menu of the address
+    // bar. When the mouse clicks on it, it may penetrate through to the
+    // background, causing a misjudgment that it is on the bookmark. Related
+    // issue: https://github.com/Bush2021/chrome_plus/issues/162
+    return false;
+  }
 
+  bool is_on_new_tab = IsOnNewTab(top_container_view);
   if (is_on_bookmark && !is_on_new_tab) {
     if (mode == "foreground") {
       SendKey(VK_MBUTTON, VK_SHIFT);
