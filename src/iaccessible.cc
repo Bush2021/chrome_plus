@@ -484,32 +484,37 @@ bool IsOnExpandedList(HWND hwnd, POINT pt) {
   return flag;
 }
 
-// Whether the omnibox is focused.
 bool IsOmniboxFocus(NodePtr top) {
-  NodePtr tool_bar = FindElementWithRole(top, ROLE_SYSTEM_TOOLBAR);
-  if (!tool_bar) {
-    return false;
-  }
-  NodePtr omnibox = FindElementWithRole(tool_bar, ROLE_SYSTEM_TEXT);
-  if (!omnibox) {
-    return false;
-  }
-  NodePtr tool_bar_group = GetParentElement(omnibox);
-  if (!tool_bar_group) {
+  if (!top) {
     return false;
   }
 
-  bool flag = false;
-  TraversalAccessible(tool_bar_group, [&flag](NodePtr child) {
-    if (GetAccessibleRole(child) != ROLE_SYSTEM_TEXT) {
+  bool is_focused = false;
+  std::function<bool(NodePtr)> find_focused =
+      [&is_focused, &find_focused](NodePtr node) -> bool {
+    if (GetAccessibleRole(node) == ROLE_SYSTEM_TEXT &&
+        (GetAccessibleState(node) & STATE_SYSTEM_FOCUSED)) {
+      is_focused = true;
+      return true;
+    }
+    TraversalAccessible(node, find_focused, false);
+    return is_focused;
+  };
+
+  std::function<bool(NodePtr)> find_toolbar = [&](NodePtr node) -> bool {
+    if (GetAccessibleRole(node) == ROLE_SYSTEM_TOOLBAR) {
+      find_focused(node);
+      if (is_focused) {
+        return true;
+      }
       return false;
     }
-    if (GetAccessibleState(child) & STATE_SYSTEM_FOCUSED) {
-      flag = true;
-    }
-    return flag;
-  });
-  return flag;
+    TraversalAccessible(node, find_toolbar, false);
+
+    return is_focused;
+  };
+  TraversalAccessible(top, find_toolbar, false);
+  return is_focused;
 }
 
 // Whether the mouse is on the dialog box.
