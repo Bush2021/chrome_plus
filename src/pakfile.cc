@@ -7,7 +7,7 @@
 #pragma warning(disable : 4838)
 
 extern "C" {
-#include "..\mini_gzip\miniz.c" // Must be included first
+#include "..\mini_gzip\miniz.c"  // Must be included first
 
 #include "..\mini_gzip\mini_gzip.c"
 #include "..\mini_gzip\mini_gzip.h"
@@ -42,29 +42,31 @@ struct PakAlias {
 };
 #pragma pack(pop)
 
-bool CheckHeader(uint8_t* buffer,
-                 PakEntry*& pak_entry,
-                 PakEntry*& end_entry) {
-  uint32_t version = *(uint32_t*)buffer;
+bool CheckHeader(uint8_t* buffer, PakEntry*& pak_entry, PakEntry*& end_entry) {
+  uint32_t version = *reinterpret_cast<uint32_t*>(buffer);
 
   if (version != kPack4FileVersion && version != kPack5FileVersion)
     return false;
 
   if (version == kPack4FileVersion) {
-    Pak4Header* pak_header = (Pak4Header*)(buffer + sizeof(uint32_t));
+    Pak4Header* pak_header =
+        reinterpret_cast<Pak4Header*>(buffer + sizeof(uint32_t));
     if (pak_header->encoding != 1)
       return false;
 
-    pak_entry = (PakEntry*)(buffer + sizeof(uint32_t) + sizeof(Pak4Header));
+    pak_entry = reinterpret_cast<PakEntry*>(buffer + sizeof(uint32_t) +
+                                            sizeof(Pak4Header));
     end_entry = pak_entry + pak_header->num_entries;
   }
 
   if (version == kPack5FileVersion) {
-    Pak5Header* pak_header = (Pak5Header*)(buffer + sizeof(uint32_t));
+    Pak5Header* pak_header =
+        reinterpret_cast<Pak5Header*>(buffer + sizeof(uint32_t));
     if (pak_header->encoding != 1)
       return false;
 
-    pak_entry = (PakEntry*)(buffer + sizeof(uint32_t) + sizeof(Pak5Header));
+    pak_entry = reinterpret_cast<PakEntry*>(buffer + sizeof(uint32_t) +
+                                            sizeof(Pak5Header));
     end_entry = pak_entry + pak_header->resource_count;
   }
 
@@ -127,8 +129,9 @@ void TraversalGZIPFile(uint8_t* buffer,
       continue;
     }
 
-    uint32_t original_size = *(uint32_t*)(buffer + next_entry->file_offset - 4);
-    uint8_t* unpack_buffer = (uint8_t*)malloc(original_size);
+    uint32_t original_size =
+        *reinterpret_cast<uint32_t*>(buffer + next_entry->file_offset - 4);
+    uint8_t* unpack_buffer = static_cast<uint8_t*>(malloc(original_size));
     if (!unpack_buffer) {
       return;
     }
@@ -142,8 +145,8 @@ void TraversalGZIPFile(uint8_t* buffer,
       bool changed = f(unpack_buffer, unpack_len, new_len);
       if (changed) {
         size_t compress_size = 0;
-        uint8_t* compress_buffer =
-            (uint8_t*)gzip_compress(unpack_buffer, new_len, &compress_size);
+        uint8_t* compress_buffer = static_cast<uint8_t*>(
+            gzip_compress(unpack_buffer, new_len, &compress_size));
         if (compress_buffer && compress_size < old_size) {
           /*FILE *fp = fopen("test.gz", "wb");
           fwrite(compress_buffer, compress_size, 1, fp);

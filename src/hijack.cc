@@ -92,7 +92,7 @@ namespace {
 void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(&(PVOID&)pTarget, pDetour);
+  DetourAttach(&reinterpret_cast<PVOID&>(pTarget), pDetour);
   DetourTransactionCommit();
 }
 

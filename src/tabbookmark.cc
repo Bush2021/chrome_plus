@@ -70,7 +70,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   HWND hwnd = GetFocus();
   NodePtr top_container_view = GetTopContainerView(hwnd);
 
-  PMOUSEHOOKSTRUCTEX pwheel = (PMOUSEHOOKSTRUCTEX)lParam;
+  PMOUSEHOOKSTRUCTEX pwheel = reinterpret_cast<PMOUSEHOOKSTRUCTEX>(lParam);
   int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
   // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
@@ -244,7 +244,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
       break;
     }
-    PMOUSEHOOKSTRUCT pmouse = (PMOUSEHOOKSTRUCT)lParam;
+    PMOUSEHOOKSTRUCT pmouse = reinterpret_cast<PMOUSEHOOKSTRUCT>(lParam);
 
     // Defining a `dwExtraInfo` value to prevent hook the message sent by
     // Chrome++ itself.
@@ -295,9 +295,7 @@ int HandleKeepTab(WPARAM wParam) {
   }
 
   HWND hwnd = GetFocus();
-  wchar_t name[256] = {0};
-  GetClassName(hwnd, name, 255);
-  if (wcsstr(name, L"Chrome_WidgetWin_") == nullptr) {
+  if (GetChromeWidgetWin(hwnd) == nullptr) {
     return 0;
   }
 

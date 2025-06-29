@@ -107,32 +107,31 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
   }
 
   auto step = child_count < 20 ? child_count : 20;
+  auto arr_children = std::make_unique<VARIANT[]>(step);
   for (auto i = 0; i < child_count;) {
-    auto arrChildren = std::make_unique<VARIANT[]>(step);
-
     long get_count = 0;
-    if (S_OK != AccessibleChildren(node.Get(), i, step, arrChildren.get(),
+    if (S_OK != AccessibleChildren(node.Get(), i, step, arr_children.get(),
                                    &get_count)) {
       return;
     }
 
     bool is_task_completed = false;
     for (int j = 0; j < get_count; ++j) {
-      if (arrChildren[j].vt != VT_DISPATCH) {
+      if (arr_children[j].vt != VT_DISPATCH) {
         continue;
       }
 
       if (is_task_completed) {
-        arrChildren[j]
+        arr_children[j]
             .pdispVal->Release();  // Release immediately to avoid memory leaks.
         continue;
       }
 
       Microsoft::WRL::ComPtr<IDispatch> dispatch_interface =
-          arrChildren[j].pdispVal;
+          arr_children[j].pdispVal;
       NodePtr child_node = nullptr;
       if (S_OK != dispatch_interface->QueryInterface(IID_IAccessible,
-                                                     (void**)&child_node)) {
+                                                     (void**)(&child_node))) {
         continue;
       }
 
@@ -557,27 +556,22 @@ bool IsOnCloseButton(NodePtr top, POINT pt) {
   return flag;
 }
 
-// Whether the mouse is on a pane.
 bool IsOnPane(HWND hwnd, POINT pt) {
-  wchar_t name[MAX_PATH];
-  if (GetClassName(hwnd, name, MAX_PATH) &&
-      wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    NodePtr pacc_main_window = nullptr;
-    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_CLIENT,
-                                           IID_PPV_ARGS(&pacc_main_window))) {
-      bool flag = false;
-      TraversalAccessible(pacc_main_window, [&flag, &pt](NodePtr child) {
-        if (GetAccessibleRole(child) == ROLE_SYSTEM_PANE) {
-          GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
-            if (PtInRect(&rect, pt)) {
-              flag = true;
-            }
-          });
-        }
-        return flag;
-      });
-      return flag;
-    }
+  NodePtr pacc_main_window = GetChromeWidgetWin(hwnd);
+  if (!pacc_main_window) {
+    return false;
   }
-  return false;
+
+  bool flag = false;
+  TraversalAccessible(pacc_main_window, [&flag, &pt](NodePtr child) {
+    if (GetAccessibleRole(child) == ROLE_SYSTEM_PANE) {
+      GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
+        if (PtInRect(&rect, pt)) {
+          flag = true;
+        }
+      });
+    }
+    return flag;
+  });
+  return flag;
 }

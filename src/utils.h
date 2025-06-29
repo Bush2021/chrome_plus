@@ -173,7 +173,7 @@ void SendKey(T&&... keys) {
     }
     inputs.emplace_back(std::move(input));
   }
-  SendInput((UINT)inputs.size(), &inputs[0], sizeof(INPUT));
+  SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
 }
 
 // Send a single mouse operation

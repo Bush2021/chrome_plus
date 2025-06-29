@@ -35,7 +35,7 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
     resources_pak_map = nullptr;
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourDetach((LPVOID*)&RawMapViewOfFile, MyMapViewOfFile);
+    DetourDetach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile), MyMapViewOfFile);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawMapViewOfFile failed %d", status);
@@ -53,7 +53,7 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
             memmem(begin, size, search_start, sizeof(search_start) - 1);
         if (pos) {
           // Compress the HTML for writing patch information.
-          std::string html((char*)begin, size);
+          std::string html(reinterpret_cast<char*>(begin), size);
           compression_html(html);
 
           // RemoveUpdateError
@@ -109,7 +109,8 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
     resources_pak_file = nullptr;
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourDetach((LPVOID*)&RawCreateFileMapping, MyCreateFileMapping);
+    DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
+                 MyCreateFileMapping);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFileMapping failed %d", status);
@@ -117,7 +118,7 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourAttach((LPVOID*)&RawMapViewOfFile, MyMapViewOfFile);
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile), MyMapViewOfFile);
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawMapViewOfFile failed %d", status);
@@ -146,7 +147,8 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourAttach((LPVOID*)&RawCreateFileMapping, MyCreateFileMapping);
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
+                 MyCreateFileMapping);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawCreateFileMapping failed %d", status);
@@ -155,7 +157,7 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
     // No more hook needed.
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourDetach((LPVOID*)&RawCreateFile, MyCreateFile);
+    DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFile), MyCreateFile);
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFile failed %d", status);
@@ -170,7 +172,7 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
 void PakPatch() {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach((LPVOID*)&RawCreateFile, MyCreateFile);
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFile), MyCreateFile);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"Hook RawCreateFile failed %d", status);

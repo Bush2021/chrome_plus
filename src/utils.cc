@@ -197,22 +197,21 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines,
 
 // Search memory.
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
-  return (uint8_t*)FastSearch(src, n, sub, m);
+  return const_cast<uint8_t*>(FastSearch(src, n, sub, m));
 }
 
 [[maybe_unused]]
 uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m) {
-  uint8_t* buffer = (uint8_t*)module;
+  uint8_t* buffer = reinterpret_cast<uint8_t*>(module);
 
-  PIMAGE_NT_HEADERS nt_header =
-      (PIMAGE_NT_HEADERS)(buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
-  PIMAGE_SECTION_HEADER section =
-      (PIMAGE_SECTION_HEADER)((char*)nt_header + sizeof(DWORD) +
-                              sizeof(IMAGE_FILE_HEADER) +
-                              nt_header->FileHeader.SizeOfOptionalHeader);
+  PIMAGE_NT_HEADERS nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(
+      buffer + reinterpret_cast<PIMAGE_DOS_HEADER>(buffer)->e_lfanew);
+  PIMAGE_SECTION_HEADER section = reinterpret_cast<PIMAGE_SECTION_HEADER>(
+      reinterpret_cast<char*>(nt_header) + sizeof(DWORD) +
+      sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
 
   for (int i = 0; i < nt_header->FileHeader.NumberOfSections; ++i) {
-    if (strcmp((const char*)section[i].Name, ".text") == 0) {
+    if (strcmp(reinterpret_cast<const char*>(section[i].Name), ".text") == 0) {
       return memmem(buffer + section[i].PointerToRawData,
                     section[i].SizeOfRawData, sub, m);
       break;
@@ -223,17 +222,16 @@ uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m) {
 
 [[maybe_unused]]
 uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
-  uint8_t* buffer = (uint8_t*)module;
+  uint8_t* buffer = reinterpret_cast<uint8_t*>(module);
 
-  PIMAGE_NT_HEADERS nt_header =
-      (PIMAGE_NT_HEADERS)(buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
-  PIMAGE_SECTION_HEADER section =
-      (PIMAGE_SECTION_HEADER)((char*)nt_header + sizeof(DWORD) +
-                              sizeof(IMAGE_FILE_HEADER) +
-                              nt_header->FileHeader.SizeOfOptionalHeader);
+  PIMAGE_NT_HEADERS nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(
+      buffer + reinterpret_cast<PIMAGE_DOS_HEADER>(buffer)->e_lfanew);
+  PIMAGE_SECTION_HEADER section = reinterpret_cast<PIMAGE_SECTION_HEADER>(
+      reinterpret_cast<char*>(nt_header) + sizeof(DWORD) +
+      sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
 
   for (int i = 0; i < nt_header->FileHeader.NumberOfSections; ++i) {
-    if (strcmp((const char*)section[i].Name, ".rdata") == 0) {
+    if (strcmp(reinterpret_cast<const char*>(section[i].Name), ".rdata") == 0) {
       return memmem(buffer + section[i].PointerToRawData,
                     section[i].SizeOfRawData, sub, m);
       break;
@@ -265,7 +263,7 @@ std::wstring GetIniString(const std::wstring& section,
   do {
     bytesread = ::GetPrivateProfileStringW(
         section.c_str(), key.c_str(), default_value.c_str(), buffer.data(),
-        (DWORD)buffer.size(), GetIniPath().c_str());
+        static_cast<DWORD>(buffer.size()), GetIniPath().c_str());
     if (bytesread >= buffer.size() - 1) {
       buffer.resize(buffer.size() * 2);
     } else {
@@ -290,12 +288,12 @@ std::wstring GetAbsolutePath(const std::wstring& path) {
 
 std::wstring ExpandEnvironmentPath(const std::wstring& path) {
   std::vector<wchar_t> buffer(MAX_PATH);
-  size_t ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
-                                                     (DWORD)buffer.size());
+  size_t ExpandedLength = ::ExpandEnvironmentStrings(
+      path.c_str(), &buffer[0], static_cast<DWORD>(buffer.size()));
   if (ExpandedLength > buffer.size()) {
     buffer.resize(ExpandedLength);
-    ExpandedLength = ::ExpandEnvironmentStrings(path.c_str(), &buffer[0],
-                                                (DWORD)buffer.size());
+    ExpandedLength = ::ExpandEnvironmentStrings(
+        path.c_str(), &buffer[0], static_cast<DWORD>(buffer.size()));
   }
   return std::wstring(&buffer[0], 0, ExpandedLength);
 }

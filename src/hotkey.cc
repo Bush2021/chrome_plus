@@ -19,7 +19,6 @@
 
 namespace {
 
-// typedef void (*HotkeyAction)();
 using HotkeyAction = void (*)();
 
 // Static variables for internal use
@@ -35,7 +34,7 @@ UINT ParseHotkeys(const wchar_t* keys) {
   std::wstring temp = keys;
   std::vector<std::wstring> key_parts = StringSplit(temp, L'+', L"");
 
-  std::unordered_map<std::wstring, UINT> key_map = {
+  static const std::unordered_map<std::wstring, UINT> key_map = {
       {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
       {L"win", MOD_WIN},      {L"left", VK_LEFT},     {L"right", VK_RIGHT},
       {L"up", VK_UP},         {L"down", VK_DOWN},     {L"←", VK_LEFT},
@@ -55,9 +54,9 @@ UINT ParseHotkeys(const wchar_t* keys) {
     if (key_map.count(lower_key)) {
       if (lower_key == L"shift" || lower_key == L"ctrl" ||
           lower_key == L"alt" || lower_key == L"win") {
-        mo |= key_map[lower_key];
+        mo |= key_map.at(lower_key);
       } else {
-        vk = key_map[lower_key];
+        vk = key_map.at(lower_key);
       }
     } else {
       TCHAR wch = key[0];

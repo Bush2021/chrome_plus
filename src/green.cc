@@ -77,7 +77,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
   if (Attribute == PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY &&
       cbSize >= sizeof(DWORD64)) {
     // https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc;l=362;drc=4c2fec5f6699ffeefd93137d2bf8c03504c6664c
-    PDWORD64 policy_value_1 = &((PDWORD64)lpValue)[0];
+    PDWORD64 policy_value_1 = &(static_cast<PDWORD64>(lpValue))[0];
     *policy_value_1 &= ~static_cast<DWORD64>(
         ProcessCreationMitigationPolicy::BlockNonMicrosoftBinariesAlwaysOn);
     if (config.IsWin32K()) {
@@ -99,7 +99,8 @@ MyCryptProtectData(_In_ DATA_BLOB* pDataIn,
                    _In_ DWORD dwFlags,
                    _Out_ DATA_BLOB* pDataOut) {
   pDataOut->cbData = pDataIn->cbData;
-  pDataOut->pbData = (BYTE*)LocalAlloc(LMEM_FIXED, pDataOut->cbData);
+  pDataOut->pbData =
+      static_cast<BYTE*>(LocalAlloc(LMEM_FIXED, pDataOut->cbData));
   memcpy(pDataOut->pbData, pDataIn->pbData, pDataOut->cbData);
   return true;
 }
@@ -118,7 +119,8 @@ MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
   }
 
   pDataOut->cbData = pDataIn->cbData;
-  pDataOut->pbData = (BYTE*)LocalAlloc(LMEM_FIXED, pDataOut->cbData);
+  pDataOut->pbData =
+      static_cast<BYTE*>(LocalAlloc(LMEM_FIXED, pDataOut->cbData));
   memcpy(pDataOut->pbData, pDataIn->pbData, pDataOut->cbData);
   return true;
 }
@@ -151,7 +153,7 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
                                        LPBYTE* bufptr) {
   NET_API_STATUS ret = RawNetUserGetInfo(servername, username, level, bufptr);
   if (level == 1 && ret == 0) {
-    LPUSER_INFO_1 user_info = (LPUSER_INFO_1)*bufptr;
+    LPUSER_INFO_1 user_info = reinterpret_cast<LPUSER_INFO_1>(*bufptr);
     user_info->usri1_password_age = 0;
   }
 
@@ -167,25 +169,30 @@ void MakeGreen() {
   DetourUpdateThread(GetCurrentThread());
 
   // kernel32.dll
-  DetourAttach((LPVOID*)&RawGetComputerNameW, FakeGetComputerName);
-  DetourAttach((LPVOID*)&RawGetVolumeInformationW, FakeGetVolumeInformation);
-  DetourAttach((LPVOID*)&RawUpdateProcThreadAttribute,
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawGetComputerNameW),
+               FakeGetComputerName);
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawGetVolumeInformationW),
+               FakeGetVolumeInformation);
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawUpdateProcThreadAttribute),
                MyUpdateProcThreadAttribute);
 
   // components/os_crypt/os_crypt_win.cc
   // crypt32.dll
-  DetourAttach((LPVOID*)&RawCryptProtectData, MyCryptProtectData);
-  DetourAttach((LPVOID*)&RawCryptUnprotectData, MyCryptUnprotectData);
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptProtectData),
+               MyCryptProtectData);
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptUnprotectData),
+               MyCryptUnprotectData);
 
   if (config.IsShowPassword()) {
     // advapi32.dll
-    DetourAttach((LPVOID*)&RawLogonUserW, MyLogonUserW);
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawLogonUserW), MyLogonUserW);
 
     // shlwapi.dll
-    DetourAttach((LPVOID*)&RawIsOS, MyIsOS);
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawIsOS), MyIsOS);
 
     // netapi32.dll
-    DetourAttach((LPVOID*)&RawNetUserGetInfo, MyNetUserGetInfo);
+    DetourAttach(reinterpret_cast<LPVOID*>(&RawNetUserGetInfo),
+                 MyNetUserGetInfo);
   }
 
   auto status = DetourTransactionCommit();
