@@ -220,12 +220,6 @@ void HideAndShow() {
   is_hide = !is_hide;
 }
 
-void Translate() {
-  ExecuteCommand(IDC_SHOW_TRANSLATE);
-  keybd_event(VK_RIGHT, 0, 0, 0);
-  keybd_event(VK_RIGHT, 0, KEYEVENTF_KEYUP, 0);
-}
-
 void OnHotkey(HotkeyAction action) {
   action();
 }
@@ -254,14 +248,17 @@ void Hotkey(const std::wstring& keys, HotkeyAction action) {
 
 }  // anonymous namespace
 
+UINT ParseTranslateKey() {
+  std::wstring translate_key = config.GetTranslateKey();
+  if (translate_key.empty()) {
+    return 0;
+  }
+  return ParseHotkeys(translate_key.c_str());
+}
+
 void GetHotkey() {
   std::wstring boss_key = config.GetBossKey();
   if (!boss_key.empty()) {
     Hotkey(boss_key, HideAndShow);
-  }
-
-  std::wstring translate_key = config.GetTranslateKey();
-  if (!translate_key.empty()) {
-    Hotkey(translate_key, Translate);
   }
 }

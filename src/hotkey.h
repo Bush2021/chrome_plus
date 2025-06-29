@@ -5,4 +5,6 @@
 
 void GetHotkey();
 
+UINT ParseTranslateKey();
+
 #endif  // CHROME_PLUS_SRC_HOTKEY_H_

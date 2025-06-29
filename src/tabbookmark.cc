@@ -1,6 +1,7 @@
 #include "tabbookmark.h"
 
 #include "config.h"
+#include "hotkey.h"
 #include "iaccessible.h"
 #include "utils.h"
 
@@ -336,6 +337,36 @@ int HandleOpenUrlNewTab(WPARAM wParam) {
   return 0;
 }
 
+int HandleTranslateKey(WPARAM wParam) {
+  auto hotkey = ParseTranslateKey();
+  if (hotkey == 0) {
+    return 0;
+  }
+
+  auto vk = HIWORD(hotkey);
+  auto modifiers = LOWORD(hotkey);
+  if ((modifiers & MOD_SHIFT) && !IsPressed(VK_SHIFT)) {
+    return 0;
+  }
+  if ((modifiers & MOD_CONTROL) && !IsPressed(VK_CONTROL)) {
+    return 0;
+  }
+  if ((modifiers & MOD_ALT) && !IsPressed(VK_MENU)) {
+    return 0;
+  }
+  if ((modifiers & MOD_WIN) && !IsPressed(VK_LWIN) && !IsPressed(VK_RWIN)) {
+    return 0;
+  }
+  if (wParam != vk) {
+    return 0;
+  }
+
+  ExecuteCommand(IDC_SHOW_TRANSLATE);
+  keybd_event(VK_RIGHT, 0, 0, 0);
+  keybd_event(VK_RIGHT, 0, KEYEVENTF_KEYUP, 0);
+  return 1;
+}
+
 HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
@@ -345,6 +376,10 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
 
     if (HandleOpenUrlNewTab(wParam) != 0) {
+      return 1;
+    }
+
+    if (HandleTranslateKey(wParam) != 0) {
       return 1;
     }
   }
