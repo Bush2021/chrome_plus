@@ -48,7 +48,7 @@ std::string wstring_to_string(const std::wstring& wstr);
 // Specify the delimiter and wrapper to split the string.
 std::vector<std::wstring> StringSplit(const std::wstring& str,
                                       const wchar_t delim,
-                                      const std::wstring& enclosure);
+                                      const std::wstring& enclosure = L"");
 
 // HTML compression functions
 std::string& ltrim(std::string& s);

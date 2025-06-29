@@ -32,7 +32,7 @@ UINT ParseHotkeys(const wchar_t* keys) {
   UINT mo = 0;
   UINT vk = 0;
   std::wstring temp = keys;
-  std::vector<std::wstring> key_parts = StringSplit(temp, L'+', L"");
+  std::vector<std::wstring> key_parts = StringSplit(temp, L'+');
 
   static const std::unordered_map<std::wstring, UINT> key_map = {
       {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},

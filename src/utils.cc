@@ -5,6 +5,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <ranges>
 
 #include <shellapi.h>
 #include <shlwapi.h>
@@ -67,24 +68,9 @@ std::vector<std::wstring> StringSplit(const std::wstring& str,
                                       const wchar_t delim,
                                       const std::wstring& enclosure) {
   std::vector<std::wstring> result;
-  std::wstring::size_type start = 0;
-  std::wstring::size_type end = str.find(delim);
-  while (end != std::wstring::npos) {
-    std::wstring name = str.substr(start, end - start);
-    if (!enclosure.empty() && !name.empty() &&
-        name.front() == enclosure.front()) {
-      name.erase(0, 1);
-    }
-    if (!enclosure.empty() && !name.empty() &&
-        name.back() == enclosure.back()) {
-      name.erase(name.size() - 1);
-    }
-    result.emplace_back(std::move(name));
-    start = end + 1;
-    end = str.find(delim, start);
-  }
-  if (start < str.length()) {
-    std::wstring name = str.substr(start);
+  auto parts = str | std::views::split(delim);
+  for (const auto& part : parts) {
+    std::wstring name(part.begin(), part.end());
     if (!enclosure.empty() && !name.empty() &&
         name.front() == enclosure.front()) {
       name.erase(0, 1);
@@ -342,10 +328,10 @@ void ExecuteCommand(int id, HWND hwnd) {
 
 void LaunchCommands(const std::wstring& get_commands) {
   auto commands = StringSplit(
-      get_commands, L';',
-      L"");  // Quotes should not be used as they can cause errors with paths
-             // that contain spaces. Since semicolons rarely appear in names and
-             // commands, they are used as delimiters.
+      get_commands,
+      L';');  // Quotes should not be used as they can cause errors with paths
+              // that contain spaces. Since semicolons rarely appear in names
+              // and commands, they are used as delimiters.
   if (commands.empty()) {
     return;
   }
