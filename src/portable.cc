@@ -9,30 +9,36 @@
 
 namespace {
 
+constexpr auto kReservedArgsCount = 15;
+
 // Construct new command line with portable mode.
 std::wstring GetCommand(LPWSTR param) {
-  std::vector<std::wstring> args;
-
   int argc;
   LPWSTR* argv = CommandLineToArgvW(param, &argc);
+  if (!argv) {
+    return L"";
+  }
+
+  std::vector<std::wstring> args;
+  args.reserve(argc + kReservedArgsCount);
 
   bool has_user_data_dir = false;
   bool has_disk_cache_dir = false;
   for (int i = 0; i < argc; ++i) {
-    std::wstring arg = argv[i];
-    if (arg.find(L"--user-data-dir=") == 0) {
+    std::wstring_view arg_view(argv[i]);
+    if (arg_view.find(L"--user-data-dir=") == 0) {
       has_user_data_dir = true;
     }
-    if (arg.find(L"--disk-cache-dir=") == 0) {
+    if (arg_view.find(L"--disk-cache-dir=") == 0) {
       has_disk_cache_dir = true;
     }
   }
 
   int insert_pos = 0;
   for (int i = 0; i < argc; ++i) {
-    if (std::wstring(argv[i]).find(L"--") != std::wstring::npos ||
-        std::wstring(argv[i]).find(L"--single-argument") !=
-            std::wstring::npos) {
+    std::wstring_view arg_view(argv[i]);
+    if (arg_view.find(L"--") != std::wstring_view::npos ||
+        arg_view.find(L"--single-argument") != std::wstring_view::npos) {
       break;
     }
     insert_pos = i;
@@ -50,14 +56,12 @@ std::wstring GetCommand(LPWSTR param) {
       args.emplace_back(L"--disable-features=WinSboxNoFakeGdiInit");
 
       if (!has_user_data_dir) {
-        auto userdata = config.GetUserDataDir();
-        if (!userdata.empty()) {
+        if (auto userdata = config.GetUserDataDir(); !userdata.empty()) {
           args.emplace_back(L"--user-data-dir=" + userdata);
         }
       }
       if (!has_disk_cache_dir) {
-        auto diskcache = config.GetDiskCacheDir();
-        if (!diskcache.empty()) {
+        if (auto diskcache = config.GetDiskCacheDir(); !diskcache.empty()) {
           args.emplace_back(L"--disk-cache-dir=" + diskcache);
         }
       }
@@ -68,22 +72,23 @@ std::wstring GetCommand(LPWSTR param) {
       // Repeat the above process until the -- sign no longer exists in the
       // string
       {
-        auto cr_command_line = config.GetCommandLine();
+        const auto& cr_command_line = config.GetCommandLine();
         DebugLog(L"cr_command_line: %s", cr_command_line.c_str());
-        std::wstring temp = cr_command_line;
+        std::wstring_view remaining_view(cr_command_line);
         while (true) {
-          auto pos = temp.find(L"--");
-          if (pos == std::wstring::npos) {
+          auto arg_start = remaining_view.find(L"--");
+          if (arg_start == std::wstring_view::npos) {
+            break;
+          }
+          remaining_view.remove_prefix(arg_start);
+
+          auto arg_end = remaining_view.find(L" --", 1);
+          if (arg_end == std::wstring_view::npos) {
+            args.emplace_back(remaining_view);
             break;
           } else {
-            auto pos2 = temp.find(L" --", pos);
-            if (pos2 == std::wstring::npos) {
-              args.emplace_back(temp);
-              break;
-            } else {
-              args.emplace_back(temp.substr(pos, pos2 - pos));
-              temp = temp.substr(0, pos) + temp.substr(pos2 + 1);
-            }
+            args.emplace_back(remaining_view.substr(0, arg_end));
+            remaining_view.remove_prefix(arg_end + 1);
           }
         }
       }

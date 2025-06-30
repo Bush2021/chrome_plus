@@ -64,22 +64,22 @@ std::string wstring_to_string(const std::wstring& wstr) {
 }
 
 // Specify the delimiter and wrapper to split the string.
-std::vector<std::wstring> StringSplit(const std::wstring& str,
+std::vector<std::wstring> StringSplit(std::wstring_view str,
                                       const wchar_t delim,
-                                      const std::wstring& enclosure) {
+                                      std::wstring_view enclosure) {
   std::vector<std::wstring> result;
-  auto parts = str | std::views::split(delim);
+  auto parts = std::views::split(str, delim);
   for (const auto& part : parts) {
-    std::wstring name(part.begin(), part.end());
-    if (!enclosure.empty() && !name.empty() &&
-        name.front() == enclosure.front()) {
-      name.erase(0, 1);
+    std::wstring_view part_sv(part.begin(), part.end());
+    if (!enclosure.empty()) {
+      if (!part_sv.empty() && part_sv.front() == enclosure.front()) {
+        part_sv.remove_prefix(1);
+      }
+      if (!part_sv.empty() && part_sv.back() == enclosure.back()) {
+        part_sv.remove_suffix(1);
+      }
     }
-    if (!enclosure.empty() && !name.empty() &&
-        name.back() == enclosure.back()) {
-      name.erase(name.size() - 1);
-    }
-    result.emplace_back(std::move(name));
+    result.emplace_back(part_sv);
   }
   return result;
 }
@@ -126,8 +126,8 @@ void compression_html(std::string& html) {
 }
 
 bool ReplaceStringInPlace(std::string& subject,
-                          const std::string& search,
-                          const std::string& replace) {
+                          std::string_view search,
+                          std::string_view replace) {
   bool find = false;
   size_t pos = 0;
   while ((pos = subject.find(search, pos)) != std::string::npos) {
@@ -139,8 +139,8 @@ bool ReplaceStringInPlace(std::string& subject,
 }
 
 bool ReplaceStringInPlace(std::wstring& subject,
-                          const std::wstring& search,
-                          const std::wstring& replace) {
+                          std::wstring_view search,
+                          std::wstring_view replace) {
   bool find = false;
   size_t pos = 0;
   while ((pos = subject.find(search, pos)) != std::wstring::npos) {
@@ -153,7 +153,7 @@ bool ReplaceStringInPlace(std::wstring& subject,
 
 std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
   if (str.find(L' ') == std::wstring::npos)
-    return std::move(str);
+    return str;
 
   std::wstring escaped(L"\"");
   for (auto c : str) {
@@ -163,7 +163,7 @@ std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
     escaped += c;
   }
   escaped += L'"';
-  return std::move(escaped);
+  return escaped;
 }
 
 std::wstring JoinArgsString(std::vector<std::wstring> lines,
@@ -240,15 +240,14 @@ bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
   return false;
 }
 
-// Path and file manipulation functions.
-std::wstring GetIniString(const std::wstring& section,
-                          const std::wstring& key,
-                          const std::wstring& default_value) {
+std::wstring GetIniString(std::wstring_view section,
+                          std::wstring_view key,
+                          std::wstring_view default_value) {
   std::vector<TCHAR> buffer(100);
   DWORD bytesread = 0;
   do {
     bytesread = ::GetPrivateProfileStringW(
-        section.c_str(), key.c_str(), default_value.c_str(), buffer.data(),
+        section.data(), key.data(), default_value.data(), buffer.data(),
         static_cast<DWORD>(buffer.size()), GetIniPath().c_str());
     if (bytesread >= buffer.size() - 1) {
       buffer.resize(buffer.size() * 2);

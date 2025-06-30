@@ -46,9 +46,9 @@ std::wstring Format(const wchar_t* format, ...);
 std::string wstring_to_string(const std::wstring& wstr);
 
 // Specify the delimiter and wrapper to split the string.
-std::vector<std::wstring> StringSplit(const std::wstring& str,
+std::vector<std::wstring> StringSplit(std::wstring_view str,
                                       const wchar_t delim,
-                                      const std::wstring& enclosure = L"");
+                                      std::wstring_view enclosure = L"");
 
 // HTML compression functions
 std::string& ltrim(std::string& s);
@@ -58,12 +58,12 @@ std::vector<std::string> split(const std::string& text, char sep);
 void compression_html(std::string& html);
 
 bool ReplaceStringInPlace(std::string& subject,
-                          const std::string& search,
-                          const std::string& replace);
+                          std::string_view search,
+                          std::string_view replace);
 
 bool ReplaceStringInPlace(std::wstring& subject,
-                          const std::wstring& search,
-                          const std::wstring& replace);
+                          std::wstring_view search,
+                          std::wstring_view replace);
 
 std::wstring QuoteSpaceIfNeeded(const std::wstring& str);
 
@@ -77,9 +77,9 @@ uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m);
 uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m);
 
 // Parse the INI file
-std::wstring GetIniString(const std::wstring& section,
-                          const std::wstring& key,
-                          const std::wstring& default_value);
+std::wstring GetIniString(std::wstring_view section,
+                          std::wstring_view key,
+                          std::wstring_view default_value);
 
 // Canonicalize the path
 std::wstring CanonicalizePath(const std::wstring& path);
