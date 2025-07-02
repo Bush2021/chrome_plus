@@ -1,11 +1,11 @@
 #ifndef CHROME_PLUS_SRC_UTILS_H_
 #define CHROME_PLUS_SRC_UTILS_H_
 
+#include <windows.h>
+
 // #include <cstdint>
 #include <string>
 #include <vector>
-
-#include <windows.h>
 
 #include "fastsearch.h"
 

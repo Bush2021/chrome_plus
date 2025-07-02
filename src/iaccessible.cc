@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <oleacc.h>
+
 #include <functional>
 #include <memory>
 #include <string>

@@ -1,7 +1,11 @@
 #include "portable.h"
 
+#include <windows.h>
+
 #include <shellapi.h>
 
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "config.h"

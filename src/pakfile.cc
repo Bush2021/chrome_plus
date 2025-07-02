@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <functional>
+
 #pragma warning(disable : 4334)
 #pragma warning(disable : 4267)
 #pragma warning(disable : 4838)

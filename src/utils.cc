@@ -1,14 +1,18 @@
 #include "utils.h"
 
+#include <windows.h>
+
+#include <shellapi.h>
+#include <shlwapi.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <ranges>
-
-#include <shellapi.h>
-#include <shlwapi.h>
+#include <string>
+#include <vector>
 
 // Global variable definitions
 HMODULE hInstance = nullptr;

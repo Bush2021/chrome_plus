@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <propkey.h>
+#include <shobjidl.h>
 
 #include "detours.h"
 
@@ -30,7 +31,8 @@ HRESULT WINAPI MyPSStringFromPropertyKey(REFPROPERTYKEY pkey,
 void SetAppId() {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawPSStringFromPropertyKey), MyPSStringFromPropertyKey);
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawPSStringFromPropertyKey),
+               MyPSStringFromPropertyKey);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"SetAppId failed %d", status);

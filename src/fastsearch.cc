@@ -1,5 +1,7 @@
 #include "fastsearch.h"
 
+#include <cstdint>
+
 namespace {
 
 static const uint8_t* ForceSearch(const uint8_t* s, int n, const uint8_t* p) {

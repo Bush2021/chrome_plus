@@ -1,5 +1,7 @@
 #include "tabbookmark.h"
 
+#include <windows.h>
+
 #include "config.h"
 #include "hotkey.h"
 #include "iaccessible.h"

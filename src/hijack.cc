@@ -1,5 +1,7 @@
 #include "hijack.h"
 
+#include <windows.h>
+
 #include <intrin.h>
 #include <stdint.h>
 

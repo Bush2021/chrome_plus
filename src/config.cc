@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <string>
+
 #include "utils.h"
 
 Config& Config::Instance() {
