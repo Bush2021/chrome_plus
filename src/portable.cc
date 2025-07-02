@@ -37,8 +37,7 @@ std::wstring GetCommand(LPWSTR param) {
   int insert_pos = 0;
   for (int i = 0; i < argc; ++i) {
     std::wstring_view arg_view(argv[i]);
-    if (arg_view.find(L"--") != std::wstring_view::npos ||
-        arg_view.find(L"--single-argument") != std::wstring_view::npos) {
+    if (arg_view == L"--" || arg_view == L"--single-argument") {
       break;
     }
     insert_pos = i;
