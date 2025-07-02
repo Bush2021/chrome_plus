@@ -35,39 +35,6 @@ const std::wstring& GetIniPath() {
 }
 
 // String manipulation functions
-std::wstring Format(const wchar_t* format, va_list args) {
-  std::vector<wchar_t> buffer;
-
-  size_t length = _vscwprintf(format, args);
-
-  buffer.resize((length + 1) * sizeof(wchar_t));
-
-  _vsnwprintf_s(&buffer[0], length + 1, length, format, args);
-
-  return std::wstring(&buffer[0]);
-}
-
-std::wstring Format(const wchar_t* format, ...) {
-  va_list args;
-
-  va_start(args, format);
-  auto str = Format(format, args);
-  va_end(args);
-
-  return str;
-}
-
-std::string wstring_to_string(std::wstring_view wstr) {
-  std::string strTo;
-  auto szTo = new char[wstr.length() + 1];
-  szTo[wstr.size()] = '\0';
-  WideCharToMultiByte(CP_ACP, 0, wstr.data(), -1, szTo,
-                      static_cast<int>(wstr.length()), nullptr, nullptr);
-  strTo = szTo;
-  delete[] szTo;
-  return strTo;
-}
-
 // Specify the delimiter and wrapper to split the string.
 std::vector<std::wstring> StringSplit(std::wstring_view str,
                                       const wchar_t delim,
@@ -198,60 +165,6 @@ uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
   return const_cast<uint8_t*>(FastSearch(src, n, sub, m));
 }
 
-[[maybe_unused]]
-uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m) {
-  uint8_t* buffer = reinterpret_cast<uint8_t*>(module);
-
-  PIMAGE_NT_HEADERS nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(
-      buffer + reinterpret_cast<PIMAGE_DOS_HEADER>(buffer)->e_lfanew);
-  PIMAGE_SECTION_HEADER section = reinterpret_cast<PIMAGE_SECTION_HEADER>(
-      reinterpret_cast<char*>(nt_header) + sizeof(DWORD) +
-      sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
-
-  for (int i = 0; i < nt_header->FileHeader.NumberOfSections; ++i) {
-    if (strcmp(reinterpret_cast<const char*>(section[i].Name), ".text") == 0) {
-      return memmem(buffer + section[i].PointerToRawData,
-                    section[i].SizeOfRawData, sub, m);
-      break;
-    }
-  }
-  return nullptr;
-}
-
-[[maybe_unused]]
-uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m) {
-  uint8_t* buffer = reinterpret_cast<uint8_t*>(module);
-
-  PIMAGE_NT_HEADERS nt_header = reinterpret_cast<PIMAGE_NT_HEADERS>(
-      buffer + reinterpret_cast<PIMAGE_DOS_HEADER>(buffer)->e_lfanew);
-  PIMAGE_SECTION_HEADER section = reinterpret_cast<PIMAGE_SECTION_HEADER>(
-      reinterpret_cast<char*>(nt_header) + sizeof(DWORD) +
-      sizeof(IMAGE_FILE_HEADER) + nt_header->FileHeader.SizeOfOptionalHeader);
-
-  for (int i = 0; i < nt_header->FileHeader.NumberOfSections; ++i) {
-    if (strcmp(reinterpret_cast<const char*>(section[i].Name), ".rdata") == 0) {
-      return memmem(buffer + section[i].PointerToRawData,
-                    section[i].SizeOfRawData, sub, m);
-      break;
-    }
-  }
-  return nullptr;
-}
-
-[[maybe_unused]]
-bool WriteMemory(PBYTE BaseAddress, PBYTE Buffer, DWORD nSize) {
-  DWORD ProtectFlag = 0;
-  if (VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize,
-                       PAGE_EXECUTE_READWRITE, &ProtectFlag)) {
-    memcpy(BaseAddress, Buffer, nSize);
-    FlushInstructionCache(GetCurrentProcess(), BaseAddress, nSize);
-    VirtualProtectEx(GetCurrentProcess(), BaseAddress, nSize, ProtectFlag,
-                     &ProtectFlag);
-    return true;
-  }
-  return false;
-}
-
 std::wstring GetIniString(std::wstring_view section,
                           std::wstring_view key,
                           std::wstring_view default_value) {
@@ -338,60 +251,10 @@ void LaunchCommands(const std::wstring& get_commands) {
   }
 }
 
-[[maybe_unused]]
-HANDLE RunExecute(const wchar_t* command, WORD show) {
-  int nArgs = 0;
-  std::vector<std::wstring> command_line;
-  LPWSTR* szArglist = CommandLineToArgvW(command, &nArgs);
-  for (int i = 0; i < nArgs; ++i) {
-    command_line.push_back(QuoteSpaceIfNeeded(szArglist[i]));
-  }
-  LocalFree(szArglist);
-
-  SHELLEXECUTEINFO ShExecInfo = {0};
-  ShExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-  ShExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-  ShExecInfo.lpFile = command_line[0].c_str();
-  ShExecInfo.nShow = show;
-
-  std::wstring parameter;
-  for (size_t i = 1; i < command_line.size(); ++i) {
-    parameter += command_line[i];
-    parameter += L" ";
-  }
-  if (command_line.size() > 1) {
-    ShExecInfo.lpParameters = parameter.c_str();
-  }
-  if (ShellExecuteEx(&ShExecInfo)) {
-    return ShExecInfo.hProcess;
-  }
-  return nullptr;
-}
-
 bool IsFullScreen(HWND hwnd) {
   RECT windowRect;
   return (GetWindowRect(hwnd, &windowRect) &&
           (windowRect.left == 0 && windowRect.top == 0 &&
            windowRect.right == GetSystemMetrics(SM_CXSCREEN) &&
            windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
-}
-
-void SendOneMouse(int mouse) {
-  // Swap the left and right mouse buttons (if defined).
-  if (::GetSystemMetrics(SM_SWAPBUTTON) == TRUE) {
-    if (mouse == MOUSEEVENTF_RIGHTDOWN) {
-      mouse = MOUSEEVENTF_LEFTDOWN;
-    } else if (mouse == MOUSEEVENTF_RIGHTUP) {
-      mouse = MOUSEEVENTF_LEFTUP;
-    }
-  }
-
-  INPUT input[1];
-  memset(input, 0, sizeof(input));
-
-  input[0].type = INPUT_MOUSE;
-
-  input[0].mi.dwFlags = mouse;
-  input[0].mi.dwExtraInfo = MAGIC_CODE;
-  ::SendInput(1, input, sizeof(INPUT));
 }

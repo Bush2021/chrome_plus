@@ -42,10 +42,6 @@ const std::wstring& GetAppDir();
 const std::wstring& GetIniPath();
 
 // String manipulation function declarations
-std::wstring Format(const wchar_t* format, va_list args);
-std::wstring Format(const wchar_t* format, ...);
-std::string wstring_to_string(std::wstring_view wstr);
-
 // Specify the delimiter and wrapper to split the string.
 std::vector<std::wstring> StringSplit(std::wstring_view str,
                                       const wchar_t delim,
@@ -75,9 +71,6 @@ std::wstring JoinArgsString(std::vector<std::wstring> lines,
 
 // Memory and module search functions
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m);
-
-uint8_t* SearchModuleRaw(HMODULE module, const uint8_t* sub, int m);
-uint8_t* SearchModuleRaw2(HMODULE module, const uint8_t* sub, int m);
 
 // Parse the INI file
 std::wstring GetIniString(std::wstring_view section,
@@ -118,7 +111,6 @@ inline void DebugLog(const wchar_t* format, ...) {}
 HWND GetTopWnd(HWND hwnd);
 void ExecuteCommand(int id, HWND hwnd = 0);
 void LaunchCommands(const std::wstring& get_commands);
-HANDLE RunExecute(const wchar_t* command, WORD show = SW_SHOW);
 bool IsFullScreen(HWND hwnd);
 
 // Keyboard and mouse input functions
@@ -196,8 +188,5 @@ void SendKey(T&&... keys) {
   }
   SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
 }
-
-// Send a single mouse operation
-void SendOneMouse(int mouse);
 
 #endif  // CHROME_PLUS_SRC_UTILS_H_

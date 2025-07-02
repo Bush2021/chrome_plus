@@ -102,18 +102,6 @@ std::wstring GetCommand(LPWSTR param) {
   return JoinArgsString(args, L" ");
 }
 
-HANDLE hMutex = nullptr;
-[[maybe_unused]] bool IsFirstRun() {
-  DWORD pid = GetCurrentProcessId();
-  std::wstring mutex_name =
-      L"Global\\ChromePlusFirstRunMutex" + std::to_wstring(pid);
-  hMutex = CreateMutexW(nullptr, TRUE, mutex_name.c_str());
-  if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS) {
-    return false;
-  }
-  return true;
-}
-
 }  // namespace
 
 void Portable(LPWSTR param) {
