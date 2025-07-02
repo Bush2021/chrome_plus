@@ -213,7 +213,7 @@ NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
     int i = 0;
     TraversalAccessible(parent,
                         [&element, &role, &i, &skipcount](NodePtr child) {
-                          // DebugLog(L"当前 %d,%d", i, skipcount);
+                          // DebugLog(L"当前 {}, {}", i, skipcount);
                           if (GetAccessibleRole(child) == role) {
                             if (i == skipcount) {
                               element = child;

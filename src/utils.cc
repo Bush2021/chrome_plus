@@ -295,31 +295,6 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path) {
   return std::wstring(&buffer[0], 0, ExpandedLength);
 }
 
-#if defined(_DEBUG)
-void DebugLog(const wchar_t* format, ...) {
-  va_list args;
-
-  va_start(args, format);
-  auto str = Format(format, args);
-  va_end(args);
-
-  str = Format(L"[chrome++] %s\n", str.c_str());
-
-  std::string nstr = wstring_to_string(str);
-  const char* cstr = nstr.c_str();
-
-  FILE* fp = nullptr;
-  std::wstring log_path = GetAppDir() + L"\\Chrome++_Debug.log";
-  _wfopen_s(&fp, log_path.c_str(), L"a+");
-  if (fp) {
-    fwrite(cstr, strlen(cstr), 1, fp);
-    fclose(fp);
-  }
-}
-#else
-void DebugLog(const wchar_t* format, ...) {}
-#endif
-
 HWND GetTopWnd(HWND hwnd) {
   while (::GetParent(hwnd) && ::IsWindowVisible(::GetParent(hwnd))) {
     hwnd = ::GetParent(hwnd);

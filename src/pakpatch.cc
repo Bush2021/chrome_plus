@@ -38,7 +38,7 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
     DetourDetach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile), MyMapViewOfFile);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
-      DebugLog(L"Unhook RawMapViewOfFile failed %d", status);
+      DebugLog(L"Unhook RawMapViewOfFile failed {}", status);
     }
 
     if (buffer) {
@@ -113,7 +113,7 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                  MyCreateFileMapping);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
-      DebugLog(L"Unhook RawCreateFileMapping failed %d", status);
+      DebugLog(L"Unhook RawCreateFileMapping failed {}", status);
     }
 
     DetourTransactionBegin();
@@ -121,7 +121,7 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
     DetourAttach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile), MyMapViewOfFile);
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
-      DebugLog(L"Hook RawMapViewOfFile failed %d", status);
+      DebugLog(L"Hook RawMapViewOfFile failed {}", status);
     }
 
     return resources_pak_map;
@@ -151,7 +151,7 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
                  MyCreateFileMapping);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
-      DebugLog(L"Hook RawCreateFileMapping failed %d", status);
+      DebugLog(L"Hook RawCreateFileMapping failed {}", status);
     }
 
     // No more hook needed.
@@ -160,7 +160,7 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
     DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFile), MyCreateFile);
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
-      DebugLog(L"Unhook RawCreateFile failed %d", status);
+      DebugLog(L"Unhook RawCreateFile failed {}", status);
     }
   }
 
@@ -175,6 +175,6 @@ void PakPatch() {
   DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFile), MyCreateFile);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
-    DebugLog(L"Hook RawCreateFile failed %d", status);
+    DebugLog(L"Hook RawCreateFile failed {}", status);
   }
 }

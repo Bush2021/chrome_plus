@@ -50,7 +50,7 @@ void ChromePlusCommand(LPWSTR param) {
 int Loader() {
   // Only main interface.
   LPWSTR param = GetCommandLineW();
-  // DebugLog(L"param %s", param);
+  // DebugLog(L"param {}", param);
   if (!wcsstr(param, L"-type=")) {
     ChromePlusCommand(param);
   }
@@ -71,7 +71,7 @@ void InstallLoader() {
   DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain), Loader);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
-    DebugLog(L"InstallLoader failed: %d", status);
+    DebugLog(L"InstallLoader failed: {}", status);
   }
 }
 

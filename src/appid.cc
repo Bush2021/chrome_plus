@@ -19,7 +19,7 @@ HRESULT WINAPI MyPSStringFromPropertyKey(REFPROPERTYKEY pkey,
   HRESULT result = RawPSStringFromPropertyKey(pkey, psz, cch);
   if (SUCCEEDED(result)) {
     if (pkey == PKEY_AppUserModel_ID) {
-      // DebugLog(L"MyPSStringFromPropertyKey %s", psz);
+      // DebugLog(L"MyPSStringFromPropertyKey {}", psz);
       return -1;
     }
   }
@@ -35,6 +35,6 @@ void SetAppId() {
                MyPSStringFromPropertyKey);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
-    DebugLog(L"SetAppId failed %d", status);
+    DebugLog(L"SetAppId failed {}", status);
   }
 }

@@ -76,7 +76,7 @@ std::wstring GetCommand(LPWSTR param) {
       // string
       {
         const auto& cr_command_line = config.GetCommandLine();
-        DebugLog(L"cr_command_line: %s", cr_command_line.c_str());
+        DebugLog(L"cr_command_line: {}", cr_command_line);
         std::wstring_view remaining_view(cr_command_line);
         while (true) {
           auto arg_start = remaining_view.find(L"--");

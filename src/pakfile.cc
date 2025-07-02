@@ -171,7 +171,7 @@ void TraversalGZIPFile(uint8_t* buffer,
           fwrite(buffer + pak_entry->file_offset, old_size, 1, fp);
           fclose(fp);*/
         } else {
-          // DebugLog(L"gzip compress error %d %d", compress_size, old_size);
+          // DebugLog(L"gzip compress error {} {}", compress_size, old_size);
         }
 
         if (compress_buffer) {

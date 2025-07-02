@@ -51,8 +51,8 @@ std::vector<std::wstring> StringSplit(std::wstring_view str,
                                       const wchar_t delim,
                                       std::wstring_view enclosure = L"");
 std::vector<std::string> StringSplit(std::string_view str,
-                                      const char delim,
-                                      std::string_view enclosure = "");
+                                     const char delim,
+                                     std::string_view enclosure = "");
 
 // HTML compression functions
 std::string& ltrim(std::string& s);
@@ -94,7 +94,25 @@ std::wstring GetAbsolutePath(const std::wstring& path);
 std::wstring ExpandEnvironmentPath(const std::wstring& path);
 
 // Debug log function
-void DebugLog(const wchar_t* format, ...);
+#if defined(_DEBUG)
+#include <filesystem>
+#include <format>
+#include <fstream>
+template <typename... Args>
+void DebugLog(std::wformat_string<Args...> fmt, Args&&... args) {
+  std::wstring log_entry = std::format(
+      L"[chrome++] {}\n", std::format(fmt, std::forward<Args>(args)...));
+
+  std::filesystem::path log_path = GetAppDir();
+  log_path /= L"Chrome++_Debug.log";
+
+  if (std::wofstream log_file(log_path, std::ios::app); log_file.is_open()) {
+    log_file << log_entry;
+  }
+}
+#else
+inline void DebugLog(const wchar_t* format, ...) {}
+#endif
 
 // Window and message processing functions
 HWND GetTopWnd(HWND hwnd);
