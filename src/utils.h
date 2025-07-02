@@ -5,6 +5,7 @@
 
 // #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "fastsearch.h"
@@ -43,18 +44,20 @@ const std::wstring& GetIniPath();
 // String manipulation function declarations
 std::wstring Format(const wchar_t* format, va_list args);
 std::wstring Format(const wchar_t* format, ...);
-std::string wstring_to_string(const std::wstring& wstr);
+std::string wstring_to_string(std::wstring_view wstr);
 
 // Specify the delimiter and wrapper to split the string.
 std::vector<std::wstring> StringSplit(std::wstring_view str,
                                       const wchar_t delim,
                                       std::wstring_view enclosure = L"");
+std::vector<std::string> StringSplit(std::string_view str,
+                                      const char delim,
+                                      std::string_view enclosure = "");
 
 // HTML compression functions
 std::string& ltrim(std::string& s);
 std::string& rtrim(std::string& s);
 std::string& trim(std::string& s);
-std::vector<std::string> split(const std::string& text, char sep);
 void compression_html(std::string& html);
 
 bool ReplaceStringInPlace(std::string& subject,
@@ -68,7 +71,7 @@ bool ReplaceStringInPlace(std::wstring& subject,
 std::wstring QuoteSpaceIfNeeded(const std::wstring& str);
 
 std::wstring JoinArgsString(std::vector<std::wstring> lines,
-                            const std::wstring& delimiter);
+                            std::wstring_view delimiter);
 
 // Memory and module search functions
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m);

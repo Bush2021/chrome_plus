@@ -12,6 +12,7 @@
 #include <cstring>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Global variable definitions
@@ -56,11 +57,11 @@ std::wstring Format(const wchar_t* format, ...) {
   return str;
 }
 
-std::string wstring_to_string(const std::wstring& wstr) {
+std::string wstring_to_string(std::wstring_view wstr) {
   std::string strTo;
   auto szTo = new char[wstr.length() + 1];
   szTo[wstr.size()] = '\0';
-  WideCharToMultiByte(CP_ACP, 0, wstr.c_str(), -1, szTo,
+  WideCharToMultiByte(CP_ACP, 0, wstr.data(), -1, szTo,
                       static_cast<int>(wstr.length()), nullptr, nullptr);
   strTo = szTo;
   delete[] szTo;
@@ -75,6 +76,26 @@ std::vector<std::wstring> StringSplit(std::wstring_view str,
   auto parts = std::views::split(str, delim);
   for (const auto& part : parts) {
     std::wstring_view part_sv(part.begin(), part.end());
+    if (!enclosure.empty()) {
+      if (!part_sv.empty() && part_sv.front() == enclosure.front()) {
+        part_sv.remove_prefix(1);
+      }
+      if (!part_sv.empty() && part_sv.back() == enclosure.back()) {
+        part_sv.remove_suffix(1);
+      }
+    }
+    result.emplace_back(part_sv);
+  }
+  return result;
+}
+
+std::vector<std::string> StringSplit(std::string_view str,
+                                     const char delim,
+                                     std::string_view enclosure) {
+  std::vector<std::string> result;
+  auto parts = std::views::split(str, delim);
+  for (const auto& part : parts) {
+    std::string_view part_sv(part.begin(), part.end());
     if (!enclosure.empty()) {
       if (!part_sv.empty() && part_sv.front() == enclosure.front()) {
         part_sv.remove_prefix(1);
@@ -107,21 +128,8 @@ std::string& trim(std::string& s) {
   return ltrim(rtrim(s));
 }
 
-std::vector<std::string> split(const std::string& text, char sep) {
-  std::vector<std::string> tokens;
-  std::size_t start = 0, end = 0;
-  while ((end = text.find(sep, start)) != std::string::npos) {
-    std::string temp = text.substr(start, end - start);
-    tokens.emplace_back(std::move(temp));
-    start = end + 1;
-  }
-  std::string temp = text.substr(start);
-  tokens.emplace_back(std::move(temp));
-  return tokens;
-}
-
 void compression_html(std::string& html) {
-  auto lines = split(html, '\n');
+  auto lines = StringSplit(html, '\n');
   html.clear();
   for (auto& line : lines) {
     html += "\n";
@@ -171,7 +179,7 @@ std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
 }
 
 std::wstring JoinArgsString(std::vector<std::wstring> lines,
-                            const std::wstring& delimiter) {
+                            std::wstring_view delimiter) {
   std::wstring text;
   bool first = true;
   for (auto& line : lines) {

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -224,11 +225,11 @@ void OnHotkey(HotkeyAction action) {
   action();
 }
 
-void Hotkey(const std::wstring& keys, HotkeyAction action) {
+void Hotkey(std::wstring_view keys, HotkeyAction action) {
   if (keys.empty()) {
     return;
   } else {
-    UINT flag = ParseHotkeys(keys.c_str());
+    UINT flag = ParseHotkeys(keys.data());
 
     std::thread th([flag, action]() {
       RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag));
