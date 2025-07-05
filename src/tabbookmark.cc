@@ -76,8 +76,7 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   PMOUSEHOOKSTRUCTEX pwheel = reinterpret_cast<PMOUSEHOOKSTRUCTEX>(lParam);
   int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
-  // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
-  if (config.IsWheelTab() && IsOnTheTabBar(top_container_view, pmouse->pt)) {
+  auto switch_tabs = [&]() {
     hwnd = GetTopWnd(hwnd);
     if (zDelta > 0) {
       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
@@ -85,17 +84,16 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
       ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
     }
     return true;
+  };
+
+  // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
+  if (config.IsWheelTab() && IsOnTheTabBar(top_container_view, pmouse->pt)) {
+    return switch_tabs();
   }
 
   // If it is used to switch tabs when the right button is held.
   if (config.IsWheelTabWhenPressRightButton() && IsPressed(VK_RBUTTON)) {
-    hwnd = GetTopWnd(hwnd);
-    if (zDelta > 0) {
-      ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
-    } else {
-      ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
-    }
-    return true;
+    return switch_tabs();
   }
 
   return false;
