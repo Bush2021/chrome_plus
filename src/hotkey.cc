@@ -250,7 +250,7 @@ void Hotkey(std::wstring_view keys, HotkeyAction action) {
 }  // anonymous namespace
 
 UINT ParseTranslateKey() {
-  std::wstring translate_key = config.GetTranslateKey();
+  const auto& translate_key = config.GetTranslateKey();
   if (translate_key.empty()) {
     return 0;
   }
@@ -258,7 +258,7 @@ UINT ParseTranslateKey() {
 }
 
 void GetHotkey() {
-  std::wstring boss_key = config.GetBossKey();
+  const auto& boss_key = config.GetBossKey();
   if (!boss_key.empty()) {
     Hotkey(boss_key, HideAndShow);
   }

@@ -104,7 +104,7 @@ void DebugLog(std::wformat_string<Args...> fmt, Args&&... args) {
   }
 }
 #else
-inline void DebugLog(const wchar_t* format, ...) {}
+inline void DebugLog(std::wstring_view, auto&&...) {}
 #endif
 
 // Window and message processing functions
