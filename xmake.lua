@@ -1,4 +1,4 @@
-includes("VC-LTL5.lua")
+-- includes("VC-LTL5.lua")
 
 add_rules("mode.debug", "mode.release")
 
@@ -11,9 +11,10 @@ set_fpmodels("precise") -- Default
 
 if is_mode("release") then
     set_exceptions("none")
-    set_runtimes("MT")
+    set_optimize("smallest")
+    set_runtimes("MD")
     add_defines("NDEBUG")
-    add_cxflags("/O2", "/Os", "/Gy", "/MP", "/fp:precise")
+    add_cxflags("/MP", "/fp:precise")
     add_ldflags("/DYNAMICBASE", "/LTCG")
 end
 
