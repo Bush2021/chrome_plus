@@ -31,7 +31,7 @@ jobs:
             arch: arm64
 
     name: ${{ matrix.name }}
-    runs-on: windows-latest
+    runs-on: windows-2025
 
     steps:
       - name: Checkout Repo
@@ -56,14 +56,11 @@ jobs:
             sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           fi
 
-      - name: Setup VC-LTL
-        run: nuget install VC-LTL
-
       - name: Setup Xmake
         uses: xmake-io/github-action-setup-xmake@v1
 
       - name: Configure Xmake
-        run: xmake f -a ${{ matrix.arch }}
+        run: xmake f -a ${{ matrix.arch }} --toolchain=clang-cl --yes
 
       - name: Build Chrome++
         run: xmake

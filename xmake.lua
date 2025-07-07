@@ -1,19 +1,18 @@
-includes("VC-LTL5.lua")
-
 add_rules("mode.debug", "mode.release")
 
 set_warnings("more")
 
 add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE")
-add_cxflags("/utf-8")
+set_encodings("source:utf-8")
 set_languages("c++20")
 set_fpmodels("precise") -- Default
-
 if is_mode("release") then
     set_exceptions("none")
+    set_optimize("smallest")
     set_runtimes("MT")
+    add_requires("vc-ltl5")
     add_defines("NDEBUG")
-    add_cxflags("/O2", "/Os", "/MP")
+    add_cxflags("/MP")
     add_ldflags("/DYNAMICBASE", "/LTCG")
 end
 
@@ -37,6 +36,9 @@ target("chrome_plus")
     add_files("src/*.cc")
     add_files("src/*.rc")
     add_links("onecore", "propsys", "oleacc")
+    if is_mode("release") then
+        add_packages("vc-ltl5")
+    end
     after_build(function (target)
         if is_mode("release") then
             for _, file in ipairs(os.files("$(builddir)/release/*")) do
