@@ -64,11 +64,12 @@ void InstallLoader() {
   MODULEINFO mi;
   GetModuleInformation(GetCurrentProcess(), GetModuleHandle(nullptr), &mi,
                        sizeof(MODULEINFO));
-  ExeMain = static_cast<Startup>(mi.EntryPoint);
+  ExeMain = reinterpret_cast<Startup>(mi.EntryPoint);
 
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain), Loader);
+  DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain),
+               reinterpret_cast<void*>(Loader));
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"InstallLoader failed: {}", status);

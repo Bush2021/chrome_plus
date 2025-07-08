@@ -81,9 +81,9 @@ bool CheckHeader(uint8_t* buffer, PakEntry*& pak_entry, PakEntry*& end_entry) {
   return true;
 }
 
-void PakFind(uint8_t* buffer,
-             uint8_t* pos,
-             std::function<void(uint8_t*, uint32_t)> f) {
+[[maybe_unused]] void PakFind(uint8_t* buffer,
+                              uint8_t* pos,
+                              std::function<void(uint8_t*, uint32_t)> f) {
   PakEntry* pak_entry = nullptr;
   PakEntry* end_entry = nullptr;
 

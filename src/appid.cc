@@ -32,7 +32,7 @@ void SetAppId() {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
   DetourAttach(reinterpret_cast<LPVOID*>(&RawPSStringFromPropertyKey),
-               MyPSStringFromPropertyKey);
+               reinterpret_cast<void*>(MyPSStringFromPropertyKey));
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"SetAppId failed {}", status);

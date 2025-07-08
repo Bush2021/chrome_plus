@@ -207,7 +207,9 @@ NodePtr GetParentElement(NodePtr child) {
   return element;
 }
 
-NodePtr FindChildElement(NodePtr parent, long role, int skipcount = 0) {
+[[maybe_unused]] NodePtr FindChildElement(NodePtr parent,
+                                          long role,
+                                          int skipcount = 0) {
   NodePtr element = nullptr;
   if (parent) {
     int i = 0;
