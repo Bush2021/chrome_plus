@@ -56,11 +56,20 @@ jobs:
             sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           fi
 
+      - name: Cache Xmake Binary
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: C:\hostedtoolcache\windows\xmake
+          key: cache-${{ env.VERSION }}
+          restore-keys: cache-
+
       - name: Setup Xmake
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: xmake-io/github-action-setup-xmake@v1
 
       - name: Configure Xmake
-        run: xmake f -a ${{ matrix.arch }} --toolchain=clang
+        run: xmake f -a ${{ matrix.arch }} --toolchain=clang # maybe not needed
 
       - name: Build Chrome++
         run: xmake
