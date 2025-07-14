@@ -56,7 +56,29 @@ std::wstring GetCommand(LPWSTR param) {
     if (i == insert_pos) {
       args.emplace_back(L"--portable");
 
-      args.emplace_back(L"--disable-features=WinSboxNoFakeGdiInit");
+      // The `--disable-features=ScriptStreamingForNonHTTP` flag is added to
+      // address https://github.com/Bush2021/chrome_plus/issues/172. Google
+      // Chrome receives field trial configurations from the variations server,
+      // which can be inspected via `chrome://version/?show-variations-cmd`.
+      // This mechanism causes certain features (`base::Feature`) to be enabled
+      // or disabled dynamically, leading to behavioral differences that may not
+      // be reproducible across all environments. Adding `--enable-benchmarking`
+      // can force all features to a fixed state, disabling randomization and
+      // making it easier to diagnose whether an observed issue is caused by a
+      // non-default `base::Feature` configuration.
+      //
+      // In this case, it was found that disabling either
+      // `WebUIInProcessResourceLoading` or `ScriptStreamingForNonHTTP` restores
+      // normal behavior. These features affect how Chrome WebUI pages (such as
+      // `about:` or `chrome://`) load resources. See
+      // https://issues.chromium.org/issues/362511750 and
+      // https://chromium-review.googlesource.com/c/chromium/src/+/5868139 for
+      // details. While these changes may improve performance,
+      // `ScriptStreamingForNonHTTP` appears to only impact WebUI, so we choose
+      // to disable this feature specifically. If this workaround becomes
+      // ineffective in the future, more in-depth modifications may be required.
+      args.emplace_back(
+          L"--disable-features=WinSboxNoFakeGdiInit,ScriptStreamingForNonHTTP");
 
       if (!has_user_data_dir) {
         if (auto userdata = config.GetUserDataDir(); !userdata.empty()) {
