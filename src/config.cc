@@ -17,13 +17,13 @@ Config::Config() {
 
 void Config::LoadConfig() {
   // general
-  command_line_ = LoadCommandLine();
+  command_line_ = GetIniString(L"general", L"command_line", L"");
   launch_on_startup_ = GetIniString(L"general", L"launch_on_startup", L"");
   launch_on_exit_ = GetIniString(L"general", L"launch_on_exit", L"");
   user_data_dir_ = LoadDirPath(L"data");
   disk_cache_dir_ = LoadDirPath(L"cache");
-  boss_key_ = LoadBossKey();
-  translate_key_ = LoadTranslateKey();
+  boss_key_ = GetIniString(L"general", L"boss_key", L"");
+  translate_key_ = GetIniString(L"general", L"translate_key", L"");
   show_password_ = ::GetPrivateProfileIntW(L"general", L"show_password", 1,
                                            GetIniPath().c_str()) != 0;
   win32k_ = ::GetPrivateProfileIntW(L"general", L"win32k", 0,
@@ -48,14 +48,6 @@ void Config::LoadConfig() {
   disable_tab_name_ = GetIniString(L"tabs", L"new_tab_disable_name", L"");
 }
 
-std::wstring Config::LoadCommandLine() {
-  auto commandLine = GetIniString(L"general", L"command_line", L"");
-  if (!commandLine.empty()) {
-    return commandLine;
-  }
-  return GetIniString(L"General", L"CommandLine", L"");  // Deprecated
-}
-
 std::wstring Config::LoadDirPath(const std::wstring& dir_type) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dir_type);
   std::wstring dir_key = dir_type + L"_dir";
@@ -63,11 +55,6 @@ std::wstring Config::LoadDirPath(const std::wstring& dir_type) {
 
   if (dir_buffer == L"none") {
     return L"";
-  }
-
-  if (dir_buffer.empty()) {  // Deprecated
-    dir_key = dir_type + L"dir";
-    dir_buffer = GetIniString(L"general", dir_key, path);
   }
 
   if (dir_buffer.empty()) {
@@ -79,21 +66,6 @@ std::wstring Config::LoadDirPath(const std::wstring& dir_type) {
   return GetAbsolutePath(expanded_path);
 }
 
-std::wstring Config::LoadBossKey() {
-  auto key = GetIniString(L"general", L"boss_key", L"");
-  if (!key.empty()) {
-    return key;
-  }
-  return GetIniString(L"General", L"Bosskey", L"");  // Deprecated
-}
-
-std::wstring Config::LoadTranslateKey() {
-  auto key = GetIniString(L"general", L"translate_key", L"");
-  if (!key.empty()) {
-    return key;
-  }
-  return GetIniString(L"General", L"TranslateKey", L"");  // Deprecated
-}
 std::string Config::LoadOpenUrlNewTabMode() {
   int value = ::GetPrivateProfileIntW(L"tabs", L"open_url_new_tab", 0,
                                       GetIniPath().c_str());

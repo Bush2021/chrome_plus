@@ -39,10 +39,7 @@ class Config {
 
   void LoadConfig();
 
-  std::wstring LoadCommandLine();
   std::wstring LoadDirPath(const std::wstring& dir_type);
-  std::wstring LoadBossKey();
-  std::wstring LoadTranslateKey();
   std::string LoadOpenUrlNewTabMode();
   std::string LoadBookmarkNewTabMode();
 
