@@ -198,9 +198,9 @@ bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
 
 // Open bookmarks in a new tab.
 bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  const auto& mode = config.GetBookmarkNewTabMode();
+  int mode = config.GetBookmarkNewTabMode();
   if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
-      mode == "disabled") {
+      mode == 0) {
     return false;
   }
 
@@ -225,9 +225,9 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 
   bool is_on_new_tab = IsOnNewTab(top_container_view);
   if (is_on_bookmark && !is_on_new_tab) {
-    if (mode == "foreground") {
+    if (mode == 1) {
       SendKey(VK_MBUTTON, VK_SHIFT);
-    } else if (mode == "background") {
+    } else if (mode == 2) {
       SendKey(VK_MBUTTON);
     }
     return true;
@@ -320,16 +320,16 @@ int HandleKeepTab(WPARAM wParam) {
 }
 
 int HandleOpenUrlNewTab(WPARAM wParam) {
-  const auto& mode = config.GetOpenUrlNewTabMode();
-  if (!(mode != "disabled" && wParam == VK_RETURN && !IsPressed(VK_MENU))) {
+  int mode = config.GetOpenUrlNewTabMode();
+  if (!(mode != 0 && wParam == VK_RETURN && !IsPressed(VK_MENU))) {
     return 0;
   }
 
   NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
   if (IsOmniboxFocus(top_container_view) && !IsOnNewTab(top_container_view)) {
-    if (mode == "foreground") {
+    if (mode == 1) {
       SendKey(VK_MENU, VK_RETURN);
-    } else if (mode == "background") {
+    } else if (mode == 2) {
       SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
     }
     return 1;

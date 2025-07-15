@@ -66,29 +66,13 @@ std::wstring Config::LoadDirPath(const std::wstring& dir_type) {
   return GetAbsolutePath(expanded_path);
 }
 
-std::string Config::LoadOpenUrlNewTabMode() {
-  int value = ::GetPrivateProfileIntW(L"tabs", L"open_url_new_tab", 0,
-                                      GetIniPath().c_str());
-  switch (value) {
-    case 1:
-      return "foreground";
-    case 2:
-      return "background";
-    default:
-      return "disabled";
-  }
+int Config::LoadOpenUrlNewTabMode() {
+  return ::GetPrivateProfileIntW(L"tabs", L"open_url_new_tab", 0,
+                                 GetIniPath().c_str());
 }
-std::string Config::LoadBookmarkNewTabMode() {
-  int value = ::GetPrivateProfileIntW(L"tabs", L"open_bookmark_new_tab", 0,
-                                      GetIniPath().c_str());
-  switch (value) {
-    case 1:
-      return "foreground";
-    case 2:
-      return "background";
-    default:
-      return "disabled";
-  }
+int Config::LoadBookmarkNewTabMode() {
+  return ::GetPrivateProfileIntW(L"tabs", L"open_bookmark_new_tab", 0,
+                                 GetIniPath().c_str());
 }
 
 const Config& config = Config::Instance();

@@ -26,8 +26,8 @@ class Config {
   bool IsWheelTabWhenPressRightButton() const {
     return wheel_tab_when_press_rbutton_;
   }
-  const std::string& GetOpenUrlNewTabMode() const { return open_url_new_tab_; }
-  const std::string& GetBookmarkNewTabMode() const { return bookmark_new_tab_; }
+  int GetOpenUrlNewTabMode() const { return open_url_new_tab_; }
+  int GetBookmarkNewTabMode() const { return bookmark_new_tab_; }
   bool IsNewTabDisable() const { return new_tab_disable_; }
   const std::wstring& GetDisableTabName() const { return disable_tab_name_; }
 
@@ -40,8 +40,8 @@ class Config {
   void LoadConfig();
 
   std::wstring LoadDirPath(const std::wstring& dir_type);
-  std::string LoadOpenUrlNewTabMode();
-  std::string LoadBookmarkNewTabMode();
+  int LoadOpenUrlNewTabMode();
+  int LoadBookmarkNewTabMode();
 
  private:
   // general
@@ -61,8 +61,8 @@ class Config {
   bool right_click_close_;
   bool wheel_tab_;
   bool wheel_tab_when_press_rbutton_;
-  std::string open_url_new_tab_;
-  std::string bookmark_new_tab_;
+  int open_url_new_tab_;
+  int bookmark_new_tab_;
   bool new_tab_disable_;
   std::wstring disable_tab_name_;
 };
