@@ -23,8 +23,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: build_x86
-            arch: x86
+          # - name: build_x86
+          #   arch: x86
           - name: build_x64
             arch: x64
           # - name: build_arm64
@@ -55,6 +55,9 @@ jobs:
             sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h 
             sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           fi
+
+      - name: Setup VC-LTL
+        run: nuget install VC-LTL
 
       - name: Cache Xmake Binary
         id: cache
