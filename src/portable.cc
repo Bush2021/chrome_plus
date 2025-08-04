@@ -12,6 +12,26 @@
 #include "utils.h"
 
 namespace {
+// The `--disable-features=ScriptStreamingForNonHTTP` flag is added to address
+// https://github.com/Bush2021/chrome_plus/issues/172. Google Chrome receives
+// field trial configurations from the variations server, which can be inspected
+// via `chrome://version/?show-variations-cmd`. This mechanism causes certain
+// features (`base::Feature`) to be enabled or disabled dynamically, leading to
+// behavioral differences that may not be reproducible across all environments.
+// Adding `--enable-benchmarking` can force all features to a fixed state,
+// disabling randomization and making it easier to diagnose whether an observed
+// issue is caused by a non-default `base::Feature` configuration.
+//
+// In this case, it was found that disabling either
+// `WebUIInProcessResourceLoading` or `ScriptStreamingForNonHTTP` restores
+// normal behavior. These features affect how Chrome WebUI pages (such as
+// `about:` or `chrome://`) load resources. See
+// https://issues.chromium.org/issues/362511750 and
+// https://chromium-review.googlesource.com/c/chromium/src/+/5868139 for
+// details. While these changes may improve performance,
+// `ScriptStreamingForNonHTTP` appears to only impact WebUI, so we choose to
+// disable this feature specifically. If this workaround becomes ineffective in
+// the future, more in-depth modifications may be required.
 
 constexpr auto kReservedArgsCount = 15;
 
@@ -76,43 +96,41 @@ std::wstring GetCommand(LPWSTR param) {
       {
         args.emplace_back(L"--portable");
 
-        // The `--disable-features=ScriptStreamingForNonHTTP` flag is added to
-        // address https://github.com/Bush2021/chrome_plus/issues/172. Google
-        // Chrome receives field trial configurations from the variations
-        // server, which can be inspected via
-        // `chrome://version/?show-variations-cmd`. This mechanism causes
-        // certain features (`base::Feature`) to be enabled or disabled
-        // dynamically, leading to behavioral differences that may not be
-        // reproducible across all environments. Adding `--enable-benchmarking`
-        // can force all features to a fixed state, disabling randomization and
-        // making it easier to diagnose whether an observed issue is caused by a
-        // non-default `base::Feature` configuration.
-        //
-        // In this case, it was found that disabling either
-        // `WebUIInProcessResourceLoading` or `ScriptStreamingForNonHTTP`
-        // restores normal behavior. These features affect how Chrome WebUI
-        // pages (such as `about:` or `chrome://`) load resources. See
-        // https://issues.chromium.org/issues/362511750 and
-        // https://chromium-review.googlesource.com/c/chromium/src/+/5868139 for
-        // details. While these changes may improve performance,
-        // `ScriptStreamingForNonHTTP` appears to only impact WebUI, so we
-        // choose to disable this feature specifically. If this workaround
-        // becomes ineffective in the future, more in-depth modifications may be
-        // required.
-        args.emplace_back(
-            L"--disable-features=WinSboxNoFakeGdiInit,"
-            L"ScriptStreamingForNonHTTP");
+        std::vector<std::wstring> final_args;
+        std::wstring combined_features;
+        const std::wstring disable_features_prefix = L"--disable-features=";
+
         bool has_user_data_dir = false;
         bool has_disk_cache_dir = false;
+
         for (const auto& arg : args) {
-          std::wstring_view arg_view(arg);
-          if (arg_view.find(L"--user-data-dir=") == 0) {
-            has_user_data_dir = true;
-          }
-          if (arg_view.find(L"--disk-cache-dir=") == 0) {
-            has_disk_cache_dir = true;
+          if (arg.starts_with(disable_features_prefix)) {
+            if (!combined_features.empty()) {
+              combined_features.append(L",");
+            }
+            combined_features.append(
+                arg.substr(disable_features_prefix.length()));
+          } else {
+            if (arg.starts_with(L"--user-data-dir=")) {
+              has_user_data_dir = true;
+            }
+            if (arg.starts_with(L"--disk-cache-dir=")) {
+              has_disk_cache_dir = true;
+            }
+            final_args.push_back(arg);
           }
         }
+
+        // Rebuild the argument list with the final, single `--disable-features`
+        // flag, since Chrome expects only one such flag.
+        if (!combined_features.empty()) {
+          combined_features.append(L",");
+        }
+        // See the comment at the start of the namespace for details on these.
+        combined_features.append(
+            L"WinSboxNoFakeGdiInit,ScriptStreamingForNonHTTP");
+        args = final_args;
+        args.emplace_back(disable_features_prefix + combined_features);
 
         if (!has_user_data_dir) {
           if (auto userdata = config.GetUserDataDir(); !userdata.empty()) {
