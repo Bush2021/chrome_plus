@@ -96,29 +96,42 @@ std::wstring GetCommand(LPWSTR param) {
       {
         args.emplace_back(L"--portable");
 
+        std::vector<std::wstring> final_args;
+        std::wstring combined_features;
+        const std::wstring disable_features_prefix = L"--disable-features=";
+
         bool has_user_data_dir = false;
         bool has_disk_cache_dir = false;
-        bool has_disable_features = false;
-        for (auto& arg : args) {
-          if (arg.find(L"--user-data-dir=") == 0) {
-            has_user_data_dir = true;
-          }
-          if (arg.find(L"--disk-cache-dir=") == 0) {
-            has_disk_cache_dir = true;
-          }
-          if (arg.find(L"--disable-features=") == 0) {
-            has_disable_features = true;
-            // See the comment at the start of the namespace for details on
-            // these features.
-            arg.append(L",WinSboxNoFakeGdiInit,ScriptStreamingForNonHTTP");
+
+        for (const auto& arg : args) {
+          if (arg.starts_with(disable_features_prefix)) {
+            if (!combined_features.empty()) {
+              combined_features.append(L",");
+            }
+            combined_features.append(
+                arg.substr(disable_features_prefix.length()));
+          } else {
+            if (arg.starts_with(L"--user-data-dir=")) {
+              has_user_data_dir = true;
+            }
+            if (arg.starts_with(L"--disk-cache-dir=")) {
+              has_disk_cache_dir = true;
+            }
+            final_args.push_back(arg);
           }
         }
 
-        if (!has_disable_features) {
-          args.emplace_back(
-              L"--disable-features=WinSboxNoFakeGdiInit,"
-              L"ScriptStreamingForNonHTTP");
+        // Rebuild the argument list with the final, single `--disable-features`
+        // flag, since Chrome expects only one such flag.
+        if (!combined_features.empty()) {
+          combined_features.append(L",");
         }
+        // See the comment at the start of the namespace for details on these.
+        combined_features.append(
+            L"WinSboxNoFakeGdiInit,ScriptStreamingForNonHTTP");
+        args = final_args;
+        args.emplace_back(disable_features_prefix + combined_features);
+
         if (!has_user_data_dir) {
           if (auto userdata = config.GetUserDataDir(); !userdata.empty()) {
             args.emplace_back(L"--user-data-dir=" + userdata);
