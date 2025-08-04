@@ -28,6 +28,26 @@ int FindArgumentInsertionPosition(int argc, LPWSTR* argv) {
   return insert_pos;
 }
 
+std::vector<std::wstring> ParseConfiguredArgs(std::wstring_view args) {
+  std::vector<std::wstring> result;
+  while (true) {
+    auto arg_start = args.find(L"--");
+    if (arg_start == std::wstring_view::npos) {
+      break;
+    }
+    args.remove_prefix(arg_start);
+    auto arg_end = args.find(L" --", 1);
+    if (arg_end == std::wstring_view::npos) {
+      result.emplace_back(args);
+      break;
+    } else {
+      result.emplace_back(args.substr(0, arg_end));
+      args.remove_prefix(arg_end + 1);
+    }
+  }
+  return result;
+}
+
 // Construct new command line with portable mode.
 std::wstring GetCommand(LPWSTR param) {
   int argc;
@@ -49,32 +69,11 @@ std::wstring GetCommand(LPWSTR param) {
     if (i == FindArgumentInsertionPosition(argc, argv)) {
       args.emplace_back(L"--portable");
 
-      // Get the command line and append parameters
-      // Intercept and split the parameters starting with each --,
-      // and then args.push_back multiple times
-      // Repeat the above process until the -- sign no longer exists in the
-      // string
-      {
-        const auto& cr_command_line = config.GetCommandLine();
-        DebugLog(L"cr_command_line: {}", cr_command_line);
-        std::wstring_view remaining_view(cr_command_line);
-        while (true) {
-          auto arg_start = remaining_view.find(L"--");
-          if (arg_start == std::wstring_view::npos) {
-            break;
-          }
-          remaining_view.remove_prefix(arg_start);
-
-          auto arg_end = remaining_view.find(L" --", 1);
-          if (arg_end == std::wstring_view::npos) {
-            args.emplace_back(remaining_view);
-            break;
-          } else {
-            args.emplace_back(remaining_view.substr(0, arg_end));
-            remaining_view.remove_prefix(arg_end + 1);
-          }
-        }
-      }
+      const auto& config_args = config.GetCommandLine();
+      DebugLog(L"config_args: {}", config_args);
+      auto parsed_config_args = ParseConfiguredArgs(config_args);
+      args.insert(args.end(), parsed_config_args.begin(),
+                  parsed_config_args.end());
 
       {
         // The `--disable-features=ScriptStreamingForNonHTTP` flag is added to
@@ -103,7 +102,6 @@ std::wstring GetCommand(LPWSTR param) {
         args.emplace_back(
             L"--disable-features=WinSboxNoFakeGdiInit,"
             L"ScriptStreamingForNonHTTP");
-
         bool has_user_data_dir = false;
         bool has_disk_cache_dir = false;
         for (const auto& arg : args) {
