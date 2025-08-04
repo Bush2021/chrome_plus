@@ -67,8 +67,6 @@ std::wstring GetCommand(LPWSTR param) {
 
     // Append new arguments.
     if (i == FindArgumentInsertionPosition(argc, argv)) {
-      args.emplace_back(L"--portable");
-
       const auto& config_args = config.GetCommandLine();
       DebugLog(L"config_args: {}", config_args);
       auto parsed_config_args = ParseConfiguredArgs(config_args);
@@ -76,6 +74,8 @@ std::wstring GetCommand(LPWSTR param) {
                   parsed_config_args.end());
 
       {
+        args.emplace_back(L"--portable");
+
         // The `--disable-features=ScriptStreamingForNonHTTP` flag is added to
         // address https://github.com/Bush2021/chrome_plus/issues/172. Google
         // Chrome receives field trial configurations from the variations
