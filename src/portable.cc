@@ -15,6 +15,19 @@ namespace {
 
 constexpr auto kReservedArgsCount = 15;
 
+int FindArgumentInsertionPosition(int argc, LPWSTR* argv) {
+  int insert_pos = 0;
+  // Start at 1 to skip the program name
+  for (int i = 1; i < argc; ++i) {
+    std::wstring_view arg_view(argv[i]);
+    if (arg_view == L"--" || arg_view == L"--single-argument") {
+      break;
+    }
+    insert_pos = i;
+  }
+  return insert_pos;
+}
+
 // Construct new command line with portable mode.
 std::wstring GetCommand(LPWSTR param) {
   int argc;
@@ -38,14 +51,6 @@ std::wstring GetCommand(LPWSTR param) {
     }
   }
 
-  int insert_pos = 0;
-  for (int i = 0; i < argc; ++i) {
-    std::wstring_view arg_view(argv[i]);
-    if (arg_view == L"--" || arg_view == L"--single-argument") {
-      break;
-    }
-    insert_pos = i;
-  }
   for (int i = 0; i < argc; ++i) {
     // Preserve former arguments.
     if (i) {
@@ -53,7 +58,7 @@ std::wstring GetCommand(LPWSTR param) {
     }
 
     // Append new arguments.
-    if (i == insert_pos) {
+    if (i == FindArgumentInsertionPosition(argc, argv)) {
       args.emplace_back(L"--portable");
 
       // The `--disable-features=ScriptStreamingForNonHTTP` flag is added to
