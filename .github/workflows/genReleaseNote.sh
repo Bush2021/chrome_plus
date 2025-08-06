@@ -26,21 +26,21 @@ fi
 
 repo_url=${repo_url%.git}
 
-new_commits=$(git log --pretty=format:"* %h %s by @%an" --grep="^feat" -i $version_range | sort -f | uniq)
+new_commits=$(git log --reverse --pretty=format:"* %h %s by @%an" --grep="^feat" -i $version_range)
 if [ -n "$new_commits" ]; then
   echo "## New" >> release.md
   echo "$new_commits" >> release.md
   echo "" >> release.md
 fi
 
-fix_commits=$(git log --pretty=format:"* %h %s by @%an" --grep="^fix" -i $version_range | sort -f | uniq)
+fix_commits=$(git log --reverse --pretty=format:"* %h %s by @%an" --grep="^fix" -i $version_range)
 if [ -n "$fix_commits" ]; then
   echo "## Fix" >> release.md
   echo "$fix_commits" >> release.md
   echo "" >> release.md
 fi
 
-maint_commits=$(git log --pretty=format:"* %h %s by @%an" --grep="^chore\|^docs\|^refactor\|^perf" -i $version_range | sort -f | uniq)
+maint_commits=$(git log --reverse --pretty=format:"* %h %s by @%an" --grep="^chore\|^docs\|^refactor\|^perf" -i $version_range)
 if [ -n "$maint_commits" ]; then
   echo "## Maintenance" >> release.md
   echo "$maint_commits" >> release.md
