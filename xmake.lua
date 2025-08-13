@@ -25,8 +25,23 @@ end
 
 target("detours")
     set_kind("static")
-    add_files("detours/src/*.cpp|uimports.cpp")
     add_includedirs("detours/src", {public=true})
+    add_files(
+        "detours/src/detours.cpp",
+        "detours/src/disasm.cpp",
+        "detours/src/image.cpp",
+        "detours/src/modules.cpp"
+    )
+    if is_arch("x86") then
+        add_defines("_X86_")
+        add_files("detours/src/disolx86.cpp")
+    elseif is_arch("x64") then
+        add_defines("_AMD64_")
+        add_files("detours/src/disolx64.cpp")
+    elseif is_arch("arm64") then
+        add_defines("_ARM64_")
+        add_files("detours/src/disolarm64.cpp")
+    end
 
 target("chrome_plus")
     set_kind("shared")
