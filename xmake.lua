@@ -50,7 +50,7 @@ target("chrome_plus")
     add_deps("detours")
     add_files("src/*.cc")
     add_files("src/*.rc")
-    add_links("onecore", "propsys", "oleacc")
+    add_links("onecore", "propsys", "oleacc", "uiautomationcore")
     if is_mode("release") then
         add_packages("vc-ltl5")
     end

@@ -5,6 +5,7 @@
 #include "config.h"
 #include "hotkey.h"
 #include "iaccessible.h"
+#include "uia.h"
 #include "utils.h"
 
 namespace {
@@ -112,7 +113,7 @@ int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return 0;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
+  bool is_on_one_tab = UiaIsOnOneTab(pt);
   bool is_on_close_button = IsOnCloseButton(top_container_view, pt);
   bool is_only_one_tab = IsOnlyOneTab(top_container_view);
   if (!is_on_one_tab || is_on_close_button) {
@@ -141,7 +142,7 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return 0;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
+  bool is_on_one_tab = UiaIsOnOneTab(pt);
   bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab) {
@@ -171,7 +172,7 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return 0;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
+  bool is_on_one_tab = UiaIsOnOneTab(pt);
   bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab && keep_tab) {
