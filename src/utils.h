@@ -87,7 +87,7 @@ std::wstring GetAbsolutePath(const std::wstring& path);
 std::wstring ExpandEnvironmentPath(const std::wstring& path);
 
 // Debug log function
-#if defined(_DEBUG)
+// #if defined(_DEBUG)
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -103,9 +103,9 @@ void DebugLog(std::wformat_string<Args...> fmt, Args&&... args) {
     log_file << log_entry;
   }
 }
-#else
-inline void DebugLog(std::wstring_view, auto&&...) {}
-#endif
+// #else
+// inline void DebugLog(std::wstring_view, auto&&...) {}
+// #endif
 
 // Window and message processing functions
 HWND GetTopWnd(HWND hwnd);

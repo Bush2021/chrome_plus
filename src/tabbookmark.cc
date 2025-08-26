@@ -137,12 +137,24 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
+  // chrono timer
+  auto start = std::chrono::high_resolution_clock::now();
   NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
     return 0;
   }
 
+  bool is_one_one_tab_old = IsOnOneTab(top_container_view, pt);
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> elapsed = end - start;
+  DebugLog(L"Old is_one_one_tab: {}, elapsed time: {} ms", is_one_one_tab_old, elapsed.count());
+
+
+  start = std::chrono::high_resolution_clock::now();
   bool is_on_one_tab = UiaIsOnOneTab(pt);
+  end = std::chrono::high_resolution_clock::now();
+  elapsed = end - start;
+  DebugLog(L"New is_on_one_tab: {}, elapsed time: {} ms", is_on_one_tab, elapsed.count());
   bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab) {
