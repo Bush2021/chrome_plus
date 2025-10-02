@@ -92,55 +92,54 @@ std::vector<std::wstring> ParseConfiguredArgs(std::wstring_view args) {
   return result;
 }
 
-// Construct new command line with portable mode.
-std::wstring GetCommand(LPWSTR param) {
-  if (!param) {
-    return L"";
-  }
-
-  std::wstring command_line(param);
-  std::wstring suffix;
-
-  // The `--single-argument` switch is a special case used by the Windows Shell
-  // for file associations. Standard parsers like `CommandLineToArgvW` can
-  // incorrectly split the argument that follows it (typically a file path with
-  // spaces). To handle this, and consistent with Chromium's implementation
-  // (https://github.com/chromium/chromium/blob/51ef426ae939dfa43c870ca1808a1c74dc46ce37/base/command_line.cc#L73),
-  // we split the command line here. The part before the switch will be parsed
-  // and modified, while the switch and its entire argument will be appended
-  // verbatim at the end. Fix
-  // https://github.com/Bush2021/chrome_plus/issues/181.
-  constexpr std::wstring_view kSingleArgumentSwitch = L"--single-argument";
+// Split command line to extract `--single-argument` suffix if present.
+std::pair<std::wstring, std::wstring> SplitSingleArgumentSwitch(
+    const std::wstring& command_line) {
+  constexpr std::wstring_view kSingleArgument = L"--single-argument";
   const auto single_argument_pos =
-      FindStandaloneSwitch(command_line, kSingleArgumentSwitch);
-  if (single_argument_pos != std::wstring_view::npos) {
-    suffix = command_line.substr(single_argument_pos);
-    command_line.erase(single_argument_pos);
+      FindStandaloneSwitch(command_line, kSingleArgument);
+
+  if (single_argument_pos == std::wstring_view::npos) {
+    return {command_line, L""};
   }
 
-  TrimTrailingWhitespace(command_line);
+  std::wstring prefix = command_line.substr(0, single_argument_pos);
+  std::wstring suffix = command_line.substr(single_argument_pos);
+  TrimTrailingWhitespace(prefix);
+
+  return {std::move(prefix), std::move(suffix)};
+}
+
+// Parse command line string into argument vector, skipping the executable name.
+std::vector<std::wstring> ParseCommandLineArgs(const std::wstring& command_line,
+                                               size_t reserve_extra = 15) {
+  std::vector<std::wstring> args;
+  if (command_line.empty()) {
+    args.reserve(reserve_extra);
+    return args;
+  }
 
   int argc = 0;
-  LPWSTR* argv = nullptr;
-  if (!command_line.empty()) {
-    argv = CommandLineToArgvW(command_line.c_str(), &argc);
+  LPWSTR* argv = CommandLineToArgvW(command_line.c_str(), &argc);
+  if (!argv) {
+    args.reserve(reserve_extra);
+    return args;
   }
 
-  constexpr auto kReservedArgsCount = 15;
-  std::vector<std::wstring> args;
-  if (argv) {
-    const size_t original_arg_count =
-        argc > 0 ? static_cast<size_t>(argc - 1) : 0;
-    args.reserve(original_arg_count + kReservedArgsCount);
-    for (int i = 1; i < argc; ++i) {
-      args.emplace_back(argv[i]);
-    }
-    LocalFree(argv);
-  } else {
-    args.reserve(kReservedArgsCount);
+  const size_t original_arg_count =
+      argc > 0 ? static_cast<size_t>(argc - 1) : 0;
+  args.reserve(original_arg_count + reserve_extra);
+  for (int i = 1; i < argc; ++i) {
+    args.emplace_back(argv[i]);
   }
+  LocalFree(argv);
 
-  std::vector<std::wstring> trailing_args;
+  return args;
+}
+
+// Separate arguments before and after the `--` sentinel.
+std::pair<std::vector<std::wstring>, std::vector<std::wstring>>
+SeparateSentinelArgs(std::vector<std::wstring> args) {
   size_t sentinel_index = args.size();
   for (size_t i = 0; i < args.size(); ++i) {
     if (args[i] == L"--") {
@@ -148,25 +147,31 @@ std::wstring GetCommand(LPWSTR param) {
       break;
     }
   }
-  if (sentinel_index != args.size()) {
-    trailing_args.assign(args.begin() + sentinel_index, args.end());
-    args.erase(args.begin() + sentinel_index, args.end());
+
+  if (sentinel_index == args.size()) {
+    return {std::move(args), {}};
   }
 
-  const auto& config_args = config.GetCommandLine();
-  DebugLog(L"config_args: {}", config_args);
-  auto parsed_config_args = ParseConfiguredArgs(config_args);
-  args.insert(args.end(), parsed_config_args.begin(), parsed_config_args.end());
+  std::vector<std::wstring> trailing_args(args.begin() + sentinel_index,
+                                          args.end());
+  args.erase(args.begin() + sentinel_index, args.end());
 
-  args.emplace_back(L"--portable");
+  return {std::move(args), std::move(trailing_args)};
+}
 
+// Merge and process arguments, combining `--disable-features` flags.
+struct ProcessedArgs {
   std::vector<std::wstring> final_args;
-  final_args.reserve(args.size() + trailing_args.size() + 4);
-  std::wstring combined_features;
-  const std::wstring disable_features_prefix = L"--disable-features=";
-
   bool has_user_data_dir = false;
   bool has_disk_cache_dir = false;
+};
+
+ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring>& args) {
+  ProcessedArgs result;
+  result.final_args.reserve(args.size() + 4);
+
+  std::wstring combined_features;
+  const std::wstring disable_features_prefix = L"--disable-features=";
 
   for (const auto& arg : args) {
     if (arg.starts_with(disable_features_prefix)) {
@@ -176,12 +181,12 @@ std::wstring GetCommand(LPWSTR param) {
       combined_features.append(arg.substr(disable_features_prefix.length()));
     } else {
       if (arg.starts_with(L"--user-data-dir=")) {
-        has_user_data_dir = true;
+        result.has_user_data_dir = true;
       }
       if (arg.starts_with(L"--disk-cache-dir=")) {
-        has_disk_cache_dir = true;
+        result.has_disk_cache_dir = true;
       }
-      final_args.push_back(arg);
+      result.final_args.push_back(arg);
     }
   }
 
@@ -193,31 +198,72 @@ std::wstring GetCommand(LPWSTR param) {
   // See the comment at the start of the namespace for details on these.
   combined_features.append(
       L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading");
-  final_args.emplace_back(disable_features_prefix + combined_features);
+  result.final_args.emplace_back(disable_features_prefix + combined_features);
 
+  return result;
+}
+
+// Inject additional arguments based on config settings.
+void InjectConfigPaths(std::vector<std::wstring>& args,
+                       bool has_user_data_dir,
+                       bool has_disk_cache_dir) {
   if (!has_user_data_dir) {
     if (auto userdata = config.GetUserDataDir(); !userdata.empty()) {
-      final_args.emplace_back(L"--user-data-dir=" + userdata);
+      args.emplace_back(L"--user-data-dir=" + userdata);
     }
   }
   if (!has_disk_cache_dir) {
     if (auto diskcache = config.GetDiskCacheDir(); !diskcache.empty()) {
-      final_args.emplace_back(L"--disk-cache-dir=" + diskcache);
+      args.emplace_back(L"--disk-cache-dir=" + diskcache);
     }
   }
+}
 
-  final_args.insert(final_args.end(), trailing_args.begin(),
-                    trailing_args.end());
-
-  std::wstring result = JoinArgsString(final_args, L" ");
+// Reassemble final command line from arguments and suffix.
+std::wstring ReassembleCommandLine(const std::vector<std::wstring>& args,
+                                   const std::wstring& suffix) {
+  std::wstring result = JoinArgsString(args, L" ");
   if (!suffix.empty()) {
     if (!result.empty()) {
       result.push_back(L' ');
     }
     result.append(suffix);
   }
-
   return result;
+}
+
+std::wstring GetCommand(LPWSTR param) {
+  if (!param) {
+    return L"";
+  }
+
+  // The `--single-argument` switch is a special case used by the Windows Shell
+  // for file associations. Standard parsers like `CommandLineToArgvW` can
+  // incorrectly split the argument that follows it (typically a file path with
+  // spaces). To handle this, and consistent with Chromium's implementation
+  // (https://github.com/chromium/chromium/blob/51ef426ae939dfa43c870ca1808a1c74dc46ce37/base/command_line.cc#L73),
+  // we split the command line here. The part before the switch will be parsed
+  // and modified, while the switch and its entire argument will be appended
+  // verbatim at the end. Fix
+  // https://github.com/Bush2021/chrome_plus/issues/181.
+  auto [command_line, suffix] = SplitSingleArgumentSwitch(param);
+  auto args = ParseCommandLineArgs(command_line);
+  auto [main_args, trailing_args] = SeparateSentinelArgs(std::move(args));
+
+  const auto& config_args = config.GetCommandLine();
+  DebugLog(L"config_args: {}", config_args);
+  auto parsed_config_args = ParseConfiguredArgs(config_args);
+  main_args.insert(main_args.end(), parsed_config_args.begin(),
+                   parsed_config_args.end());
+
+  main_args.emplace_back(L"--portable");
+
+  auto processed = ProcessAndMergeArgs(main_args);
+  InjectConfigPaths(processed.final_args, processed.has_user_data_dir,
+                    processed.has_disk_cache_dir);
+  processed.final_args.insert(processed.final_args.end(), trailing_args.begin(),
+                              trailing_args.end());
+  return ReassembleCommandLine(processed.final_args, suffix);
 }
 
 }  // namespace
