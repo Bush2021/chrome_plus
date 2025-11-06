@@ -51,7 +51,7 @@ NodePtr HandleFindBar(HWND hwnd, POINT pt) {
   // issue: https://github.com/Bush2021/chrome_plus/issues/157
   NodePtr top_container_view = GetTopContainerView(hwnd);
   if (!top_container_view) {
-    if (IsOnPane(hwnd, pt) || IsOnDialog(hwnd, pt)) {
+    if (IsOnPane(hwnd, pt)) {
       return nullptr;
     }
     ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);

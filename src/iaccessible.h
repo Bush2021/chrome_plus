@@ -18,7 +18,6 @@ bool IsOnNewTab(NodePtr top);
 bool IsOnBookmark(HWND hwnd, POINT pt);
 bool IsOnExpandedList(HWND hwnd, POINT pt);
 bool IsOmniboxFocus(NodePtr top);
-bool IsOnDialog(HWND hwnd, POINT pt);
 bool IsOnCloseButton(NodePtr top, POINT pt);
 bool IsOnPane(HWND hwnd, POINT pt);
 

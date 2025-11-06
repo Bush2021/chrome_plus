@@ -520,26 +520,6 @@ bool IsOmniboxFocus(NodePtr top) {
   return is_focused;
 }
 
-// Whether the mouse is on the dialog box.
-[[maybe_unused]]
-bool IsOnDialog(HWND hwnd, POINT pt) {
-  bool flag = false;
-  TraversalAccessible(
-      GetChromeWidgetWin(hwnd),
-      [&pt, &flag](NodePtr child) {
-        if (GetAccessibleRole(child) == ROLE_SYSTEM_DIALOG) {
-          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
-            if (PtInRect(&rect, pt)) {
-              flag = true;
-            }
-          });
-        }
-        return flag;
-      },
-      true);  // raw_traversal
-  return flag;
-}
-
 // Whether the mouse is on the close button of a tab.
 // Should be used together with `IsOnOneTab` to search the close button.
 bool IsOnCloseButton(NodePtr top, POINT pt) {
