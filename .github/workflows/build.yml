@@ -66,7 +66,7 @@ jobs:
         run: xmake
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: version-${{ matrix.arch }}-${{ env.VERSION }}
           path: build/release/*
