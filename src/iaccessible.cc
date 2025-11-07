@@ -124,16 +124,12 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
       }
 
       if (is_task_completed) {
-        arr_children[j]
-            .pdispVal->Release();  // Release immediately to avoid memory leaks.
         continue;
       }
 
-      Microsoft::WRL::ComPtr<IDispatch> dispatch_interface =
-          arr_children[j].pdispVal;
       NodePtr child_node = nullptr;
-      if (S_OK != dispatch_interface->QueryInterface(IID_IAccessible,
-                                                     (void**)(&child_node))) {
+      if (S_OK != arr_children[j].pdispVal->QueryInterface(
+                      IID_IAccessible, (void**)(&child_node))) {
         continue;
       }
 
@@ -149,6 +145,10 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
           }
         }
       }
+    }
+
+    for (long k = 0; k < get_count; ++k) {
+      VariantClear(&arr_children[k]);
     }
 
     if (is_task_completed) {
