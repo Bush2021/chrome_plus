@@ -567,6 +567,9 @@ bool IsOnFindBarPane(POINT pt) {
     return false;
   };
   TraversalAccessible(root, find_focused, false);
+  if (!text_element) {
+    return false;
+  }
 
   auto parent = GetParentElement(text_element);
   // Assume there is only one level of PANE parent structure, which covers the
