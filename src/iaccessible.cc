@@ -335,13 +335,14 @@ bool IsOnlyOneTab(NodePtr top) {
 bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
   bool flag = false;
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (page_tab_list) {
-    GetAccessibleSize(page_tab_list, [&flag, &pt](const RECT& rect) {
-      if (PtInRect(&rect, pt)) {
-        flag = true;
-      }
-    });
+  if (!page_tab_list) {
+    return false;
   }
+  GetAccessibleSize(page_tab_list, [&flag, &pt](const RECT& rect) {
+    if (PtInRect(&rect, pt)) {
+      flag = true;
+    }
+  });
   return flag;
 }
 
@@ -397,7 +398,7 @@ bool IsNameNewTab(NodePtr top) {
 // Determine whether it is a new tab page from the document value of the tab
 // page.
 bool IsDocNewTab() {
-  auto cr_command_line = config.GetCommandLine();
+  const auto cr_command_line = config.GetCommandLine();
   if (cr_command_line.find(L"--force-renderer-accessibility") ==
       std::wstring::npos) {
     return false;
@@ -407,23 +408,25 @@ bool IsDocNewTab() {
   HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
                            L"Chrome_RenderWidgetHostHWND", nullptr);
   NodePtr pacc_main_window = nullptr;
-  if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
+  if (S_OK != AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
                                          IID_PPV_ARGS(&pacc_main_window))) {
-    NodePtr document =
-        FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
-    if (document) {
-      // The `accValue` of document needs to be obtained by adding the startup
-      // parameter `--force-renderer-accessibility=basic`. However, this
-      // parameter will slightly affect the performance of the browser when
-      // loading pages with a large number of elements. Therefore, it is not
-      // enabled by default. If users need to use this feature, they may add the
-      // parameter manually.
-      GetAccessibleValue(document, [&flag](BSTR bstr) {
-        std::wstring_view bstr_view(bstr);
-        flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
-               bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
-      });
-    }
+    return false;
+  }
+
+  NodePtr document =
+      FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
+  if (document) {
+    // The `accValue` of document needs to be obtained by adding the startup
+    // parameter `--force-renderer-accessibility=basic`. However, this
+    // parameter will slightly affect the performance of the browser when
+    // loading pages with a large number of elements. Therefore, it is not
+    // enabled by default. If users need to use this feature, they may add the
+    // parameter manually.
+    GetAccessibleValue(document, [&flag](BSTR bstr) {
+      std::wstring_view bstr_view(bstr);
+      flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
+             bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
+    });
   }
   return flag;
 }
