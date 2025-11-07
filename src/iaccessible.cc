@@ -110,7 +110,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
 
   auto step = child_count < 20 ? child_count : 20;
   auto arr_children = std::make_unique<VARIANT[]>(step);
-  for (auto i = 0; i < child_count;) {
+  for (long i = 0; i < child_count;) {
     long get_count = 0;
     if (S_OK != AccessibleChildren(node.Get(), i, step, arr_children.get(),
                                    &get_count)) {
@@ -118,7 +118,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
     }
 
     bool is_task_completed = false;
-    for (int j = 0; j < get_count; ++j) {
+    for (long j = 0; j < get_count; ++j) {
       if (arr_children[j].vt != VT_DISPATCH) {
         continue;
       }
@@ -164,34 +164,35 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
 }
 
 NodePtr FindElementWithRole(NodePtr node, long role) {
-  NodePtr element = nullptr;
-  if (node) {
-    TraversalAccessible(node, [&](NodePtr child) {
-      if (auto childRole = GetAccessibleRole(child); childRole == role) {
-        element = child;
-      } else {
-        element = FindElementWithRole(child, role);
-      }
-      return element != nullptr;
-    });
+  if (!node) {
+    return nullptr;
   }
+  NodePtr element = nullptr;
+  TraversalAccessible(node, [&](NodePtr child) {
+    if (auto childRole = GetAccessibleRole(child); childRole == role) {
+      element = child;
+    } else {
+      element = FindElementWithRole(child, role);
+    }
+    return element != nullptr;
+  });
   return element;
 }
 
 NodePtr FindPageTabList(NodePtr node) {
-  NodePtr page_tab_list = nullptr;
-  if (node) {
-    TraversalAccessible(node, [&](NodePtr child) {
-      if (auto role = GetAccessibleRole(child);
-          role == ROLE_SYSTEM_PAGETABLIST) {
-        page_tab_list = child;
-      } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
-        // These two judgments must be retained, otherwise it will crash (#56)
-        page_tab_list = FindPageTabList(child);
-      }
-      return page_tab_list;
-    });
+  if (!node) {
+    return nullptr;
   }
+  NodePtr page_tab_list = nullptr;
+  TraversalAccessible(node, [&](NodePtr child) {
+    if (auto role = GetAccessibleRole(child); role == ROLE_SYSTEM_PAGETABLIST) {
+      page_tab_list = child;
+    } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
+      // These two judgments must be retained, otherwise it will crash (#56)
+      page_tab_list = FindPageTabList(child);
+    }
+    return page_tab_list;
+  });
   return page_tab_list;
 }
 
@@ -312,7 +313,7 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
       return false;
     }
-    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+    GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
       if (PtInRect(&rect, pt)) {
         flag = true;
       }
@@ -335,7 +336,7 @@ bool IsOnTheTabBar(NodePtr top, POINT pt) {
   bool flag = false;
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (page_tab_list) {
-    GetAccessibleSize(page_tab_list, [&flag, &pt](RECT rect) {
+    GetAccessibleSize(page_tab_list, [&flag, &pt](const RECT& rect) {
       if (PtInRect(&rect, pt)) {
         flag = true;
       }
@@ -531,7 +532,7 @@ bool IsOnCloseButton(NodePtr top, POINT pt) {
       top,
       [&pt, &flag](NodePtr child) {
         if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
+          GetAccessibleSize(child, [&pt, &flag](const RECT& rect) {
             if (PtInRect(&rect, pt)) {
               flag = true;
             }
