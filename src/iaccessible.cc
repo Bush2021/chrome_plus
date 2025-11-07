@@ -196,6 +196,9 @@ NodePtr FindPageTabList(NodePtr node) {
 }
 
 NodePtr GetParentElement(NodePtr child) {
+  if (!child) {
+    return nullptr;
+  }
   NodePtr element = nullptr;
   Microsoft::WRL::ComPtr<IDispatch> dispatch = nullptr;
   if (S_OK == child->get_accParent(&dispatch) && dispatch) {
