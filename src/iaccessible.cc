@@ -294,7 +294,7 @@ int GetTabCount(NodePtr top) {
 }
 
 // Whether the mouse is on a tab
-bool IsOnOneTab(NodePtr top, POINT pt) {
+bool IsOnOneTab(NodePtr top, const POINT& pt) {
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (!page_tab_list) {
     return false;
@@ -332,7 +332,7 @@ bool IsOnlyOneTab(NodePtr top) {
 }
 
 // Whether the mouse is on the tab bar
-bool IsOnTheTabBar(NodePtr top, POINT pt) {
+bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
   bool flag = false;
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (page_tab_list) {
@@ -436,7 +436,7 @@ bool IsOnNewTab(NodePtr top) {
 }
 
 // Whether the mouse is on a bookmark.
-bool IsOnBookmark(HWND hwnd, POINT pt) {
+bool IsOnBookmark(HWND hwnd, const POINT& pt) {
   bool flag = false;
   std::function<bool(NodePtr)> LambdaEnumChild =
       [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
@@ -469,7 +469,7 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
 }
 
 // Expanded drop-down list in the address bar
-bool IsOnExpandedList(HWND hwnd, POINT pt) {
+bool IsOnExpandedList(HWND hwnd, const POINT& pt) {
   bool flag = false;
   std::function<bool(NodePtr)> LambdaEnumChild =
       [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
@@ -526,7 +526,7 @@ bool IsOmniboxFocus(NodePtr top) {
 
 // Whether the mouse is on the close button of a tab.
 // Should be used together with `IsOnOneTab` to search the close button.
-bool IsOnCloseButton(NodePtr top, POINT pt) {
+bool IsOnCloseButton(NodePtr top, const POINT& pt) {
   bool flag = false;
   TraversalAccessible(
       top,
@@ -544,7 +544,7 @@ bool IsOnCloseButton(NodePtr top, POINT pt) {
   return flag;
 }
 
-bool IsOnFindBarPane(POINT pt) {
+bool IsOnFindBarPane(const POINT& pt) {
   NodePtr root = nullptr;
   if ((S_OK != AccessibleObjectFromWindow(GetFocus(), OBJID_CLIENT,
                                           IID_PPV_ARGS(&root))) ||
