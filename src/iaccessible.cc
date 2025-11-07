@@ -567,7 +567,7 @@ bool IsOnFindBarPane(POINT pt) {
       return true;
     }
     TraversalAccessible(node, find_focused, false);
-    return false;
+    return text_element != nullptr;
   };
   TraversalAccessible(root, find_focused, false);
   if (!text_element) {
