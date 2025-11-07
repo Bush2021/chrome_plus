@@ -19,6 +19,6 @@ bool IsOnBookmark(HWND hwnd, POINT pt);
 bool IsOnExpandedList(HWND hwnd, POINT pt);
 bool IsOmniboxFocus(NodePtr top);
 bool IsOnCloseButton(NodePtr top, POINT pt);
-bool IsOnPane(HWND hwnd, POINT pt);
+bool IsOnFindBarPane(POINT pt);
 
 #endif  // CHROME_PLUS_SRC_IACCESSIBLE_H_

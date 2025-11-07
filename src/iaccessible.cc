@@ -540,22 +540,46 @@ bool IsOnCloseButton(NodePtr top, POINT pt) {
   return flag;
 }
 
-bool IsOnPane(HWND hwnd, POINT pt) {
-  NodePtr pacc_main_window = GetChromeWidgetWin(hwnd);
-  if (!pacc_main_window) {
+bool IsOnFindBarPane(POINT pt) {
+  NodePtr root = nullptr;
+  if ((S_OK != AccessibleObjectFromWindow(GetFocus(), OBJID_CLIENT,
+                                          IID_PPV_ARGS(&root))) ||
+      !root) {
+    return false;
+  }
+
+  NodePtr text_element = nullptr;
+  // Nov 6, 2025 - Chrome 142.0.7444.135
+  //   root
+  //   └─ PANE
+  //      └─ PANE
+  //         └─ PANE
+  //            └─ PANE
+  //               └─ TEXT (focused, the input field of find-in-page bar)
+  std::function<bool(NodePtr)> find_focused =
+      [&text_element, &find_focused](NodePtr node) -> bool {
+    if (GetAccessibleRole(node) == ROLE_SYSTEM_TEXT &&
+        (GetAccessibleState(node) & STATE_SYSTEM_FOCUSED)) {
+      text_element = node;
+      return true;
+    }
+    TraversalAccessible(node, find_focused, false);
+    return false;
+  };
+  TraversalAccessible(root, find_focused, false);
+
+  auto parent = GetParentElement(text_element);
+  // Assume there is only one level of PANE parent structure, which covers the
+  // whole find-in-page bar.
+  if (!parent || (GetAccessibleRole(parent) != ROLE_SYSTEM_PANE)) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(pacc_main_window, [&flag, &pt](NodePtr child) {
-    if (GetAccessibleRole(child) == ROLE_SYSTEM_PANE) {
-      GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
-        if (PtInRect(&rect, pt)) {
-          flag = true;
-        }
-      });
+  GetAccessibleSize(parent, [&flag, &pt](const RECT& rect) {
+    if (PtInRect(&rect, pt)) {
+      flag = true;
     }
-    return flag;
   });
   return flag;
 }
