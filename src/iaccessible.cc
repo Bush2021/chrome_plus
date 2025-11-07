@@ -110,7 +110,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
 
   auto step = child_count < 20 ? child_count : 20;
   auto arr_children = std::make_unique<VARIANT[]>(step);
-  for (auto i = 0; i < child_count;) {
+  for (long i = 0; i < child_count;) {
     long get_count = 0;
     if (S_OK != AccessibleChildren(node.Get(), i, step, arr_children.get(),
                                    &get_count)) {
@@ -118,7 +118,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
     }
 
     bool is_task_completed = false;
-    for (int j = 0; j < get_count; ++j) {
+    for (long j = 0; j < get_count; ++j) {
       if (arr_children[j].vt != VT_DISPATCH) {
         continue;
       }
@@ -164,34 +164,35 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
 }
 
 NodePtr FindElementWithRole(NodePtr node, long role) {
-  NodePtr element = nullptr;
-  if (node) {
-    TraversalAccessible(node, [&](NodePtr child) {
-      if (auto childRole = GetAccessibleRole(child); childRole == role) {
-        element = child;
-      } else {
-        element = FindElementWithRole(child, role);
-      }
-      return element != nullptr;
-    });
+  if (!node) {
+    return nullptr;
   }
+  NodePtr element = nullptr;
+  TraversalAccessible(node, [&](NodePtr child) {
+    if (auto childRole = GetAccessibleRole(child); childRole == role) {
+      element = child;
+    } else {
+      element = FindElementWithRole(child, role);
+    }
+    return element != nullptr;
+  });
   return element;
 }
 
 NodePtr FindPageTabList(NodePtr node) {
-  NodePtr page_tab_list = nullptr;
-  if (node) {
-    TraversalAccessible(node, [&](NodePtr child) {
-      if (auto role = GetAccessibleRole(child);
-          role == ROLE_SYSTEM_PAGETABLIST) {
-        page_tab_list = child;
-      } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
-        // These two judgments must be retained, otherwise it will crash (#56)
-        page_tab_list = FindPageTabList(child);
-      }
-      return page_tab_list;
-    });
+  if (!node) {
+    return nullptr;
   }
+  NodePtr page_tab_list = nullptr;
+  TraversalAccessible(node, [&](NodePtr child) {
+    if (auto role = GetAccessibleRole(child); role == ROLE_SYSTEM_PAGETABLIST) {
+      page_tab_list = child;
+    } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
+      // These two judgments must be retained, otherwise it will crash (#56)
+      page_tab_list = FindPageTabList(child);
+    }
+    return page_tab_list;
+  });
   return page_tab_list;
 }
 
@@ -293,7 +294,7 @@ int GetTabCount(NodePtr top) {
 }
 
 // Whether the mouse is on a tab
-bool IsOnOneTab(NodePtr top, POINT pt) {
+bool IsOnOneTab(NodePtr top, const POINT& pt) {
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (!page_tab_list) {
     return false;
@@ -312,7 +313,7 @@ bool IsOnOneTab(NodePtr top, POINT pt) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
       return false;
     }
-    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
+    GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
       if (PtInRect(&rect, pt)) {
         flag = true;
       }
@@ -331,16 +332,17 @@ bool IsOnlyOneTab(NodePtr top) {
 }
 
 // Whether the mouse is on the tab bar
-bool IsOnTheTabBar(NodePtr top, POINT pt) {
+bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
   bool flag = false;
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (page_tab_list) {
-    GetAccessibleSize(page_tab_list, [&flag, &pt](RECT rect) {
-      if (PtInRect(&rect, pt)) {
-        flag = true;
-      }
-    });
+  if (!page_tab_list) {
+    return false;
   }
+  GetAccessibleSize(page_tab_list, [&flag, &pt](const RECT& rect) {
+    if (PtInRect(&rect, pt)) {
+      flag = true;
+    }
+  });
   return flag;
 }
 
@@ -396,7 +398,7 @@ bool IsNameNewTab(NodePtr top) {
 // Determine whether it is a new tab page from the document value of the tab
 // page.
 bool IsDocNewTab() {
-  auto cr_command_line = config.GetCommandLine();
+  const auto cr_command_line = config.GetCommandLine();
   if (cr_command_line.find(L"--force-renderer-accessibility") ==
       std::wstring::npos) {
     return false;
@@ -406,23 +408,25 @@ bool IsDocNewTab() {
   HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
                            L"Chrome_RenderWidgetHostHWND", nullptr);
   NodePtr pacc_main_window = nullptr;
-  if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
+  if (S_OK != AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
                                          IID_PPV_ARGS(&pacc_main_window))) {
-    NodePtr document =
-        FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
-    if (document) {
-      // The `accValue` of document needs to be obtained by adding the startup
-      // parameter `--force-renderer-accessibility=basic`. However, this
-      // parameter will slightly affect the performance of the browser when
-      // loading pages with a large number of elements. Therefore, it is not
-      // enabled by default. If users need to use this feature, they may add the
-      // parameter manually.
-      GetAccessibleValue(document, [&flag](BSTR bstr) {
-        std::wstring_view bstr_view(bstr);
-        flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
-               bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
-      });
-    }
+    return false;
+  }
+
+  NodePtr document =
+      FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
+  if (document) {
+    // The `accValue` of document needs to be obtained by adding the startup
+    // parameter `--force-renderer-accessibility=basic`. However, this
+    // parameter will slightly affect the performance of the browser when
+    // loading pages with a large number of elements. Therefore, it is not
+    // enabled by default. If users need to use this feature, they may add the
+    // parameter manually.
+    GetAccessibleValue(document, [&flag](BSTR bstr) {
+      std::wstring_view bstr_view(bstr);
+      flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
+             bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
+    });
   }
   return flag;
 }
@@ -435,7 +439,7 @@ bool IsOnNewTab(NodePtr top) {
 }
 
 // Whether the mouse is on a bookmark.
-bool IsOnBookmark(HWND hwnd, POINT pt) {
+bool IsOnBookmark(HWND hwnd, const POINT& pt) {
   bool flag = false;
   std::function<bool(NodePtr)> LambdaEnumChild =
       [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
@@ -468,7 +472,7 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
 }
 
 // Expanded drop-down list in the address bar
-bool IsOnExpandedList(HWND hwnd, POINT pt) {
+bool IsOnExpandedList(HWND hwnd, const POINT& pt) {
   bool flag = false;
   std::function<bool(NodePtr)> LambdaEnumChild =
       [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
@@ -525,13 +529,13 @@ bool IsOmniboxFocus(NodePtr top) {
 
 // Whether the mouse is on the close button of a tab.
 // Should be used together with `IsOnOneTab` to search the close button.
-bool IsOnCloseButton(NodePtr top, POINT pt) {
+bool IsOnCloseButton(NodePtr top, const POINT& pt) {
   bool flag = false;
   TraversalAccessible(
       top,
       [&pt, &flag](NodePtr child) {
         if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
+          GetAccessibleSize(child, [&pt, &flag](const RECT& rect) {
             if (PtInRect(&rect, pt)) {
               flag = true;
             }
@@ -543,7 +547,7 @@ bool IsOnCloseButton(NodePtr top, POINT pt) {
   return flag;
 }
 
-bool IsOnFindBarPane(POINT pt) {
+bool IsOnFindBarPane(const POINT& pt) {
   NodePtr root = nullptr;
   if ((S_OK != AccessibleObjectFromWindow(GetFocus(), OBJID_CLIENT,
                                           IID_PPV_ARGS(&root))) ||
