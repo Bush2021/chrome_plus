@@ -38,9 +38,8 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: 附件 (可选)
+      label: 附件
       description: |
-        你可以在此处上传相关的截图、视频或其他文件来帮助说明问题。
-        请直接拖拽文件到此区域或使用粘贴功能。
+        请在此处上传相关的截图、视频或其他文件来帮助说明问题。
     validations:
       required: false

@@ -38,9 +38,8 @@ body:
       required: true
   - type: textarea
     attributes:
-      label: Attachments (Optional)
+      label: Attachments
       description: |
-        You can upload relevant screenshots, videos, or other files here to help illustrate the problem.
-        Please drag and drop files into this area or use the paste function.
+        Please upload relevant screenshots, videos, or other files here to help illustrate the problem.
     validations:
       required: false
