@@ -380,6 +380,9 @@ bool IsNameNewTab(NodePtr top) {
           GetAccessibleName(
               child, [&flag, &new_tab_name, &disable_tab_names](BSTR bstr) {
                 std::wstring_view bstr_view(bstr);
+                if (!new_tab_name) {
+                  return;
+                }
                 std::wstring_view new_tab_view(new_tab_name.get());
                 flag = (bstr_view.find(new_tab_view) != std::wstring::npos);
                 for (const auto& tab_name : disable_tab_names) {
