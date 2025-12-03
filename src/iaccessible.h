@@ -12,8 +12,6 @@ int GetTabCount(NodePtr top);
 bool IsOnOneTab(NodePtr top, const POINT& pt);
 bool IsOnlyOneTab(NodePtr top);
 bool IsOnTheTabBar(NodePtr top, const POINT& pt);
-bool IsNameNewTab(NodePtr top);
-bool IsDocNewTab();
 bool IsOnNewTab(NodePtr top);
 bool IsOnBookmark(HWND hwnd, const POINT& pt);
 bool IsOnExpandedList(HWND hwnd, const POINT& pt);

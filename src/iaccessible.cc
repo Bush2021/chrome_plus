@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -232,6 +233,129 @@ NodePtr GetParentElement(NodePtr child) {
   return element;
 }
 
+// This is the name of the new tab button since the name may vary with different
+// language versions of Chrome. Should be same as the name of the default new
+// tab page.
+std::optional<std::wstring> GetStdNameFromNewTabButton(NodePtr page_tab_list) {
+  if (!page_tab_list) {
+    return std::nullopt;
+  }
+
+  std::wstring std_name;
+  TraversalAccessible(page_tab_list, [&std_name](NodePtr child) {
+    if (!std_name.empty()) {
+      return false;
+    }
+    if (GetAccessibleRole(child) != ROLE_SYSTEM_PUSHBUTTON) {
+      return false;
+    }
+    GetAccessibleName(child, [&std_name](BSTR bstr) {
+      // TODO: figure out why sometimes (143.0.7499.41) the name is empty even
+      // we do find the push button (#191).
+      if (!bstr) {
+        return;
+      }
+      std_name.assign(bstr);
+    });
+    return !std_name.empty();
+  });
+  return std_name.empty() ? std::nullopt
+                          : std::optional<std::wstring>{std_name};
+}
+
+// Determine whether it is a new tab page from the name of the current tab page.
+bool IsNameNewTab(NodePtr top) {
+  if (!top) {
+    return false;
+  }
+
+  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  if (!page_tab_list) {
+    return false;
+  }
+  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  if (!page_tab) {
+    return false;
+  }
+  NodePtr page_tab_pane = GetParentElement(page_tab);
+  if (!page_tab_pane) {
+    return false;
+  }
+
+  bool is_new_tab = false;
+  const auto names_from_config =
+      StringSplit(config.GetDisableTabName(), L',', L"\"");
+  const auto std_name = GetStdNameFromNewTabButton(page_tab_list);
+  TraversalAccessible(page_tab_pane, [&is_new_tab, &std_name,
+                                      &names_from_config](NodePtr child) {
+    if ((GetAccessibleState(child) & STATE_SYSTEM_SELECTED) == 0) {
+      return false;
+    }
+    GetAccessibleName(child, [&is_new_tab, &std_name,
+                              &names_from_config](BSTR bstr) {
+      if (!bstr || is_new_tab) {
+        return;
+      }
+
+      std::wstring_view selected_tab_name(bstr);
+      if (std_name.has_value() &&
+          selected_tab_name.find(std_name.value()) != std::wstring_view::npos) {
+        is_new_tab = true;
+        return;
+      }
+
+      for (const auto& name_from_config : names_from_config) {
+        if (name_from_config.empty()) {
+          continue;
+        }
+        if (selected_tab_name.find(name_from_config) !=
+            std::wstring_view::npos) {
+          is_new_tab = true;
+          break;
+        }
+      }
+    });
+    return is_new_tab;
+  });
+  return is_new_tab;
+}
+
+// Determine whether it is a new tab page from the document value of the tab
+// page.
+bool IsDocNewTab() {
+  const auto cr_command_line = config.GetCommandLine();
+  if (cr_command_line.find(L"--force-renderer-accessibility") ==
+      std::wstring::npos) {
+    return false;
+  }
+
+  bool flag = false;
+  HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
+                           L"Chrome_RenderWidgetHostHWND", nullptr);
+  NodePtr pacc_main_window = nullptr;
+  if (S_OK != AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
+                                         IID_PPV_ARGS(&pacc_main_window))) {
+    return false;
+  }
+
+  NodePtr document =
+      FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
+  if (document) {
+    // The `accValue` of document needs to be obtained by adding the startup
+    // parameter `--force-renderer-accessibility=basic`. However, this
+    // parameter will slightly affect the performance of the browser when
+    // loading pages with a large number of elements. Therefore, it is not
+    // enabled by default. If users need to use this feature, they may add the
+    // parameter manually.
+    GetAccessibleValue(document, [&flag](BSTR bstr) {
+      std::wstring_view bstr_view(bstr);
+      flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
+             bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
+    });
+  }
+  return flag;
+}
+
 }  // namespace
 
 NodePtr GetChromeWidgetWin(HWND hwnd) {
@@ -343,94 +467,6 @@ bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
       flag = true;
     }
   });
-  return flag;
-}
-
-// Determine whether it is a new tab page from the name of the current tab page.
-bool IsNameNewTab(NodePtr top) {
-  bool flag = false;
-  std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
-  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (!page_tab_list) {
-    return false;
-  }
-  TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
-    if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-      GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-        new_tab_name.reset(
-            _wcsdup(bstr));  // Save the name obtained from the new tab button.
-      });
-    }
-    return false;
-  });
-  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
-  if (!page_tab) {
-    return false;
-  }
-  NodePtr page_tab_pane = GetParentElement(page_tab);
-  if (!page_tab_pane) {
-    return false;
-  }
-
-  std::vector<std::wstring> disable_tab_names =
-      StringSplit(config.GetDisableTabName(), L',', L"\"");
-  TraversalAccessible(
-      page_tab_pane, [&flag, &new_tab_name, &disable_tab_names](NodePtr child) {
-        if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) {
-          GetAccessibleName(
-              child, [&flag, &new_tab_name, &disable_tab_names](BSTR bstr) {
-                std::wstring_view bstr_view(bstr);
-                if (!new_tab_name) {
-                  return;
-                }
-                std::wstring_view new_tab_view(new_tab_name.get());
-                flag = (bstr_view.find(new_tab_view) != std::wstring::npos);
-                for (const auto& tab_name : disable_tab_names) {
-                  if (bstr_view.find(tab_name) != std::wstring::npos) {
-                    flag = true;
-                    break;
-                  }
-                }
-              });
-        }
-        return false;
-      });
-  return flag;
-}
-
-// Determine whether it is a new tab page from the document value of the tab
-// page.
-bool IsDocNewTab() {
-  const auto cr_command_line = config.GetCommandLine();
-  if (cr_command_line.find(L"--force-renderer-accessibility") ==
-      std::wstring::npos) {
-    return false;
-  }
-
-  bool flag = false;
-  HWND hwnd = FindWindowEx(GetForegroundWindow(), nullptr,
-                           L"Chrome_RenderWidgetHostHWND", nullptr);
-  NodePtr pacc_main_window = nullptr;
-  if (S_OK != AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                         IID_PPV_ARGS(&pacc_main_window))) {
-    return false;
-  }
-
-  NodePtr document =
-      FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
-  if (document) {
-    // The `accValue` of document needs to be obtained by adding the startup
-    // parameter `--force-renderer-accessibility=basic`. However, this
-    // parameter will slightly affect the performance of the browser when
-    // loading pages with a large number of elements. Therefore, it is not
-    // enabled by default. If users need to use this feature, they may add the
-    // parameter manually.
-    GetAccessibleValue(document, [&flag](BSTR bstr) {
-      std::wstring_view bstr_view(bstr);
-      flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
-             bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
-    });
-  }
   return flag;
 }
 
