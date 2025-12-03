@@ -205,16 +205,12 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  NodePtr top_container_view = GetTopContainerView(
-      GetFocus());  // Must use `GetFocus()`, otherwise when opening bookmarks
-                    // in a bookmark folder (and similar expanded menus),
-                    // `top_container_view` cannot be obtained, making it
-                    // impossible to correctly determine `is_on_new_tab`. See
-                    // #98.
 
-  bool is_on_bookmark = IsOnBookmark(hwnd, pt);
-  bool is_on_expanded_list = IsOnExpandedList(hwnd, pt);
-  if (is_on_bookmark && is_on_expanded_list) {
+  if (!IsOnBookmark(hwnd, pt)) {
+    return false;
+  }
+
+  if (IsOnExpandedList(hwnd, pt)) {
     // This is only used to determine the expanded dropdown menu of the address
     // bar. When the mouse clicks on it, it may penetrate through to the
     // background, causing a misjudgment that it is on the bookmark. Related
@@ -222,8 +218,14 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return false;
   }
 
-  bool is_on_new_tab = IsOnNewTab(top_container_view);
-  if (is_on_bookmark && !is_on_new_tab) {
+  NodePtr top_container_view = GetTopContainerView(
+      GetFocus());  // Must use `GetFocus()`, otherwise when opening bookmarks
+                    // in a bookmark folder (and similar expanded menus),
+                    // `top_container_view` cannot be obtained, making it
+                    // impossible to correctly determine `is_on_new_tab`. See
+                    // #98.
+
+  if (!IsOnNewTab(top_container_view)) {
     if (mode == 1) {
       SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (mode == 2) {
@@ -231,7 +233,6 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     }
     return true;
   }
-
   return false;
 }
 
