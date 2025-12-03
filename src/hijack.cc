@@ -91,6 +91,12 @@ EXPORT(VerQueryValueW)
 
 namespace {
 // Internal helper functions are kept in the anonymous namespace
+static auto RawWcslen = wcslen;
+
+size_t __cdecl SafeWcslen(const wchar_t* str) {
+  return str ? RawWcslen(str) : 0;
+}
+
 void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
@@ -145,4 +151,11 @@ void LoadVersion(HINSTANCE module_handle) {
 
 void LoadSysDll(HINSTANCE hModule) {
   LoadVersion(hModule);
+  
+  // Hook wcslen to prevent null pointer crashes in version.dll
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawWcslen),
+               reinterpret_cast<void*>(SafeWcslen));
+  DetourTransactionCommit();
 }
