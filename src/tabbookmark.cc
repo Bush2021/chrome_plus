@@ -140,11 +140,8 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
     return 0;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
-  bool keep_tab = IsNeedKeep(top_container_view);
-
-  if (is_on_one_tab) {
-    if (keep_tab) {
+  if (IsOnOneTab(top_container_view, pt)) {
+    if (IsNeedKeep(top_container_view)) {
       ExecuteCommand(IDC_NEW_TAB, hwnd);
       ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     } else {
