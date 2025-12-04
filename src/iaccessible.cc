@@ -17,16 +17,19 @@
 namespace {
 
 template <typename Function>
-void GetAccessibleName(NodePtr node, Function f) {
+HRESULT GetAccessibleName(NodePtr node,
+                          Function f) {  // 修改这里：void -> HRESULT
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
 
   BSTR bstr = nullptr;
-  if (S_OK == node->get_accName(self, &bstr)) {
+  HRESULT hr = node->get_accName(self, &bstr);  // 以此捕获返回值
+  if (hr == S_OK) {
     f(bstr);
     SysFreeString(bstr);
   }
+  return hr;  // 返回它
 }
 
 template <typename Function>
@@ -356,15 +359,36 @@ bool IsNameNewTab(NodePtr top) {
   bool flag = false;
   std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+
   if (!page_tab_list) {
+    DebugLog(L"IsNameNewTab: Failed to find ROLE_SYSTEM_PAGETABLIST");
     return false;
   }
+
+  // 遍历寻找 New Tab 按钮
   TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-      GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-        new_tab_name.reset(
-            _wcsdup(bstr));  // Save the name obtained from the new tab button.
+      // 调用并捕获 HRESULT
+      HRESULT hr = GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
+        // 如果是 S_OK，这里会被执行
+        DebugLog(L"IsNameNewTab: Found PUSHBUTTON (S_OK). Name: '{}'",
+                 bstr ? bstr : L"(null)");
+        new_tab_name.reset(_wcsdup(bstr));
       });
+
+      // 如果不是 S_OK，打印错误码
+      if (hr != S_OK) {
+        DebugLog(
+            L"IsNameNewTab: Found PUSHBUTTON but get_accName failed/empty. "
+            L"HRESULT: 0x{:08X}",
+            (unsigned long)hr);
+
+        // 尝试获取一下 Description 看看是不是移到这儿了
+        GetAccessibleDescription(child, [](BSTR desc) {
+          DebugLog(L"IsNameNewTab: Fallback Description check: '{}'",
+                   desc ? desc : L"(null)");
+        });
+      }
     }
     return false;
   });
@@ -385,7 +409,13 @@ bool IsNameNewTab(NodePtr top) {
           GetAccessibleName(
               child, [&flag, &new_tab_name, &disable_tab_names](BSTR bstr) {
                 std::wstring_view bstr_view(bstr);
-                std::wstring_view new_tab_view(new_tab_name.get());
+                std::wstring_view new_tab_view(
+                    new_tab_name.get() ? new_tab_name.get() : L"");
+
+                // 增加比对日志
+                // DebugLog(L"IsNameNewTab: Comparing Tab '{}' with NewTabName
+                // '{}'", bstr_view, new_tab_view);
+
                 flag = (bstr_view.find(new_tab_view) != std::wstring::npos);
                 for (const auto& tab_name : disable_tab_names) {
                   if (bstr_view.find(tab_name) != std::wstring::npos) {
