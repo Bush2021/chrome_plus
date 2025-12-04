@@ -359,39 +359,40 @@ bool IsNameNewTab(NodePtr top) {
   bool flag = false;
   std::unique_ptr<wchar_t, decltype(&free)> new_tab_name(nullptr, free);
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-
   if (!page_tab_list) {
-    DebugLog(L"IsNameNewTab: Failed to find ROLE_SYSTEM_PAGETABLIST");
     return false;
   }
 
-  // 遍历寻找 New Tab 按钮
-  TraversalAccessible(page_tab_list, [&new_tab_name](NodePtr child) {
-    if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-      // 调用并捕获 HRESULT
-      HRESULT hr = GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
-        // 如果是 S_OK，这里会被执行
+  DebugLog(L"=== Start Dump Children of PageTabList ===");
+  int index = 0;
+  TraversalAccessible(page_tab_list, [&new_tab_name, &index](NodePtr child) {
+    long role = GetAccessibleRole(child);
+    long state = GetAccessibleState(child);
+    std::wstring name_debug = L"(null)";
+    GetAccessibleName(child, [&](BSTR bstr) {
+      if (bstr)
+        name_debug = bstr;
+    });
+    DebugLog(L"Child[{}]: Role={} (0x{:X}), State=0x{:X}, Name='{}'", index++,
+             role, role, state, name_debug);
+    if (role == ROLE_SYSTEM_PUSHBUTTON) {
+      auto hr = GetAccessibleName(child, [&new_tab_name](BSTR bstr) {
         DebugLog(L"IsNameNewTab: Found PUSHBUTTON (S_OK). Name: '{}'",
                  bstr ? bstr : L"(null)");
-        new_tab_name.reset(_wcsdup(bstr));
+        new_tab_name.reset(
+            _wcsdup(bstr));  // Save the name obtained from the new tab button.
       });
-
-      // 如果不是 S_OK，打印错误码
       if (hr != S_OK) {
         DebugLog(
             L"IsNameNewTab: Found PUSHBUTTON but get_accName failed/empty. "
             L"HRESULT: 0x{:08X}",
             (unsigned long)hr);
-
-        // 尝试获取一下 Description 看看是不是移到这儿了
-        GetAccessibleDescription(child, [](BSTR desc) {
-          DebugLog(L"IsNameNewTab: Fallback Description check: '{}'",
-                   desc ? desc : L"(null)");
-        });
       }
     }
     return false;
   });
+  DebugLog(L"=== End Dump Children ===");
+
   NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
   if (!page_tab) {
     return false;
@@ -406,24 +407,20 @@ bool IsNameNewTab(NodePtr top) {
   TraversalAccessible(
       page_tab_pane, [&flag, &new_tab_name, &disable_tab_names](NodePtr child) {
         if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) {
-          GetAccessibleName(
-              child, [&flag, &new_tab_name, &disable_tab_names](BSTR bstr) {
-                std::wstring_view bstr_view(bstr);
-                std::wstring_view new_tab_view(
-                    new_tab_name.get() ? new_tab_name.get() : L"");
-
-                // 增加比对日志
-                // DebugLog(L"IsNameNewTab: Comparing Tab '{}' with NewTabName
-                // '{}'", bstr_view, new_tab_view);
-
-                flag = (bstr_view.find(new_tab_view) != std::wstring::npos);
-                for (const auto& tab_name : disable_tab_names) {
-                  if (bstr_view.find(tab_name) != std::wstring::npos) {
-                    flag = true;
-                    break;
-                  }
-                }
-              });
+          GetAccessibleName(child, [&flag, &new_tab_name,
+                                    &disable_tab_names](BSTR bstr) {
+            std::wstring_view bstr_view(bstr);
+            std::wstring_view new_tab_view(new_tab_name.get());
+            DebugLog(L"IsNameNewTab: Comparing Tab '{}' with NewTabName '{}'",
+                     bstr_view, new_tab_view);
+            flag = (bstr_view.find(new_tab_view) != std::wstring::npos);
+            for (const auto& tab_name : disable_tab_names) {
+              if (bstr_view.find(tab_name) != std::wstring::npos) {
+                flag = true;
+                break;
+              }
+            }
+          });
         }
         return false;
       });
