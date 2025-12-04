@@ -91,16 +91,21 @@ std::wstring ExpandEnvironmentPath(const std::wstring& path);
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <mutex>
 template <typename... Args>
 void DebugLog(std::wformat_string<Args...> fmt, Args&&... args) {
-  std::wstring log_entry = std::format(
-      L"[chrome++] {}\n", std::format(fmt, std::forward<Args>(args)...));
+  static std::mutex log_mutex;
+  std::lock_guard<std::mutex> lock(log_mutex);
+
+  std::wstring log_content = std::format(
+      L"[chrome++] {}", std::format(fmt, std::forward<Args>(args)...));
 
   std::filesystem::path log_path = GetAppDir();
   log_path /= L"Chrome++_Debug.log";
 
   if (std::wofstream log_file(log_path, std::ios::app); log_file.is_open()) {
-    log_file << log_entry;
+    log_file.imbue(std::locale(""));
+    log_file << log_content << std::endl;
   }
 }
 #else
