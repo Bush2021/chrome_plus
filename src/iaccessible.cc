@@ -361,14 +361,19 @@ bool IsDocNewTab() {
 NodePtr GetChromeWidgetWin(HWND hwnd) {
   NodePtr pacc_main_window = nullptr;
   wchar_t name[MAX_PATH];
-  if (GetClassName(hwnd, name, MAX_PATH) &&
-      wcsstr(name, L"Chrome_WidgetWin_") == name) {
-    if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
-                                           IID_PPV_ARGS(&pacc_main_window))) {
-      return pacc_main_window;
-    }
+  if (!GetClassName(hwnd, name, MAX_PATH)) {
+    DebugLog(L"GetChromeWidgetWin failed: GetClassName failed, error {}",
+             GetLastError());
+    return nullptr;
   }
-  DebugLog(L"GetChromeWidgetWin failed");
+  if (wcsstr(name, L"Chrome_WidgetWin_") != name) {
+    DebugLog(L"GetChromeWidgetWin failed: class name mismatch, got '{}'", name);
+    return nullptr;
+  }
+  if (S_OK == AccessibleObjectFromWindow(hwnd, OBJID_WINDOW,
+                                         IID_PPV_ARGS(&pacc_main_window))) {
+    return pacc_main_window;
+  }
   return nullptr;
 }
 
