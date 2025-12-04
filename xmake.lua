@@ -13,7 +13,8 @@ if is_mode("release") then
     add_requires("vc-ltl5")
     add_defines("NDEBUG")
     add_cxflags("/MP")
-    add_ldflags("/DYNAMICBASE", "/LTCG")
+    add_ldflags("/DYNAMICBASE")
+    set_policy("build.optimization.lto", true)
 end
 
 if is_mode("debug") then
