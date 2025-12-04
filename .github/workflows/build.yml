@@ -23,12 +23,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: build_x86
-            arch: x86
           - name: build_x64
             arch: x64
-          - name: build_arm64
-            arch: arm64
 
     name: ${{ matrix.name }}
     runs-on: windows-2025
@@ -60,7 +56,7 @@ jobs:
         uses: xmake-io/github-action-setup-xmake@v1
 
       - name: Configure Xmake
-        run: xmake f -a ${{ matrix.arch }} --toolchain=clang-cl --yes
+        run: xmake f -a ${{ matrix.arch }} -m debug --toolchain=clang-cl --yes
 
       - name: Build Chrome++
         run: xmake
