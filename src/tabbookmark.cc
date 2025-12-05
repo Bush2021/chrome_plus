@@ -234,7 +234,7 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  static bool wheel_tab_ing = false;
+  static bool wheel_tab_ing_with_rbutton = false;
   if (nCode != HC_ACTION) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
   }
@@ -265,13 +265,16 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     // Swallow the first RBUTTONUP that follows a wheel-based tab switch to
     // suppress Chrome's context menu; the RBUTTONUP arrives after
     // WM_MOUSEWHEEL.
-    if (wParam == WM_RBUTTONUP && wheel_tab_ing) {
-      wheel_tab_ing = false;
+    if (wParam == WM_RBUTTONUP && wheel_tab_ing_with_rbutton) {
+      wheel_tab_ing_with_rbutton = false;
       return 1;
     }
 
     if (HandleMouseWheel(wParam, lParam, pmouse)) {
-      wheel_tab_ing = true;
+      // Mark it true only when a tab switch is performed via mouse wheel with
+      // right button pressed. Otherwise, normal mouse wheel to switch tabs will
+      // swallow irrelevant RBUTTONUP events, causing #198.
+      wheel_tab_ing_with_rbutton = IsPressed(VK_RBUTTON);
       return 1;
     }
 
