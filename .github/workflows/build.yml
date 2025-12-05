@@ -65,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: version-${{ matrix.arch }}-${{ env.VERSION }}
-          path: build/release/*
+          path: build/debug/*
 
   create_pr:
     needs: build
