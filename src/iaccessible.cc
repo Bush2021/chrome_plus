@@ -164,39 +164,6 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
   }
 }
 
-NodePtr FindElementWithRole(NodePtr node, long role) {
-  if (!node) {
-    return nullptr;
-  }
-  NodePtr element = nullptr;
-  TraversalAccessible(node, [&](NodePtr child) {
-    if (auto childRole = GetAccessibleRole(child); childRole == role) {
-      element = child;
-    } else {
-      element = FindElementWithRole(child, role);
-    }
-    return element != nullptr;
-  });
-  return element;
-}
-
-NodePtr FindPageTabList(NodePtr node) {
-  if (!node) {
-    return nullptr;
-  }
-  NodePtr page_tab_list = nullptr;
-  TraversalAccessible(node, [&](NodePtr child) {
-    if (auto role = GetAccessibleRole(child); role == ROLE_SYSTEM_PAGETABLIST) {
-      page_tab_list = child;
-    } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
-      // These two judgments must be retained, otherwise it will crash (#56)
-      page_tab_list = FindPageTabList(child);
-    }
-    return page_tab_list;
-  });
-  return page_tab_list;
-}
-
 NodePtr GetParentElement(NodePtr child) {
   if (!child) {
     return nullptr;
@@ -210,6 +177,56 @@ NodePtr GetParentElement(NodePtr child) {
     }
   }
   return element;
+}
+
+bool IsBrowserUIContainer(long role) {
+  // We should keep these restrictions to avoid unbounded DFS, which may
+  // traverse into unexpected subtree (e.g. web content) instead of staying
+  // within the browser UI tree. We might get buggy controls or false
+  // positives (#56, #191).
+  return role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR;
+}
+// Recursively find an element with the specified role, with or without pruning.
+// To find a element when specifing more than one condition (e.g. name
+// description, state, etc), use lambda to recurse manually.
+NodePtr FindElementWithRole(NodePtr node, long target_role, auto predicate) {
+  if (!node) {
+    return nullptr;
+  }
+  NodePtr element = nullptr;
+  TraversalAccessible(node, [&](NodePtr child) {
+    const auto child_role = GetAccessibleRole(child);
+    if (child_role == target_role) {
+      element = child;
+      return true;
+    } else if (predicate(child_role)) {
+      element = FindElementWithRole(child, target_role, predicate);
+      if (element) {
+        return true;
+      }
+    }
+    return false;
+  });
+  return element;
+}
+
+NodePtr FindElementWithRole(NodePtr node, long target_role) {
+  return FindElementWithRole(node, target_role, IsBrowserUIContainer);
+}
+
+NodePtr FindPageTabPane(NodePtr node) {
+  if (!node) {
+    return nullptr;
+  }
+  NodePtr page_tab_list = FindElementWithRole(node, ROLE_SYSTEM_PAGETABLIST);
+  if (!page_tab_list) {
+    return nullptr;
+  }
+  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  if (!page_tab) {
+    return nullptr;
+  }
+  return GetParentElement(page_tab);
 }
 
 [[maybe_unused]] NodePtr FindChildElement(NodePtr parent,
@@ -338,8 +355,8 @@ bool IsDocNewTab() {
     return false;
   }
 
-  NodePtr document =
-      FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT);
+  NodePtr document = FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT,
+                                         [](long) { return true; });
   if (document) {
     // The `accValue` of document needs to be obtained by adding the startup
     // parameter `--force-renderer-accessibility=basic`. However, this
@@ -379,7 +396,8 @@ NodePtr GetChromeWidgetWin(HWND hwnd) {
 
 NodePtr GetTopContainerView(HWND hwnd) {
   NodePtr top_container_view = nullptr;
-  NodePtr page_tab_list = FindPageTabList(GetChromeWidgetWin(hwnd));
+  NodePtr page_tab_list =
+      FindElementWithRole(GetChromeWidgetWin(hwnd), ROLE_SYSTEM_PAGETABLIST);
   if (page_tab_list) {
     top_container_view = GetParentElement(page_tab_list);
   }
@@ -391,15 +409,7 @@ NodePtr GetTopContainerView(HWND hwnd) {
 
 // Gets the current number of tabs.
 int GetTabCount(NodePtr top) {
-  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
-  if (!page_tab_list) {
-    return 0;
-  }
-  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
-  if (!page_tab) {
-    return 0;
-  }
-  NodePtr page_tab_pane = GetParentElement(page_tab);
+  NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return 0;
   }
@@ -424,15 +434,7 @@ int GetTabCount(NodePtr top) {
 
 // Whether the mouse is on a tab
 bool IsOnOneTab(NodePtr top, const POINT& pt) {
-  NodePtr page_tab_list = FindPageTabList(top);
-  if (!page_tab_list) {
-    return false;
-  }
-  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
-  if (!page_tab) {
-    return false;
-  }
-  NodePtr page_tab_pane = GetParentElement(page_tab);
+  NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return false;
   }
