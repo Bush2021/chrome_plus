@@ -2,7 +2,13 @@
 
 #include <windows.h>
 
+#include <algorithm>
+#include <cstdlib>
 #include <functional>
+#include <memory>
+#include <ranges>
+#include <span>
+#include <vector>
 
 #pragma warning(disable : 4334)
 #pragma warning(disable : 4267)
@@ -51,8 +57,7 @@ bool CheckHeader(uint8_t* buffer, PakEntry*& pak_entry, PakEntry*& end_entry) {
     return false;
 
   if (version == kPack4FileVersion) {
-    Pak4Header* pak_header =
-        reinterpret_cast<Pak4Header*>(buffer + sizeof(uint32_t));
+    auto* pak_header = reinterpret_cast<Pak4Header*>(buffer + sizeof(uint32_t));
     if (pak_header->encoding != 1)
       return false;
 
@@ -62,8 +67,7 @@ bool CheckHeader(uint8_t* buffer, PakEntry*& pak_entry, PakEntry*& end_entry) {
   }
 
   if (version == kPack5FileVersion) {
-    Pak5Header* pak_header =
-        reinterpret_cast<Pak5Header*>(buffer + sizeof(uint32_t));
+    auto* pak_header = reinterpret_cast<Pak5Header*>(buffer + sizeof(uint32_t));
     if (pak_header->encoding != 1)
       return false;
 
@@ -123,64 +127,61 @@ void TraversalGZIPFile(uint8_t* buffer,
       continue;
     }
 
-    BYTE gzip[] = {0x1F, 0x8B, 0x08};
-    size_t gzip_len = sizeof(gzip);
-    if (memcmp(buffer + pak_entry->file_offset, gzip, gzip_len) != 0) {
-      // Not a gzip file, skip
+    constexpr uint8_t kGzipMagic[] = {0x1F, 0x8B, 0x08};
+    std::span<uint8_t> entry_data(buffer + pak_entry->file_offset, old_size);
+    if (entry_data.size() < sizeof(kGzipMagic) ||
+        !std::ranges::equal(entry_data.subspan(0, sizeof(kGzipMagic)),
+                            kGzipMagic)) {
+      // Not a GZIP file, skipping
       pak_entry = next_entry;
       continue;
     }
 
     uint32_t original_size =
         *reinterpret_cast<uint32_t*>(buffer + next_entry->file_offset - 4);
-    uint8_t* unpack_buffer = static_cast<uint8_t*>(malloc(original_size));
+
+    auto unpack_buffer =
+        std::make_unique_for_overwrite<uint8_t[]>(original_size);
+
     if (!unpack_buffer) {
-      return;
+      pak_entry = next_entry;
+      continue;
     }
 
     struct mini_gzip gz;
     mini_gz_start(&gz, buffer + pak_entry->file_offset, old_size);
-    uint32_t unpack_len = mini_gz_unpack(&gz, unpack_buffer, original_size);
+    uint32_t unpack_len =
+        mini_gz_unpack(&gz, unpack_buffer.get(), original_size);
 
     if (original_size == unpack_len) {
       size_t new_len = old_size;
-      bool changed = f(unpack_buffer, unpack_len, new_len);
+      bool changed = f(unpack_buffer.get(), unpack_len, new_len);
+
       if (changed) {
         size_t compress_size = 0;
-        uint8_t* compress_buffer = static_cast<uint8_t*>(
-            gzip_compress(unpack_buffer, new_len, &compress_size));
+        // `gzip_compress` is written in C style, so we free it using
+        // `std::free`
+        std::unique_ptr<void, decltype(&std::free)> compress_buffer_ptr(
+            gzip_compress(unpack_buffer.get(), new_len, &compress_size),
+            std::free);
+
+        auto* compress_buffer =
+            static_cast<uint8_t*>(compress_buffer_ptr.get());
+
         if (compress_buffer && compress_size < old_size) {
-          /*FILE *fp = fopen("test.gz", "wb");
-          fwrite(compress_buffer, compress_size, 1, fp);
-          fclose(fp);*/
-
-          memcpy(buffer + pak_entry->file_offset, compress_buffer, 10);
-
-          // extra
-          buffer[pak_entry->file_offset + 3] = 0x04;
-          uint16_t extra_length = old_size - compress_size - 2;
-          memcpy(buffer + pak_entry->file_offset + 10, &extra_length,
-                 sizeof(extra_length));
-          memset(buffer + pak_entry->file_offset + 12, '\0', extra_length);
-
-          // compress
-          memcpy(buffer + pak_entry->file_offset + 12 + extra_length,
-                 compress_buffer + 10, compress_size - 10);
-
-          /*fp = fopen("test2.gz", "wb");
-          fwrite(buffer + pak_entry->file_offset, old_size, 1, fp);
-          fclose(fp);*/
-        } else {
-          // DebugLog(L"gzip compress error {} {}", compress_size, old_size);
-        }
-
-        if (compress_buffer) {
-          free(compress_buffer);
+          std::span<uint8_t> src_span(compress_buffer, compress_size);
+          std::ranges::copy(src_span.subspan(0, 10), entry_data.begin());
+          entry_data[3] = 0x04;
+          uint16_t extra_length =
+              static_cast<uint16_t>(old_size - compress_size - 2);
+          auto extra_len_dest = reinterpret_cast<uint16_t*>(&entry_data[10]);
+          *extra_len_dest = extra_length;
+          std::ranges::fill(entry_data.subspan(12, extra_length), 0);
+          std::ranges::copy(src_span.subspan(10),
+                            entry_data.begin() + 12 + extra_length);
         }
       }
     }
-
-    free(unpack_buffer);
     pak_entry = next_entry;
   } while (pak_entry->resource_id != 0);
 }
