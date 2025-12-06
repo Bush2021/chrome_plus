@@ -66,7 +66,7 @@ bool ReplaceStringInPlace(std::wstring& subject,
 
 std::wstring QuoteSpaceIfNeeded(const std::wstring& str);
 
-std::wstring JoinArgsString(std::vector<std::wstring> lines,
+std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
                             std::wstring_view delimiter);
 
 // Memory and module search functions

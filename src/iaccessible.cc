@@ -18,7 +18,7 @@
 namespace {
 
 template <typename Function>
-void GetAccessibleName(NodePtr node, Function f) {
+void GetAccessibleName(const NodePtr& node, Function f) {
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
@@ -31,7 +31,7 @@ void GetAccessibleName(NodePtr node, Function f) {
 }
 
 template <typename Function>
-void GetAccessibleDescription(NodePtr node, Function f) {
+void GetAccessibleDescription(const NodePtr& node, Function f) {
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
@@ -44,7 +44,7 @@ void GetAccessibleDescription(NodePtr node, Function f) {
 }
 
 template <typename Function>
-void GetAccessibleValue(NodePtr node, Function f) {
+void GetAccessibleValue(const NodePtr& node, Function f) {
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
@@ -57,7 +57,7 @@ void GetAccessibleValue(NodePtr node, Function f) {
 }
 
 template <typename Function>
-void GetAccessibleSize(NodePtr node, Function f) {
+void GetAccessibleSize(const NodePtr& node, Function f) {
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
@@ -70,7 +70,7 @@ void GetAccessibleSize(NodePtr node, Function f) {
   }
 }
 
-long GetAccessibleRole(NodePtr node) {
+long GetAccessibleRole(const NodePtr& node) {
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
@@ -84,7 +84,7 @@ long GetAccessibleRole(NodePtr node) {
   return 0;
 }
 
-long GetAccessibleState(NodePtr node) {
+long GetAccessibleState(const NodePtr& node) {
   VARIANT self;
   self.vt = VT_I4;
   self.lVal = CHILDID_SELF;
@@ -99,7 +99,9 @@ long GetAccessibleState(NodePtr node) {
 }
 
 template <typename Function>
-void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
+void TraversalAccessible(const NodePtr& node,
+                         Function f,
+                         bool raw_traversal = false) {
   if (!node) {
     return;
   }
@@ -164,7 +166,7 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
   }
 }
 
-NodePtr GetParentElement(NodePtr child) {
+NodePtr GetParentElement(const NodePtr& child) {
   if (!child) {
     return nullptr;
   }
@@ -189,12 +191,14 @@ bool IsBrowserUIContainer(long role) {
 // Recursively find an element with the specified role, with or without pruning.
 // To find a element when specifing more than one condition (e.g. name
 // description, state, etc), use lambda to recurse manually.
-NodePtr FindElementWithRole(NodePtr node, long target_role, auto predicate) {
+NodePtr FindElementWithRole(const NodePtr& node,
+                            long target_role,
+                            auto predicate) {
   if (!node) {
     return nullptr;
   }
   NodePtr element = nullptr;
-  TraversalAccessible(node, [&](NodePtr child) {
+  TraversalAccessible(node, [&](const NodePtr& child) {
     const auto child_role = GetAccessibleRole(child);
     if (child_role == target_role) {
       element = child;
@@ -210,11 +214,11 @@ NodePtr FindElementWithRole(NodePtr node, long target_role, auto predicate) {
   return element;
 }
 
-NodePtr FindElementWithRole(NodePtr node, long target_role) {
+NodePtr FindElementWithRole(const NodePtr& node, long target_role) {
   return FindElementWithRole(node, target_role, IsBrowserUIContainer);
 }
 
-NodePtr FindPageTabPane(NodePtr node) {
+NodePtr FindPageTabPane(const NodePtr& node) {
   if (!node) {
     return nullptr;
   }
@@ -229,23 +233,23 @@ NodePtr FindPageTabPane(NodePtr node) {
   return GetParentElement(page_tab);
 }
 
-[[maybe_unused]] NodePtr FindChildElement(NodePtr parent,
+[[maybe_unused]] NodePtr FindChildElement(const NodePtr& parent,
                                           long role,
                                           int skipcount = 0) {
   NodePtr element = nullptr;
   if (parent) {
     int i = 0;
-    TraversalAccessible(parent,
-                        [&element, &role, &i, &skipcount](NodePtr child) {
-                          // DebugLog(L"当前 {}, {}", i, skipcount);
-                          if (GetAccessibleRole(child) == role) {
-                            if (i == skipcount) {
-                              element = child;
-                            }
-                            ++i;
-                          }
-                          return element != nullptr;
-                        });
+    TraversalAccessible(
+        parent, [&element, &role, &i, &skipcount](const NodePtr& child) {
+          // DebugLog(L"当前 {}, {}", i, skipcount);
+          if (GetAccessibleRole(child) == role) {
+            if (i == skipcount) {
+              element = child;
+            }
+            ++i;
+          }
+          return element != nullptr;
+        });
   }
   return element;
 }
@@ -253,13 +257,14 @@ NodePtr FindPageTabPane(NodePtr node) {
 // This is the name of the new tab button since the name may vary with different
 // language versions of Chrome. Should be same as the name of the default new
 // tab page.
-std::optional<std::wstring> GetStdNameFromNewTabButton(NodePtr page_tab_list) {
+std::optional<std::wstring> GetStdNameFromNewTabButton(
+    const NodePtr& page_tab_list) {
   if (!page_tab_list) {
     return std::nullopt;
   }
 
   std::wstring std_name;
-  TraversalAccessible(page_tab_list, [&std_name](NodePtr child) {
+  TraversalAccessible(page_tab_list, [&std_name](const NodePtr& child) {
     if (!std_name.empty()) {
       return false;
     }
@@ -281,7 +286,7 @@ std::optional<std::wstring> GetStdNameFromNewTabButton(NodePtr page_tab_list) {
 }
 
 // Determine whether it is a new tab page from the name of the current tab page.
-bool IsNameNewTab(NodePtr top) {
+bool IsNameNewTab(const NodePtr& top) {
   if (!top) {
     return false;
   }
@@ -303,37 +308,39 @@ bool IsNameNewTab(NodePtr top) {
   const auto names_from_config =
       StringSplit(config.GetDisableTabName(), L',', L"\"");
   const auto std_name = GetStdNameFromNewTabButton(page_tab_list);
-  TraversalAccessible(page_tab_pane, [&is_new_tab, &std_name,
-                                      &names_from_config](NodePtr child) {
-    if ((GetAccessibleState(child) & STATE_SYSTEM_SELECTED) == 0) {
-      return false;
-    }
-    GetAccessibleName(child, [&is_new_tab, &std_name,
-                              &names_from_config](BSTR bstr) {
-      if (!bstr || is_new_tab) {
-        return;
-      }
-
-      std::wstring_view selected_tab_name(bstr);
-      if (std_name.has_value() &&
-          selected_tab_name.find(std_name.value()) != std::wstring_view::npos) {
-        is_new_tab = true;
-        return;
-      }
-
-      for (const auto& name_from_config : names_from_config) {
-        if (name_from_config.empty()) {
-          continue;
+  TraversalAccessible(
+      page_tab_pane,
+      [&is_new_tab, &std_name, &names_from_config](const NodePtr& child) {
+        if ((GetAccessibleState(child) & STATE_SYSTEM_SELECTED) == 0) {
+          return false;
         }
-        if (selected_tab_name.find(name_from_config) !=
-            std::wstring_view::npos) {
-          is_new_tab = true;
-          break;
-        }
-      }
-    });
-    return is_new_tab;
-  });
+        GetAccessibleName(
+            child, [&is_new_tab, &std_name, &names_from_config](BSTR bstr) {
+              if (!bstr || is_new_tab) {
+                return;
+              }
+
+              std::wstring_view selected_tab_name(bstr);
+              if (std_name.has_value() &&
+                  selected_tab_name.find(std_name.value()) !=
+                      std::wstring_view::npos) {
+                is_new_tab = true;
+                return;
+              }
+
+              for (const auto& name_from_config : names_from_config) {
+                if (name_from_config.empty()) {
+                  continue;
+                }
+                if (selected_tab_name.find(name_from_config) !=
+                    std::wstring_view::npos) {
+                  is_new_tab = true;
+                  break;
+                }
+              }
+            });
+        return is_new_tab;
+      });
   return is_new_tab;
 }
 
@@ -408,13 +415,13 @@ NodePtr GetTopContainerView(HWND hwnd) {
 }
 
 // Gets the current number of tabs.
-int GetTabCount(NodePtr top) {
+int GetTabCount(const NodePtr& top) {
   NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return 0;
   }
   std::vector<NodePtr> children;
-  TraversalAccessible(page_tab_pane, [&children](NodePtr child) {
+  TraversalAccessible(page_tab_pane, [&children](const NodePtr& child) {
     children.push_back(child);
     return false;
   });
@@ -433,18 +440,18 @@ int GetTabCount(NodePtr top) {
 }
 
 // Whether the mouse is on a tab
-bool IsOnOneTab(NodePtr top, const POINT& pt) {
+bool IsOnOneTab(const NodePtr& top, POINT pt) {
   NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(page_tab_pane, [&flag, &pt](NodePtr child) {
+  TraversalAccessible(page_tab_pane, [&flag, &pt](const NodePtr& child) {
     if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
       return false;
     }
-    GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
+    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
       if (PtInRect(&rect, pt)) {
         flag = true;
       }
@@ -454,7 +461,7 @@ bool IsOnOneTab(NodePtr top, const POINT& pt) {
   return flag;
 }
 
-bool IsOnlyOneTab(NodePtr top) {
+bool IsOnlyOneTab(const NodePtr& top) {
   if (!config.IsKeepLastTab()) {
     return false;
   }
@@ -463,13 +470,13 @@ bool IsOnlyOneTab(NodePtr top) {
 }
 
 // Whether the mouse is on the tab bar
-bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
+bool IsOnTheTabBar(const NodePtr& top, POINT pt) {
   bool flag = false;
   NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
   if (!page_tab_list) {
     return false;
   }
-  GetAccessibleSize(page_tab_list, [&flag, &pt](const RECT& rect) {
+  GetAccessibleSize(page_tab_list, [&flag, &pt](RECT rect) {
     if (PtInRect(&rect, pt)) {
       flag = true;
     }
@@ -477,7 +484,7 @@ bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
   return flag;
 }
 
-bool IsOnNewTab(NodePtr top) {
+bool IsOnNewTab(const NodePtr& top) {
   if (!config.IsNewTabDisable()) {
     return false;
   }
@@ -485,14 +492,14 @@ bool IsOnNewTab(NodePtr top) {
 }
 
 // Whether the mouse is on a bookmark.
-bool IsOnBookmark(HWND hwnd, const POINT& pt) {
+bool IsOnBookmark(HWND hwnd, POINT pt) {
   bool flag = false;
-  std::function<bool(NodePtr)> LambdaEnumChild =
-      [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
+  std::function<bool(const NodePtr&)> LambdaEnumChild =
+      [&pt, &flag, &LambdaEnumChild](const NodePtr& child) -> bool {
     auto role = GetAccessibleRole(child);
     if (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM) {
       bool is_in_rect = false;
-      GetAccessibleSize(child, [&is_in_rect, &pt](const RECT& rect) {
+      GetAccessibleSize(child, [&is_in_rect, &pt](RECT rect) {
         if (PtInRect(&rect, pt)) {
           is_in_rect = true;
         }
@@ -518,13 +525,13 @@ bool IsOnBookmark(HWND hwnd, const POINT& pt) {
 }
 
 // Expanded drop-down list in the address bar
-bool IsOnExpandedList(HWND hwnd, const POINT& pt) {
+bool IsOnExpandedList(HWND hwnd, POINT pt) {
   bool flag = false;
-  std::function<bool(NodePtr)> LambdaEnumChild =
-      [&pt, &flag, &LambdaEnumChild](NodePtr child) -> bool {
+  std::function<bool(const NodePtr&)> LambdaEnumChild =
+      [&pt, &flag, &LambdaEnumChild](const NodePtr& child) -> bool {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_LIST &&
         (GetAccessibleState(child) & STATE_SYSTEM_EXPANDED)) {
-      GetAccessibleSize(child, [&flag, &pt](const RECT& rect) {
+      GetAccessibleSize(child, [&flag, &pt](RECT rect) {
         if (PtInRect(&rect, pt)) {
           flag = true;
         }
@@ -540,14 +547,14 @@ bool IsOnExpandedList(HWND hwnd, const POINT& pt) {
   return flag;
 }
 
-bool IsOmniboxFocus(NodePtr top) {
+bool IsOmniboxFocus(const NodePtr& top) {
   if (!top) {
     return false;
   }
 
   bool is_focused = false;
-  std::function<bool(NodePtr)> find_focused =
-      [&is_focused, &find_focused](NodePtr node) -> bool {
+  std::function<bool(const NodePtr&)> find_focused =
+      [&is_focused, &find_focused](const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_TEXT &&
         (GetAccessibleState(node) & STATE_SYSTEM_FOCUSED)) {
       is_focused = true;
@@ -557,7 +564,8 @@ bool IsOmniboxFocus(NodePtr top) {
     return is_focused;
   };
 
-  std::function<bool(NodePtr)> find_toolbar = [&](NodePtr node) -> bool {
+  std::function<bool(const NodePtr&)> find_toolbar =
+      [&](const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_TOOLBAR) {
       find_focused(node);
       if (is_focused) {
@@ -575,13 +583,13 @@ bool IsOmniboxFocus(NodePtr top) {
 
 // Whether the mouse is on the close button of a tab.
 // Should be used together with `IsOnOneTab` to search the close button.
-bool IsOnCloseButton(NodePtr top, const POINT& pt) {
+bool IsOnCloseButton(const NodePtr& top, POINT pt) {
   bool flag = false;
   TraversalAccessible(
       top,
-      [&pt, &flag](NodePtr child) {
+      [&pt, &flag](const NodePtr& child) {
         if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-          GetAccessibleSize(child, [&pt, &flag](const RECT& rect) {
+          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
             if (PtInRect(&rect, pt)) {
               flag = true;
             }
@@ -593,7 +601,7 @@ bool IsOnCloseButton(NodePtr top, const POINT& pt) {
   return flag;
 }
 
-bool IsOnFindBarPane(const POINT& pt) {
+bool IsOnFindBarPane(POINT pt) {
   NodePtr root = nullptr;
   if ((S_OK != AccessibleObjectFromWindow(GetFocus(), OBJID_CLIENT,
                                           IID_PPV_ARGS(&root))) ||
@@ -609,8 +617,8 @@ bool IsOnFindBarPane(const POINT& pt) {
   //         └─ PANE
   //            └─ PANE
   //               └─ TEXT (focused, the input field of find-in-page bar)
-  std::function<bool(NodePtr)> find_focused =
-      [&text_element, &find_focused](NodePtr node) -> bool {
+  std::function<bool(const NodePtr&)> find_focused =
+      [&text_element, &find_focused](const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_TEXT &&
         (GetAccessibleState(node) & STATE_SYSTEM_FOCUSED)) {
       text_element = node;
@@ -632,7 +640,7 @@ bool IsOnFindBarPane(const POINT& pt) {
   }
 
   bool flag = false;
-  GetAccessibleSize(parent, [&flag, &pt](const RECT& rect) {
+  GetAccessibleSize(parent, [&flag, &pt](RECT rect) {
     if (PtInRect(&rect, pt)) {
       flag = true;
     }

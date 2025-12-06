@@ -145,7 +145,7 @@ std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
   return escaped;
 }
 
-std::wstring JoinArgsString(std::vector<std::wstring> lines,
+std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
                             std::wstring_view delimiter) {
   std::wstring text;
   bool first = true;

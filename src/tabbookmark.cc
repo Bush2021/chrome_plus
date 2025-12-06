@@ -20,7 +20,7 @@ bool IsPressed(int key) {
 // Compared with `IsOnlyOneTab`, this function additionally implements tick
 // fault tolerance to prevent users from directly closing the window when
 // they click too fast.
-bool IsNeedKeep(NodePtr top_container_view) {
+bool IsNeedKeep(const NodePtr& top_container_view) {
   if (!config.IsKeepLastTab()) {
     return false;
   }

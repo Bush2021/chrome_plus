@@ -8,15 +8,15 @@ using NodePtr = Microsoft::WRL::ComPtr<IAccessible>;
 
 NodePtr GetChromeWidgetWin(HWND hwnd);
 NodePtr GetTopContainerView(HWND hwnd);
-int GetTabCount(NodePtr top);
-bool IsOnOneTab(NodePtr top, const POINT& pt);
-bool IsOnlyOneTab(NodePtr top);
-bool IsOnTheTabBar(NodePtr top, const POINT& pt);
-bool IsOnNewTab(NodePtr top);
-bool IsOnBookmark(HWND hwnd, const POINT& pt);
-bool IsOnExpandedList(HWND hwnd, const POINT& pt);
-bool IsOmniboxFocus(NodePtr top);
-bool IsOnCloseButton(NodePtr top, const POINT& pt);
-bool IsOnFindBarPane(const POINT& pt);
+int GetTabCount(const NodePtr& top);
+bool IsOnOneTab(const NodePtr& top, POINT pt);
+bool IsOnlyOneTab(const NodePtr& top);
+bool IsOnTheTabBar(const NodePtr& top, POINT pt);
+bool IsOnNewTab(const NodePtr& top);
+bool IsOnBookmark(HWND hwnd, POINT pt);
+bool IsOnExpandedList(HWND hwnd, POINT pt);
+bool IsOmniboxFocus(const NodePtr& top);
+bool IsOnCloseButton(const NodePtr& top, POINT pt);
+bool IsOnFindBarPane(POINT pt);
 
 #endif  // CHROME_PLUS_SRC_IACCESSIBLE_H_
