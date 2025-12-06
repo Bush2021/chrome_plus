@@ -213,6 +213,21 @@ NodePtr FindPageTab(NodePtr node) {
   return page_tab;
 }
 
+NodePtr FindPageTabPane(NodePtr node) {
+  if (!node) {
+    return nullptr;
+  }
+  NodePtr page_tab_list = FindPageTabList(node);
+  if (!page_tab_list) {
+    return nullptr;
+  }
+  NodePtr page_tab = FindPageTab(page_tab_list);
+  if (!page_tab) {
+    return nullptr;
+  }
+  return GetParentElement(page_tab);
+}
+
 NodePtr GetParentElement(NodePtr child) {
   if (!child) {
     return nullptr;
@@ -407,15 +422,7 @@ NodePtr GetTopContainerView(HWND hwnd) {
 
 // Gets the current number of tabs.
 int GetTabCount(NodePtr top) {
-  NodePtr page_tab_list = FindPageTabList(top);
-  if (!page_tab_list) {
-    return 0;
-  }
-  NodePtr page_tab = FindPageTab(page_tab_list);
-  if (!page_tab) {
-    return 0;
-  }
-  NodePtr page_tab_pane = GetParentElement(page_tab);
+  NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return 0;
   }
@@ -440,15 +447,7 @@ int GetTabCount(NodePtr top) {
 
 // Whether the mouse is on a tab
 bool IsOnOneTab(NodePtr top, const POINT& pt) {
-  NodePtr page_tab_list = FindPageTabList(top);
-  if (!page_tab_list) {
-    return false;
-  }
-  NodePtr page_tab = FindPageTab(page_tab_list);
-  if (!page_tab) {
-    return false;
-  }
-  NodePtr page_tab_pane = GetParentElement(page_tab);
+  NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return false;
   }
