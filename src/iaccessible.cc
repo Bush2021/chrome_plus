@@ -192,9 +192,25 @@ NodePtr FindPageTabList(NodePtr node) {
       // These two judgments must be retained, otherwise it will crash (#56)
       page_tab_list = FindPageTabList(child);
     }
-    return page_tab_list;
+    return page_tab_list != nullptr;
   });
   return page_tab_list;
+}
+
+NodePtr FindPageTab(NodePtr node) {
+  if (!node) {
+    return nullptr;
+  }
+  NodePtr page_tab = nullptr;
+  TraversalAccessible(node, [&](NodePtr child) {
+    if (auto role = GetAccessibleRole(child); role == ROLE_SYSTEM_PAGETAB) {
+      page_tab = child;
+    } else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR) {
+      page_tab = FindPageTab(child);
+    }
+    return page_tab != nullptr;
+  });
+  return page_tab;
 }
 
 NodePtr GetParentElement(NodePtr child) {
@@ -273,7 +289,7 @@ bool IsNameNewTab(NodePtr top) {
   if (!page_tab_list) {
     return false;
   }
-  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  NodePtr page_tab = FindPageTab(page_tab_list);
   if (!page_tab) {
     return false;
   }
@@ -395,7 +411,7 @@ int GetTabCount(NodePtr top) {
   if (!page_tab_list) {
     return 0;
   }
-  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  NodePtr page_tab = FindPageTab(page_tab_list);
   if (!page_tab) {
     return 0;
   }
@@ -428,7 +444,7 @@ bool IsOnOneTab(NodePtr top, const POINT& pt) {
   if (!page_tab_list) {
     return false;
   }
-  NodePtr page_tab = FindElementWithRole(page_tab_list, ROLE_SYSTEM_PAGETAB);
+  NodePtr page_tab = FindPageTab(page_tab_list);
   if (!page_tab) {
     return false;
   }
