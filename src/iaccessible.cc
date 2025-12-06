@@ -164,6 +164,21 @@ void TraversalAccessible(NodePtr node, Function f, bool raw_traversal = false) {
   }
 }
 
+NodePtr GetParentElement(NodePtr child) {
+  if (!child) {
+    return nullptr;
+  }
+  NodePtr element = nullptr;
+  Microsoft::WRL::ComPtr<IDispatch> dispatch = nullptr;
+  if (S_OK == child->get_accParent(&dispatch) && dispatch) {
+    NodePtr parent = nullptr;
+    if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&parent)) {
+      element = parent;
+    }
+  }
+  return element;
+}
+
 NodePtr FindElementWithRole(NodePtr node, long role) {
   if (!node) {
     return nullptr;
@@ -226,21 +241,6 @@ NodePtr FindPageTabPane(NodePtr node) {
     return nullptr;
   }
   return GetParentElement(page_tab);
-}
-
-NodePtr GetParentElement(NodePtr child) {
-  if (!child) {
-    return nullptr;
-  }
-  NodePtr element = nullptr;
-  Microsoft::WRL::ComPtr<IDispatch> dispatch = nullptr;
-  if (S_OK == child->get_accParent(&dispatch) && dispatch) {
-    NodePtr parent = nullptr;
-    if (S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&parent)) {
-      element = parent;
-    }
-  }
-  return element;
 }
 
 [[maybe_unused]] NodePtr FindChildElement(NodePtr parent,
