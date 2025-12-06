@@ -29,10 +29,10 @@ std::unordered_map<DWORD, bool> original_mute_states;
 
 #define MOD_NOREPEAT 0x4000
 
-UINT ParseHotkeys(const wchar_t* keys) {
+UINT ParseHotkeys(std::wstring_view keys) {
   UINT mo = 0;
   UINT vk = 0;
-  std::wstring temp = keys;
+  std::wstring temp(keys);
   std::vector<std::wstring> key_parts = StringSplit(temp, L'+');
 
   static const std::unordered_map<std::wstring, UINT> key_map = {
