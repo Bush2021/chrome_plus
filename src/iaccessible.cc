@@ -269,7 +269,7 @@ bool IsNameNewTab(NodePtr top) {
     return false;
   }
 
-  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  NodePtr page_tab_list = FindPageTabList(top);
   if (!page_tab_list) {
     return false;
   }
@@ -391,7 +391,7 @@ NodePtr GetTopContainerView(HWND hwnd) {
 
 // Gets the current number of tabs.
 int GetTabCount(NodePtr top) {
-  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  NodePtr page_tab_list = FindPageTabList(top);
   if (!page_tab_list) {
     return 0;
   }
@@ -463,7 +463,7 @@ bool IsOnlyOneTab(NodePtr top) {
 // Whether the mouse is on the tab bar
 bool IsOnTheTabBar(NodePtr top, const POINT& pt) {
   bool flag = false;
-  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  NodePtr page_tab_list = FindPageTabList(top);
   if (!page_tab_list) {
     return false;
   }
