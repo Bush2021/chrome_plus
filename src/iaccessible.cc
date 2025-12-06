@@ -424,7 +424,7 @@ int GetTabCount(NodePtr top) {
 
 // Whether the mouse is on a tab
 bool IsOnOneTab(NodePtr top, const POINT& pt) {
-  NodePtr page_tab_list = FindElementWithRole(top, ROLE_SYSTEM_PAGETABLIST);
+  NodePtr page_tab_list = FindPageTabList(top);
   if (!page_tab_list) {
     return false;
   }
