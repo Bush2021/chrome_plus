@@ -97,6 +97,29 @@ bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
+bool HandleCloseButton(PMOUSEHOOKSTRUCT pmouse) {
+  return false;  // Disable for now
+  if (!config.IsKeepLastTab()) {
+    return false;
+  }
+
+  POINT pt = pmouse->pt;
+  HWND hwnd = WindowFromPoint(pt);
+  NodePtr top_container_view = HandleFindBar(hwnd, pt);
+  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
+  bool is_on_close_button = IsOnCloseButton(top_container_view, pt);
+  if (!(is_on_one_tab && is_on_close_button)) {
+    return false;
+  }
+
+  if (IsNeedKeep(top_container_view)) {
+    ExecuteCommand(IDC_NEW_TAB, hwnd);
+    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+    return true;
+  }
+  return false;
+}
+
 // Double-click to close tab.
 bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
   if (!config.IsDoubleClickClose()) {
@@ -253,6 +276,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       if (HandleDrag(pmouse)) {
         break;
       } else if (HandleBookmark(pmouse)) {
+        handled = true;
+      } else if (HandleCloseButton(pmouse)) {
         handled = true;
       }
       break;
