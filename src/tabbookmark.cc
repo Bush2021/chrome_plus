@@ -63,9 +63,8 @@ NodePtr HandleFindBar(HWND hwnd, POINT pt) {
 }
 
 // Use the mouse wheel to switch tabs
-bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_MOUSEWHEEL ||
-      (!config.IsWheelTab() && !config.IsWheelTabWhenPressRightButton())) {
+bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+  if (!config.IsWheelTab() && !config.IsWheelTabWhenPressRightButton()) {
     return false;
   }
 
@@ -99,45 +98,44 @@ bool HandleMouseWheel(WPARAM wParam, LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // Double-click to close tab.
-int HandleDoubleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_LBUTTONDBLCLK || !config.IsDoubleClickClose()) {
-    return 0;
+bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
+  if (!config.IsDoubleClickClose()) {
+    return false;
   }
 
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
-    return 0;
+    return false;
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
   bool is_on_close_button = IsOnCloseButton(top_container_view, pt);
-  bool is_only_one_tab = IsOnlyOneTab(top_container_view);
   if (!is_on_one_tab || is_on_close_button) {
-    return 0;
+    return false;
   }
-  if (is_only_one_tab) {
+
+  if (IsOnlyOneTab(top_container_view)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
     ExecuteCommand(IDC_CLOSE_TAB, hwnd);
   }
-  return 1;
+  return true;
 }
 
 // Right-click to close tab (Hold Shift to show the original menu).
-int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_RBUTTONUP || IsPressed(VK_SHIFT) ||
-      !config.IsRightClickClose()) {
-    return 0;
+bool HandleRightClick(PMOUSEHOOKSTRUCT pmouse) {
+  if (IsPressed(VK_SHIFT) || !config.IsRightClickClose()) {
+    return false;
   }
 
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
-    return 0;
+    return false;
   }
 
   if (IsOnOneTab(top_container_view, pt)) {
@@ -149,22 +147,18 @@ int HandleRightClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
       // value (MAGIC_CODE).
       SendKey(VK_MBUTTON);
     }
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
 // Preserve the last tab when the middle button is clicked on the tab.
-int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
-  if (wParam != WM_MBUTTONUP) {
-    return 0;
-  }
-
+bool HandleMiddleClick(PMOUSEHOOKSTRUCT pmouse) {
   POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
-    return 0;
+    return false;
   }
 
   bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
@@ -173,10 +167,10 @@ int HandleMiddleClick(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
   if (is_on_one_tab && keep_tab) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
-    return 1;
+    return true;
   }
 
-  return 0;
+  return false;
 }
 
 // Check if mouse movement is a drag operation.
@@ -193,10 +187,9 @@ bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // Open bookmarks in a new tab.
-bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
+bool HandleBookmark(PMOUSEHOOKSTRUCT pmouse) {
   int mode = config.GetBookmarkNewTabMode();
-  if (wParam != WM_LBUTTONUP || IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) ||
-      mode == 0) {
+  if (IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || mode == 0) {
     return false;
   }
 
@@ -234,69 +227,72 @@ bool HandleBookmark(WPARAM wParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  static bool wheel_tab_ing_with_rbutton = false;
   if (nCode != HC_ACTION) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
   }
 
-  do {
-    if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
-      break;
-    }
-    PMOUSEHOOKSTRUCT pmouse = reinterpret_cast<PMOUSEHOOKSTRUCT>(lParam);
+  if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
+    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+  }
+  PMOUSEHOOKSTRUCT pmouse = reinterpret_cast<PMOUSEHOOKSTRUCT>(lParam);
 
-    // Defining a `dwExtraInfo` value to prevent hook the message sent by
-    // Chrome++ itself.
-    if (pmouse->dwExtraInfo == MAGIC_CODE) {
-      break;
-    }
+  // Defining a `dwExtraInfo` value to prevent hook the message sent by
+  // Chrome++ itself.
+  if (pmouse->dwExtraInfo == MAGIC_CODE) {
+    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+  }
 
-    // Record LBUTTONDOWN position
-    if (wParam == WM_LBUTTONDOWN) {
+  static bool wheel_tab_ing_with_rbutton = false;
+  bool handled = false;
+  switch (wParam) {
+    case WM_LBUTTONDOWN:
+      // Simply record the position of `LBUTTONDOWN` for drag detection
       lbutton_down_point = pmouse->pt;
       break;
-    }
-
-    // Check for drag operations and return early if detected
-    if (wParam == WM_LBUTTONUP && HandleDrag(pmouse)) {
+    case WM_LBUTTONUP:
+      if (HandleDrag(pmouse)) {
+        break;
+      } else if (HandleBookmark(pmouse)) {
+        handled = true;
+      }
       break;
-    }
-
-    // Swallow the first RBUTTONUP that follows a wheel-based tab switch to
-    // suppress Chrome's context menu; the RBUTTONUP arrives after
-    // WM_MOUSEWHEEL.
-    if (wParam == WM_RBUTTONUP && wheel_tab_ing_with_rbutton) {
-      wheel_tab_ing_with_rbutton = false;
-      return 1;
-    }
-
-    if (HandleMouseWheel(wParam, lParam, pmouse)) {
-      // Mark it true only when a tab switch is performed via mouse wheel with
-      // right button pressed. Otherwise, normal mouse wheel to switch tabs will
-      // swallow irrelevant RBUTTONUP events, causing #198.
-      wheel_tab_ing_with_rbutton = IsPressed(VK_RBUTTON);
-      return 1;
-    }
-
-    if (HandleDoubleClick(wParam, pmouse) != 0) {
-      // Do not return 1. Returning 1 could cause the keep_tab to fail
-      // or trigger double-click operations consecutively when the user
-      // double-clicks on the tab page rapidly and repeatedly.
-    }
-
-    if (HandleRightClick(wParam, pmouse) != 0) {
-      return 1;
-    }
-
-    if (HandleMiddleClick(wParam, pmouse) != 0) {
-      return 1;
-    }
-
-    if (HandleBookmark(wParam, pmouse)) {
-      return 1;
-    }
-  } while (0);
-  return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
+    case WM_RBUTTONUP:
+      if (wheel_tab_ing_with_rbutton) {
+        // Swallow the first RBUTTONUP that follows a wheel-based tab switch to
+        // suppress Chrome's context menu; the RBUTTONUP arrives after
+        // WM_MOUSEWHEEL.
+        wheel_tab_ing_with_rbutton = false;
+        handled = true;
+      } else if (HandleRightClick(pmouse)) {
+        handled = true;
+      }
+      break;
+    case WM_MOUSEWHEEL:
+      if (HandleMouseWheel(lParam, pmouse)) {
+        // Mark it true only when a tab switch is performed via mouse wheel with
+        // right button pressed. Otherwise, normal mouse wheel to switch tabs
+        // will swallow irrelevant RBUTTONUP events, causing #198.
+        wheel_tab_ing_with_rbutton = IsPressed(VK_RBUTTON);
+        handled = true;
+      }
+      break;
+    case WM_LBUTTONDBLCLK:
+      if (HandleDoubleClick(pmouse)) {
+        // Do not return 1. Returning 1 could cause the keep_tab to fail
+        // or trigger double-click operations consecutively when the user
+        // double-clicks on the tab page rapidly and repeatedly.
+      }
+      break;
+    case WM_MBUTTONUP:
+      if (HandleMiddleClick(pmouse)) {
+        handled = true;
+      }
+      break;
+  }
+  if (handled) {
+    return 1;  // Swallow the event
+  }
+  return CallNextHookEx(mouse_hook, nCode, wParam, lParam);  // Pass
 }
 
 int HandleKeepTab(WPARAM wParam) {
