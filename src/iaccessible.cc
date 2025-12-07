@@ -585,21 +585,28 @@ bool IsOmniboxFocus(const NodePtr& top) {
 // Whether the mouse is on the close button of a tab.
 // Should be used together with `IsOnOneTab` to search the close button.
 bool IsOnCloseButton(const NodePtr& top, POINT pt) {
-  bool flag = false;
-  TraversalAccessible(
-      top,
-      [&pt, &flag](const NodePtr& child) {
-        if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
-          GetAccessibleSize(child, [&pt, &flag](RECT rect) {
-            if (PtInRect(&rect, pt)) {
-              flag = true;
-            }
-          });
+  if (!top) {
+    return false;
+  }
+
+  bool found = false;
+  std::function<bool(const NodePtr&)> find_hit_button =
+      [&](const NodePtr& node) -> bool {
+    if (GetAccessibleRole(node) == ROLE_SYSTEM_PUSHBUTTON) {
+      GetAccessibleSize(node, [&](RECT rect) {
+        if (PtInRect(&rect, pt)) {
+          found = true;
         }
-        return flag;
-      },
-      true);  // raw_traversal
-  return flag;
+      });
+      if (found) {
+        return true;
+      }
+    }
+    TraversalAccessible(node, find_hit_button);
+    return found;
+  };
+  find_hit_button(top);
+  return found;
 }
 
 bool IsOnFindBarPane(POINT pt) {
