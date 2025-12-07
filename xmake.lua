@@ -4,7 +4,10 @@ set_warnings("more")
 
 add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE")
 set_encodings("source:utf-8")
-set_languages("c++23")
+-- set_languages("c++23")
+-- xmake does not currently check for `/std:c++23preview`, but cl only supports it.
+-- https://github.com/xmake-io/xmake/issues/6327
+add_cxflags("/std:c++23preview", {force = true})
 set_fpmodels("precise") -- Default
 if is_mode("release") then
     set_exceptions("none")

@@ -56,11 +56,17 @@ jobs:
             sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           fi
 
+      - name: Set CLANG_BIN
+        shell: bash
+        run: |
+          CLANG_BIN=$(dirname "$(where clang-cl | head -n 1)")
+          echo "CLANG_BIN=$CLANG_BIN" >> $GITHUB_ENV
+
       - name: Setup Xmake
         uses: xmake-io/github-action-setup-xmake@v1
 
       - name: Configure Xmake
-        run: xmake f -a ${{ matrix.arch }} --toolchain=clang-cl --yes
+        run: xmake f -a ${{ matrix.arch }} --toolchain=clang-cl --bin="${{ env.CLANG_BIN }}" --yes
 
       - name: Build Chrome++
         run: xmake
