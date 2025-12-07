@@ -4,12 +4,10 @@
 
 #include <oleacc.h>
 
-#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <vector>
 
 #include "config.h"
@@ -495,8 +493,8 @@ bool IsOnNewTab(const NodePtr& top) {
 // Whether the mouse is on a bookmark.
 bool IsOnBookmark(HWND hwnd, POINT pt) {
   bool flag = false;
-  std::function<bool(const NodePtr&)> LambdaEnumChild =
-      [&pt, &flag, &LambdaEnumChild](const NodePtr& child) -> bool {
+  auto find_bookmark = [&pt, &flag](this auto&& self,
+                                    const NodePtr& child) -> bool {
     auto role = GetAccessibleRole(child);
     if (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM) {
       bool is_in_rect = false;
@@ -517,19 +515,19 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
       }
     }
     // traverse the child nodes.
-    TraversalAccessible(child, LambdaEnumChild);
+    TraversalAccessible(child, self);
     return flag;
   };
   // Start traversing.
-  TraversalAccessible(GetChromeWidgetWin(hwnd), LambdaEnumChild);
+  TraversalAccessible(GetChromeWidgetWin(hwnd), find_bookmark);
   return flag;
 }
 
 // Expanded drop-down list in the address bar
 bool IsOnExpandedList(HWND hwnd, POINT pt) {
   bool flag = false;
-  std::function<bool(const NodePtr&)> LambdaEnumChild =
-      [&pt, &flag, &LambdaEnumChild](const NodePtr& child) -> bool {
+  auto find_drop_down_list = [&pt, &flag](this auto&& self,
+                                          const NodePtr& child) -> bool {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_LIST &&
         (GetAccessibleState(child) & STATE_SYSTEM_EXPANDED)) {
       GetAccessibleSize(child, [&flag, &pt](RECT rect) {
@@ -541,10 +539,10 @@ bool IsOnExpandedList(HWND hwnd, POINT pt) {
         return true;
       }
     }
-    TraversalAccessible(child, LambdaEnumChild);
+    TraversalAccessible(child, self);
     return flag;
   };
-  TraversalAccessible(GetChromeWidgetWin(hwnd), LambdaEnumChild);
+  TraversalAccessible(GetChromeWidgetWin(hwnd), find_drop_down_list);
   return flag;
 }
 
@@ -554,19 +552,18 @@ bool IsOmniboxFocus(const NodePtr& top) {
   }
 
   bool is_focused = false;
-  std::function<bool(const NodePtr&)> find_focused =
-      [&is_focused, &find_focused](const NodePtr& node) -> bool {
+  auto find_focused = [&is_focused](this auto&& self,
+                                    const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_TEXT &&
         (GetAccessibleState(node) & STATE_SYSTEM_FOCUSED)) {
       is_focused = true;
       return true;
     }
-    TraversalAccessible(node, find_focused, false);
+    TraversalAccessible(node, self, false);
     return is_focused;
   };
 
-  std::function<bool(const NodePtr&)> find_toolbar =
-      [&](const NodePtr& node) -> bool {
+  auto find_toolbar = [&](this auto&& self, const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_TOOLBAR) {
       find_focused(node);
       if (is_focused) {
@@ -574,7 +571,7 @@ bool IsOmniboxFocus(const NodePtr& top) {
       }
       return false;
     }
-    TraversalAccessible(node, find_toolbar, false);
+    TraversalAccessible(node, self, false);
 
     return is_focused;
   };
@@ -590,8 +587,7 @@ bool IsOnCloseButton(const NodePtr& top, POINT pt) {
   }
 
   bool found = false;
-  std::function<bool(const NodePtr&)> find_hit_button =
-      [&](const NodePtr& node) -> bool {
+  auto find_hit_button = [&](this auto&& self, const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_PUSHBUTTON) {
       GetAccessibleSize(node, [&](RECT rect) {
         if (PtInRect(&rect, pt)) {
@@ -602,10 +598,10 @@ bool IsOnCloseButton(const NodePtr& top, POINT pt) {
         return true;
       }
     }
-    TraversalAccessible(node, find_hit_button);
+    TraversalAccessible(node, self);
     return found;
   };
-  find_hit_button(top);
+  TraversalAccessible(top, find_hit_button, false);
   return found;
 }
 
@@ -625,14 +621,14 @@ bool IsOnFindBarPane(POINT pt) {
   //         └─ PANE
   //            └─ PANE
   //               └─ TEXT (focused, the input field of find-in-page bar)
-  std::function<bool(const NodePtr&)> find_focused =
-      [&text_element, &find_focused](const NodePtr& node) -> bool {
+  auto find_focused = [&text_element](this auto&& self,
+                                      const NodePtr& node) -> bool {
     if (GetAccessibleRole(node) == ROLE_SYSTEM_TEXT &&
         (GetAccessibleState(node) & STATE_SYSTEM_FOCUSED)) {
       text_element = node;
       return true;
     }
-    TraversalAccessible(node, find_focused, false);
+    TraversalAccessible(node, self, false);
     return text_element != nullptr;
   };
   TraversalAccessible(root, find_focused, false);

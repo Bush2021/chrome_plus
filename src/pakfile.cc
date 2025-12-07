@@ -15,10 +15,10 @@
 #pragma warning(disable : 4838)
 
 extern "C" {
-#include "..\mini_gzip\miniz.c"  // Must be included first
-
-#include "..\mini_gzip\mini_gzip.c"
 #include "..\mini_gzip\mini_gzip.h"
+void* gzip_compress(uint8_t* data, size_t len, size_t* out_len);
+int mini_gz_start(struct mini_gzip* gz_ptr, const void* mem, size_t mem_len);
+int mini_gz_unpack(struct mini_gzip* gz_ptr, void* mem_out, size_t mem_out_len);
 }
 
 namespace {

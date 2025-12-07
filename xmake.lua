@@ -4,7 +4,7 @@ set_warnings("more")
 
 add_defines("WIN32", "_WIN32", "UNICODE", "_UNICODE")
 set_encodings("source:utf-8")
-set_languages("c++20")
+set_languages("c++23")
 set_fpmodels("precise") -- Default
 if is_mode("release") then
     set_exceptions("none")
@@ -44,11 +44,17 @@ target("detours")
         add_files("detours/src/disolarm64.cpp")
     end
 
+target("mini_gzip")
+    set_kind("static")
+    add_includedirs("mini_gzip", {public = true})
+    add_files("mini_gzip/miniz.c", "mini_gzip/mini_gzip.c")
+
 target("chrome_plus")
     set_kind("shared")
     set_targetdir("$(builddir)/$(mode)")
     set_basename("version")
     add_deps("detours")
+    add_deps("mini_gzip")
     add_files("src/*.cc")
     add_files("src/*.rc")
     add_links("onecore", "propsys", "oleacc")
