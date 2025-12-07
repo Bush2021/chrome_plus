@@ -249,6 +249,11 @@ bool HandleBookmark(PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
+bool HandleOmniboxDropDownList(PMOUSEHOOKSTRUCT pmouse) {
+  // Placeholder for future implementation
+  return false;
+}
+
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode != HC_ACTION) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
@@ -278,6 +283,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       } else if (HandleBookmark(pmouse)) {
         handled = true;
       } else if (HandleCloseButton(pmouse)) {
+        handled = true;
+      } else if (HandleOmniboxDropDownList(pmouse)) {
         handled = true;
       }
       break;
