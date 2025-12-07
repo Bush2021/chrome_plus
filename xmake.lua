@@ -12,7 +12,6 @@ if is_mode("release") then
     set_runtimes("MT")
     add_requires("vc-ltl5")
     add_defines("NDEBUG")
-    add_cxflags("/MP")
     add_ldflags("/DYNAMICBASE")
     set_policy("build.optimization.lto", true)
 end
@@ -20,7 +19,6 @@ end
 if is_mode("debug") then
     set_runtimes("MTd")
     add_defines("_DEBUG")
-    add_cxflags("/MP")
     add_ldflags("/DYNAMICBASE")
 end
 
@@ -43,11 +41,13 @@ target("detours")
         add_defines("_ARM64_")
         add_files("detours/src/disolarm64.cpp")
     end
+    add_cxflags("-Wno-unknown-pragmas", "-Wno-reorder-ctor", "-Wno-unused-local-typedef", {tools = "clang_cl", force = true})
 
 target("mini_gzip")
     set_kind("static")
     add_includedirs("mini_gzip", {public = true})
     add_files("mini_gzip/miniz.c", "mini_gzip/mini_gzip.c")
+    add_cxflags("/wd5287", "/wd4267", {tools = "cl"}) 
 
 target("chrome_plus")
     set_kind("shared")
