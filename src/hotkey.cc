@@ -8,6 +8,7 @@
 #include <tlhelp32.h>
 
 #include <algorithm>
+#include <cwctype>
 #include <iterator>
 #include <string>
 #include <string_view>
@@ -48,16 +49,13 @@ UINT ParseHotkeys(std::wstring_view keys) {
   };
 
   for (auto& key : key_parts) {
-    std::wstring lower_key;
-    std::transform(key.begin(), key.end(), std::back_inserter(lower_key),
-                   ::tolower);
+    std::ranges::transform(key, key.begin(), ::towlower);
 
-    if (key_map.count(lower_key)) {
-      if (lower_key == L"shift" || lower_key == L"ctrl" ||
-          lower_key == L"alt" || lower_key == L"win") {
-        mo |= key_map.at(lower_key);
+    if (key_map.contains(key)) {
+      if (key == L"shift" || key == L"ctrl" || key == L"alt" || key == L"win") {
+        mo |= key_map.at(key);
       } else {
-        vk = key_map.at(lower_key);
+        vk = key_map.at(key);
       }
     } else {
       TCHAR wch = key[0];

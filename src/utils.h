@@ -3,18 +3,20 @@
 
 #include <windows.h>
 
-// #include <cstdint>
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "fastsearch.h"
 
-// Global variable declarations
+// Global variable declaration
 extern HMODULE hInstance;
 
 // Constants
-#define MAGIC_CODE 0x1603ABD9
+consteval uint32_t GetMagicCode() {
+  return 0x1603ABD9;
+}
 
 // Chrome command IDs
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
@@ -51,9 +53,6 @@ std::vector<std::string> StringSplit(std::string_view str,
                                      std::string_view enclosure = "");
 
 // HTML compression functions
-std::string& ltrim(std::string& s);
-std::string& rtrim(std::string& s);
-std::string& trim(std::string& s);
 void compression_html(std::string& html);
 
 bool ReplaceStringInPlace(std::string& subject,
@@ -135,25 +134,25 @@ void SendKey(T&&... keys) {
         input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_LEFTDOWN
                                : MOUSEEVENTF_RIGHTDOWN;
-        input.mi.dwExtraInfo = MAGIC_CODE;
+        input.mi.dwExtraInfo = GetMagicCode();
         break;
       case VK_LBUTTON:
         input.type = INPUT_MOUSE;
         input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_RIGHTDOWN
                                : MOUSEEVENTF_LEFTDOWN;
-        input.mi.dwExtraInfo = MAGIC_CODE;
+        input.mi.dwExtraInfo = GetMagicCode();
         break;
       case VK_MBUTTON:
         input.type = INPUT_MOUSE;
         input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-        input.mi.dwExtraInfo = MAGIC_CODE;
+        input.mi.dwExtraInfo = GetMagicCode();
         break;
       default:
         input.type = INPUT_KEYBOARD;
         input.ki.wVk = (WORD)key;
         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
-        input.ki.dwExtraInfo = MAGIC_CODE;
+        input.ki.dwExtraInfo = GetMagicCode();
         break;
     }
     inputs.emplace_back(std::move(input));
@@ -167,26 +166,26 @@ void SendKey(T&&... keys) {
         input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_LEFTUP
                                : MOUSEEVENTF_RIGHTUP;
-        input.mi.dwExtraInfo = MAGIC_CODE;
+        input.mi.dwExtraInfo = GetMagicCode();
         break;
       case VK_LBUTTON:
         input.type = INPUT_MOUSE;
         input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
                                ? MOUSEEVENTF_RIGHTUP
                                : MOUSEEVENTF_LEFTUP;
-        input.mi.dwExtraInfo = MAGIC_CODE;
+        input.mi.dwExtraInfo = GetMagicCode();
         break;
       case VK_MBUTTON:
         input.type = INPUT_MOUSE;
         input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-        input.mi.dwExtraInfo = MAGIC_CODE;
+        input.mi.dwExtraInfo = GetMagicCode();
         break;
       default:
         input.type = INPUT_KEYBOARD;
         input.ki.dwFlags = KEYEVENTF_KEYUP;
         input.ki.wVk = (WORD)key;
         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
-        input.ki.dwExtraInfo = MAGIC_CODE;
+        input.ki.dwExtraInfo = GetMagicCode();
         break;
     }
     inputs.emplace_back(std::move(input));

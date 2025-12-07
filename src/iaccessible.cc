@@ -4,8 +4,10 @@
 
 #include <oleacc.h>
 
+#include <algorithm>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -425,17 +427,13 @@ int GetTabCount(const NodePtr& top) {
     return false;
   });
 
-  int tab_count = 0;
-  for (const auto& child : children) {
-    auto role = GetAccessibleRole(child);
-    auto state = GetAccessibleState(child);
-    if (role == ROLE_SYSTEM_PAGETAB ||
-        // Grouped and collapsed tabs are counted as one tab.
-        (role == ROLE_SYSTEM_PAGETABLIST && (state & STATE_SYSTEM_COLLAPSED))) {
-      ++tab_count;
-    }
-  }
-  return tab_count;
+  return static_cast<int>(
+      std::ranges::count_if(children, [](const auto& child) {
+        auto role = GetAccessibleRole(child);
+        return role == ROLE_SYSTEM_PAGETAB ||
+               (role == ROLE_SYSTEM_PAGETABLIST &&
+                (GetAccessibleState(child) & STATE_SYSTEM_COLLAPSED));
+      }));
 }
 
 // Whether the mouse is on a tab

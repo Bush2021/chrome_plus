@@ -78,16 +78,17 @@ std::vector<std::string> StringSplit(std::string_view str,
 
 // Compression html.
 std::string& ltrim(std::string& s) {
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                  [](int ch) { return !std::isspace(ch); }));
+  auto it = std::ranges::find_if_not(
+      s, [](unsigned char c) { return std::isspace(c); });
+  s.erase(s.begin(), it);
   return s;
 }
 
 std::string& rtrim(std::string& s) {
-  s.erase(std::find_if(s.rbegin(), s.rend(),
-                       [](int ch) { return !std::isspace(ch); })
-              .base(),
-          s.end());
+  auto reversed_view = s | std::views::reverse;
+  auto it = std::ranges::find_if_not(
+      reversed_view, [](unsigned char c) { return std::isspace(c); });
+  s.erase(it.base(), s.end());
   return s;
 }
 
