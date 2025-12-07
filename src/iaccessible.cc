@@ -362,8 +362,9 @@ bool IsDocNewTab() {
     return false;
   }
 
-  NodePtr document = FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT,
-                                         [](long) { return true; });
+  NodePtr document =
+      FindElementWithRole(pacc_main_window, ROLE_SYSTEM_DOCUMENT,
+                          [](long role) { return role == ROLE_SYSTEM_PANE; });
   if (document) {
     // The `accValue` of document needs to be obtained by adding the startup
     // parameter `--force-renderer-accessibility=basic`. However, this
