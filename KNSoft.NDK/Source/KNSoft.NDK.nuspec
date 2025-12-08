@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
+  <metadata>
+    <id>KNSoft.NDK</id>
+    <version>1.2.45-beta</version>
+    <title>KNSoft.NDK</title>
+    <authors>KNSoft</authors>
+    <projectUrl>https://github.com/KNSoft/KNSoft.NDK</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>README.md</readme>
+    <description>KNSoft.NDK provides native C/C++ definitions and import libraries for Windows NT development.</description>
+    <tags>native Windows Utility Runtime</tags>
+    <repository type="git" url="https://github.com/KNSoft/KNSoft.NDK" />
+  </metadata>
+  <files>
+    <file src="..\README.md" target="" />
+    <file src="KNSoft.NDK.targets" target="build\" />
+    <file src="Include\**" target="build\Include\" />
+    <file src="SDK\SDK.cs" target="build\SDK\" />
+    <file src="OutDir\**\KNSoft.NDK.WinAPI.lib" target="build\Lib\" />
+    <file src="OutDir\**\KNSoft.NDK.Ntdll.CRT.lib" target="build\Lib\" />
+    <file src="OutDir\**\KNSoft.NDK.Ntdll.Hash.lib" target="build\Lib\" />
+  </files>
+</package>

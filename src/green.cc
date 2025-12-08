@@ -6,7 +6,7 @@
 #include <processthreadsapi.h>
 #include <shlwapi.h>
 
-#include "detours.h"
+#include "SlimDetours.h"
 
 #include "config.h"
 #include "utils.h"
@@ -165,39 +165,39 @@ NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
 void MakeGreen() {
   auto RawGetComputerNameW = GetComputerNameW;
 
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
+  SlimDetoursTransactionBegin();
+  // DetourUpdateThread(GetCurrentThread());
 
   // kernel32.dll
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawGetComputerNameW),
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawGetComputerNameW),
                reinterpret_cast<void*>(FakeGetComputerName));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawGetVolumeInformationW),
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawGetVolumeInformationW),
                reinterpret_cast<void*>(FakeGetVolumeInformation));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawUpdateProcThreadAttribute),
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawUpdateProcThreadAttribute),
                reinterpret_cast<void*>(MyUpdateProcThreadAttribute));
 
   // components/os_crypt/os_crypt_win.cc
   // crypt32.dll
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptProtectData),
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawCryptProtectData),
                reinterpret_cast<void*>(MyCryptProtectData));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptUnprotectData),
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawCryptUnprotectData),
                reinterpret_cast<void*>(MyCryptUnprotectData));
 
   if (config.IsShowPassword()) {
     // advapi32.dll
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawLogonUserW),
+    SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawLogonUserW),
                  reinterpret_cast<void*>(MyLogonUserW));
 
     // shlwapi.dll
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawIsOS),
+    SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawIsOS),
                  reinterpret_cast<void*>(MyIsOS));
 
     // netapi32.dll
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawNetUserGetInfo),
+    SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawNetUserGetInfo),
                  reinterpret_cast<void*>(MyNetUserGetInfo));
   }
 
-  auto status = DetourTransactionCommit();
+  auto status = SlimDetoursTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"MakeGreen failed: {}", status);
   }

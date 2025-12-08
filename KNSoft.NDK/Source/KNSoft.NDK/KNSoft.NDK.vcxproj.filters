@@ -1,0 +1,588 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="NT">
+      <UniqueIdentifier>{3769bb18-ab05-4c44-8684-2ff9124963ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win32">
+      <UniqueIdentifier>{347e9f2f-faac-4fa8-b572-16ecdf28ed59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win32\Def">
+      <UniqueIdentifier>{9f7bef88-765d-47ea-93a4-dbd29859e6e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win32\API">
+      <UniqueIdentifier>{b8cf96b3-56aa-4366-920a-77b5f9d68ee9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Rtl">
+      <UniqueIdentifier>{a68ed197-518e-4f67-a03c-8742d02e2142}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Wow">
+      <UniqueIdentifier>{fb4a9d12-d5de-4a28-872e-91496ea7d1f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Extension">
+      <UniqueIdentifier>{cb41731f-a75f-4920-a2de-db9cc44fd75b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Rtl\DataStructures">
+      <UniqueIdentifier>{7af23cc5-b886-400c-b00b-32e425447def}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Ps">
+      <UniqueIdentifier>{935c0b02-a76e-486b-854f-9fe30ce31a0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Ex">
+      <UniqueIdentifier>{74766d52-1f6f-4900-8acc-dd682a1b921c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Ke">
+      <UniqueIdentifier>{6c83376b-b5a5-4b3e-8800-387d4cf05ed8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Mm">
+      <UniqueIdentifier>{a9104f1a-6ebe-41db-9732-1669e8c3153d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Rtl\Process">
+      <UniqueIdentifier>{cebabbbb-430f-46bb-93aa-e272affb07a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Cm">
+      <UniqueIdentifier>{07a28ba6-d43c-45b4-a106-d69ac844f253}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Io">
+      <UniqueIdentifier>{178c20ec-e292-4611-adc6-5c6cbbdb8391}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Ob">
+      <UniqueIdentifier>{544e4527-df98-491d-8d08-874b83d5d329}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Po">
+      <UniqueIdentifier>{e87ae69f-bb00-436b-bafc-2b76a7b99405}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Win32K">
+      <UniqueIdentifier>{b0e2c888-d627-425a-8c12-c0ff7af0b6e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Se">
+      <UniqueIdentifier>{b4378a2e-db81-430b-a5d6-5e70a437f052}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Rtl\Security">
+      <UniqueIdentifier>{7da6e8b1-65e9-4ed6-8fc2-f697723578e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NT\Lpc">
+      <UniqueIdentifier>{958aa1bb-cdb8-44d9-9071-55c0cf230408}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Package">
+      <UniqueIdentifier>{a566dc55-3916-4927-ae91-86f02a7a5529}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assembly">
+      <UniqueIdentifier>{0bbb76ba-4844-48bd-ad6f-68228ff3e7af}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Include\KNSoft\NDK\NDK.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\MinDef.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\NT.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\CommCtrl.h">
+      <Filter>Win32\Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\WinUser.h">
+      <Filter>Win32\Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\Kernel32.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\Ntdll.Hash.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\User32.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Memory.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Wow\WowApi.h">
+      <Filter>NT\Wow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Extension\Runtime.h">
+      <Filter>NT\Extension</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Extension\Security.h">
+      <Filter>NT\Extension</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Dbg.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Rtl.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Nls.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\ErrorHandling.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Random.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\GenericTable.h">
+      <Filter>NT\Rtl\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\List.h">
+      <Filter>NT\Rtl\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\RBTree.h">
+      <Filter>NT\Rtl\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\HashTable.h">
+      <Filter>NT\Rtl\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Stack.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\SharedData.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Processor.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ke\Ke.h">
+      <Filter>NT\Ke</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Atom.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ldr.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Sxs.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\Bitmap.h">
+      <Filter>NT\Rtl\DataStructures</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Etw.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\Ps.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Misc.h">
+      <Filter>NT\Mm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\PsInfo.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\Basic.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Process.h">
+      <Filter>NT\Rtl\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\EnvironmentBlock.h">
+      <Filter>NT\Rtl\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\JobInfo.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\SysInfo.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Ex.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\SubSystem.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Bcd.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Sync.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\String.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Compress.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Mui.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\ActCtx.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Image.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Environment.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Path.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Wow.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Boot.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Sync.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\Reg.h">
+      <Filter>NT\Cm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Io.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Addendum.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Misc.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Pnp.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Wow\Vdm.h">
+      <Filter>NT\Wow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Wow\Wow.h">
+      <Filter>NT\Wow</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Misc.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Tm.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\ThreadPool.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ob\Misc.h">
+      <Filter>NT\Ob</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ob\Ob.h">
+      <Filter>NT\Ob</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\PsApi.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Debug.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Heap.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Time.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Table.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Feature.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Reg.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Bits.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Po\Misc.h">
+      <Filter>NT\Po</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Image.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Win32K\Gdi.h">
+      <Filter>NT\Win32K</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Win32K\Win32K.h">
+      <Filter>NT\Win32K</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Sam.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Se\Se.h">
+      <Filter>NT\Se</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Se\Misc.h">
+      <Filter>NT\Se</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Luid.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Sid.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\SecurityDescriptor.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Access.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Acl.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Token.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\SysInfo.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\BootStatus.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\AppContainer.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Mitigation.h">
+      <Filter>NT\Rtl\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\BoundaryDescriptor.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Misc.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Misc.h">
+      <Filter>NT\Rtl\Security</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Misc.h">
+      <Filter>NT\Rtl\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Context.h">
+      <Filter>NT\Rtl\Process</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Wnf.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\SysDbg.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\WorkerFactory.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Time.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\Cm.h">
+      <Filter>NT\Cm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\RegInfo.h">
+      <Filter>NT\Cm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\VReg.h">
+      <Filter>NT\Cm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Alpc.h">
+      <Filter>NT\Lpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Port.h">
+      <Filter>NT\Lpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Lpc.h">
+      <Filter>NT\Lpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\ZwApi.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Constant.h">
+      <Filter>NT\Mm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Info.h">
+      <Filter>NT\Mm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Base.h">
+      <Filter>NT\Lpc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Mm.h">
+      <Filter>NT\Mm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\File.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Info.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\MountMgr.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Completion.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Pipe.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Misc.h">
+      <Filter>NT\Io</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\Exception.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Po\Po.h">
+      <Filter>NT\Po</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\SecHost.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\UserMgrCli.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\WinSta.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Win32K\Win32KApi.h">
+      <Filter>NT\Win32K</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Package\StrSafe.inl">
+      <Filter>Package</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Package\UnitTest.h">
+      <Filter>Package</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\UxTheme.h">
+      <Filter>Win32\Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\EventTrace.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\Ntdll.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ke\CpuPartition.h">
+      <Filter>NT\Ke</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\KeepAlive.h">
+      <Filter>NT\Ps</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Hotpatching.h">
+      <Filter>NT\Ex</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\AppHelp.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Afd.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Guid.h">
+      <Filter>NT\Rtl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\KernelBase.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\WinBase.h">
+      <Filter>Win32\Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\ComBase.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\ole32.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NDK.Ext.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Extension\Misc.h">
+      <Filter>NT\Extension</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\AdvAPI32.h">
+      <Filter>Win32\API</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\ZwApi.Manual.h">
+      <Filter>NT</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Include\KNSoft\NDK\Package\UnitTest.inl">
+      <Filter>Package</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\NT.inl">
+      <Filter>NT</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NDK.inl" />
+    <None Include="..\Include\KNSoft\NDK\Win32\API\Kernel32.inl">
+      <Filter>Win32\API</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Process\EnvironmentBlock.inl">
+      <Filter>NT\Rtl\Process</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\ErrorHandling.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Misc.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\Bitmap.inl">
+      <Filter>NT\Rtl\DataStructures</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\String.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\AVX.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Dbg.inl">
+      <Filter>NT</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Luid.inl">
+      <Filter>NT\Rtl\Security</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Sid.inl">
+      <Filter>NT\Rtl\Security</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Access.inl">
+      <Filter>NT\Rtl\Security</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Bcd.inl">
+      <Filter>NT</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Wow.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Path.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\Win32\API\Shell32.inl">
+      <Filter>Win32\API</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\Package\ArgParse.inl">
+      <Filter>Package</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\Assembly\Header.inc">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\Assembly\NDK.inc">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\Assembly\NDK.mac">
+      <Filter>Assembly</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Stack.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\SysInfo.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\Package\RandGen.inl">
+      <Filter>Package</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Token.inl">
+      <Filter>NT\Rtl\Security</Filter>
+    </None>
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Guid.inl">
+      <Filter>NT\Rtl</Filter>
+    </None>
+    <None Include="packages.config" />
+    <None Include="..\Include\KNSoft\NDK\NT\Ldr.inl">
+      <Filter>NT</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Precomp4C_LibCreate Include="WinAPI\KNSoft.NDK.Ntdll.Hash.xml">
+      <Filter>Win32\API</Filter>
+    </Precomp4C_LibCreate>
+    <Precomp4C_LibCreate Include="WinAPI\KNSoft.NDK.WinAPI.xml">
+      <Filter>Win32\API</Filter>
+    </Precomp4C_LibCreate>
+    <Precomp4C_LibCreate Include="WinAPI\KNSoft.NDK.Ntdll.CRT.xml">
+      <Filter>Win32\API</Filter>
+    </Precomp4C_LibCreate>
+  </ItemGroup>
+</Project>

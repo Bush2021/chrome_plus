@@ -1,0 +1,294 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.props" Condition="Exists('..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.props')" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{1a6001a4-2e81-4cfb-86f3-e1fe1b4a5991}</ProjectGuid>
+    <RootNamespace>KNSoft.NDK</RootNamespace>
+    <ProjectName>KNSoft.NDK</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(SolutionDir)OutDir\$(KnsoftArch)\</OutDir>
+    <IntDir>IntDir\$(KnsoftArch)\</IntDir>
+    <IncludePath>$(SolutionDir)Include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)OutDir\$(KnsoftArch)\</OutDir>
+    <IntDir>IntDir\$(KnsoftArch)\</IntDir>
+    <IncludePath>$(SolutionDir)Include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)OutDir\$(KnsoftArch)\</OutDir>
+    <IntDir>IntDir\$(KnsoftArch)\</IntDir>
+    <IncludePath>$(SolutionDir)Include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Include\KNSoft\NDK\NDK.Ext.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Afd.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\AppHelp.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Bcd.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\Cm.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\Reg.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\RegInfo.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Cm\VReg.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Dbg.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Etw.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Extension\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Extension\Runtime.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Extension\Security.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Atom.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Boot.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\EventTrace.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Ex.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Hotpatching.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Processor.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\SharedData.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Sync.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\SysDbg.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\SysInfo.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Time.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\Wnf.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ex\WorkerFactory.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Image.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Completion.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\File.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Info.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Io.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Addendum.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\MountMgr.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Pipe.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Io\Pnp.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ke\CpuPartition.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ke\Ke.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ldr.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Alpc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Lpc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Base.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Lpc\Port.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\MinDef.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Constant.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Info.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Mm\Mm.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Nls.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\NT.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ob\Ob.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ob\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Po\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Po\Po.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\Basic.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\Exception.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\JobInfo.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\KeepAlive.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\PsApi.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\PsInfo.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\Ps.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Ps\ThreadPool.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Bits.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\BootStatus.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Compress.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\Bitmap.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\GenericTable.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\HashTable.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\List.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\RBTree.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Debug.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Environment.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\ErrorHandling.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Feature.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Guid.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Heap.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Image.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Memory.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Mui.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Path.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Context.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\EnvironmentBlock.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Mitigation.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Process\Process.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Random.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Reg.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Rtl.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Access.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Acl.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\AppContainer.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\BoundaryDescriptor.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Luid.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\SecurityDescriptor.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Sid.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Token.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Stack.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\String.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\SubSystem.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\ActCtx.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Sync.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\SysInfo.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Table.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Time.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Rtl\Wow.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Sam.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Se\Se.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Se\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Sxs.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Tm.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Misc.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Win32K\Gdi.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Win32K\Win32KApi.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Win32K\Win32K.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Wow\Vdm.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Wow\Wow.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\Wow\WowApi.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\ZwApi.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NT\ZwApi.Manual.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Package\StrSafe.inl" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Package\UnitTest.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\AdvAPI32.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\ComBase.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\Kernel32.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\KernelBase.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\Ntdll.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\Ntdll.Hash.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\ole32.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\SecHost.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\User32.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\UserMgrCli.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\API\WinSta.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\CommCtrl.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\UxTheme.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\WinBase.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\Win32\Def\WinUser.h" />
+    <ClInclude Include="..\Include\KNSoft\NDK\NDK.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Include\KNSoft\NDK\Assembly\Header.inc" />
+    <None Include="..\Include\KNSoft\NDK\Assembly\NDK.inc" />
+    <None Include="..\Include\KNSoft\NDK\Assembly\NDK.mac" />
+    <None Include="..\Include\KNSoft\NDK\NDK.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Bcd.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Dbg.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Ldr.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\NT.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\AVX.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\DataStructures\Bitmap.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\ErrorHandling.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Guid.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Misc.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Path.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Process\EnvironmentBlock.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Access.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Luid.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Sid.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Security\Token.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Stack.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\String.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\SysInfo.inl" />
+    <None Include="..\Include\KNSoft\NDK\NT\Rtl\Wow.inl" />
+    <None Include="..\Include\KNSoft\NDK\Package\ArgParse.inl" />
+    <None Include="..\Include\KNSoft\NDK\Package\RandGen.inl" />
+    <None Include="..\Include\KNSoft\NDK\Package\UnitTest.inl" />
+    <None Include="..\Include\KNSoft\NDK\Win32\API\Kernel32.inl" />
+    <None Include="..\Include\KNSoft\NDK\Win32\API\Shell32.inl" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Precomp4C_LibCreate Include="WinAPI\KNSoft.NDK.Ntdll.Hash.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Precomp4C_LibCreate Include="WinAPI\KNSoft.NDK.WinAPI.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Precomp4C_LibCreate Include="WinAPI\KNSoft.NDK.Ntdll.CRT.xml" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.targets" Condition="Exists('..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.targets')" />
+  </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.props'))" />
+    <Error Condition="!Exists('..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\KNSoft.Precomp4C.1.0.18-alpha\build\KNSoft.Precomp4C.targets'))" />
+  </Target>
+</Project>

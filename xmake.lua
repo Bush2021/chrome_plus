@@ -25,24 +25,19 @@ if is_mode("debug") then
     add_ldflags("/DYNAMICBASE")
 end
 
-target("detours")
+target("slimdetours")
     set_kind("static")
-    add_includedirs("detours/src", {public=true})
-    add_files(
-        "detours/src/detours.cpp",
-        "detours/src/disasm.cpp",
-        "detours/src/image.cpp",
-        "detours/src/modules.cpp"
-    )
+    add_includedirs("KNSoft.SlimDetours/Source/KNSoft.SlimDetours", {public=true})
+    add_includedirs("KNSoft.NDK/Source/Include", {public=true})
+    add_defines("_USE_KNSOFT_NDK")
+    add_files("KNSoft.SlimDetours/Source/KNSoft.SlimDetours/**.c")
+    add_links("ntdll")
     if is_arch("x86") then
         add_defines("_X86_")
-        add_files("detours/src/disolx86.cpp")
     elseif is_arch("x64") then
         add_defines("_AMD64_")
-        add_files("detours/src/disolx64.cpp")
     elseif is_arch("arm64") then
         add_defines("_ARM64_")
-        add_files("detours/src/disolarm64.cpp")
     end
     add_cxflags("-Wno-unknown-pragmas", "-Wno-reorder-ctor", "-Wno-unused-local-typedef", {tools = "clang_cl", force = true})
 
@@ -56,7 +51,7 @@ target("chrome_plus")
     set_kind("shared")
     set_targetdir("$(builddir)/$(mode)")
     set_basename("version")
-    add_deps("detours")
+    add_deps("slimdetours")
     add_deps("mini_gzip")
     add_files("src/*.cc")
     add_files("src/*.rc")

@@ -1,0 +1,13 @@
+<LibCreate>
+  <Dll Name="ntdll.dll">
+    <Export Name="A_SHAInit" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="A_SHAUpdate" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="A_SHAFinal" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="MD5Init" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="MD5Update" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="MD5Final" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="MD4Init" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="MD4Update" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="MD4Final" CallConv="__stdcall" Arg="ptr" />
+  </Dll>
+</LibCreate>

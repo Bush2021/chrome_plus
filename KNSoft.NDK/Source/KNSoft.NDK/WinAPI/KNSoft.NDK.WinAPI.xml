@@ -1,0 +1,165 @@
+<LibCreate>
+  <Dll Name="ntdll.dll">
+    <Export Name="LdrRegisterDllNotification" CallConv="__stdcall" Arg="int ptr ptr ptr" />
+    <Export Name="LdrUnregisterDllNotification" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="RtlGetParentLocaleName" CallConv="__stdcall" Arg="ptr ptr int int" />
+    <Export Name="SbSelectProcedure" CallConv="__stdcall" Arg="int int ptr int" />
+    <Export Name="SbExecuteProcedure" CallConv="__stdcall" Arg="int int ptr int ptr" />
+  </Dll>
+  <Dll Name="KERNEL32.dll">
+    <Export Name="CreateProcessInternalW" CallConv="__stdcall" Arg="ptr ptr ptr ptr ptr int int ptr ptr ptr ptr ptr" />
+  </Dll>
+  <Dll Name="KERNELBASE.dll">
+      <Export Name="GetCurrentPackageContext" CallConv="__stdcall" Arg="int ptr ptr" />
+      <Export Name="GetPackageContext" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackageProperty" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackagePropertyString" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackageOSMaxVersionTested" CallConv="__stdcall" Arg="ptr ptr" />
+      <Export Name="GetCurrentPackageApplicationContext" CallConv="__stdcall" Arg="int ptr ptr" />
+      <Export Name="GetPackageApplicationContext" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackageApplicationProperty" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackageApplicationPropertyString" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetCurrentPackageResourcesContext" CallConv="__stdcall" Arg="int ptr ptr" />
+      <Export Name="GetPackageResourcesContext" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetCurrentPackageApplicationResourcesContext" CallConv="__stdcall" Arg="int ptr ptr" />
+      <Export Name="GetPackageApplicationResourcesContext" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackageResourcesProperty" CallConv="__stdcall" Arg="ptr int ptr ptr ptr" />
+      <Export Name="GetCurrentPackageSecurityContext" CallConv="__stdcall" Arg="ptr ptr" />
+      <Export Name="GetPackageSecurityContext" CallConv="__stdcall" Arg="ptr ptr ptr" />
+      <Export Name="GetPackageSecurityProperty" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetCurrentTargetPlatformContext" CallConv="__stdcall" Arg="ptr ptr" />
+      <Export Name="GetTargetPlatformContext" CallConv="__stdcall" Arg="ptr int ptr" />
+      <Export Name="GetPackageTargetPlatformProperty" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetCurrentPackageInfo3" CallConv="__stdcall" Arg="int int ptr ptr ptr" />
+      <Export Name="GetCurrentPackageGlobalizationContext" CallConv="__stdcall" Arg="int ptr ptr" />
+      <Export Name="GetPackageGlobalizationContext" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+      <Export Name="GetPackageGlobalizationProperty" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+  </Dll>
+  <Dll Name="USER32.dll">
+    <Export Name="GetShellChangeNotifyWindow" CallConv="__stdcall" />
+    <Export Name="GetTaskmanWindow" CallConv="__stdcall" />
+    <Export Name="IsTopLevelWindow" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="IsServerSideWindow" CallConv="__stdcall" Arg="ptr" />
+  </Dll>
+  <Dll Name="SECHOST.dll">
+    <Export Name="ChangeServiceConfig2A" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="ChangeServiceConfig2W" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="ChangeServiceConfigA" CallConv="__stdcall" Arg="ptr int int int ptr ptr ptr ptr ptr ptr ptr" />
+    <Export Name="ChangeServiceConfigW" CallConv="__stdcall" Arg="ptr int int int ptr ptr ptr ptr ptr ptr ptr" />
+    <Export Name="CloseServiceHandle" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="ControlService" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="ControlServiceExA" CallConv="__stdcall" Arg="ptr int int ptr" />
+    <Export Name="ControlServiceExW" CallConv="__stdcall" Arg="ptr int int ptr" />
+    <Export Name="ConvertSecurityDescriptorToStringSecurityDescriptorW" CallConv="__stdcall" Arg="ptr int int ptr ptr" />
+    <Export Name="ConvertSidToStringSidW" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="ConvertStringSecurityDescriptorToSecurityDescriptorW" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+    <Export Name="ConvertStringSidToSidW" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="CreateServiceA" CallConv="__stdcall" Arg="ptr ptr ptr int int int int ptr ptr ptr ptr ptr ptr" />
+    <Export Name="CreateServiceW" CallConv="__stdcall" Arg="ptr ptr ptr int int int int ptr ptr ptr ptr ptr ptr" />
+    <Export Name="DeleteService" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="LookupAccountNameLocalA" CallConv="__stdcall" Arg="ptr ptr ptr ptr ptr ptr" />
+    <Export Name="LookupAccountNameLocalW" CallConv="__stdcall" Arg="ptr ptr ptr ptr ptr ptr" />
+    <Export Name="LookupAccountSidLocalA" CallConv="__stdcall" Arg="ptr ptr ptr ptr ptr ptr" />
+    <Export Name="LookupAccountSidLocalW" CallConv="__stdcall" Arg="ptr ptr ptr ptr ptr ptr" />
+    <Export Name="LsaLookupClose" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="LsaLookupFreeMemory" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="LsaLookupGetDomainInfo" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="LsaLookupManageSidNameMapping" CallConv="__stdcall" Arg="int int ptr" />
+    <Export Name="LsaLookupOpenLocalPolicy" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="LsaLookupTranslateNames" CallConv="__stdcall" Arg="ptr int int ptr ptr ptr" />
+    <Export Name="LsaLookupTranslateSids" CallConv="__stdcall" Arg="ptr int ptr ptr ptr" />
+    <Export Name="NotifyServiceStatusChange" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="NotifyServiceStatusChangeA" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="NotifyServiceStatusChangeW" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="OpenSCManagerA" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="OpenSCManagerW" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="OpenServiceA" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="OpenServiceW" CallConv="__stdcall" Arg="ptr ptr int" />
+    <Export Name="QueryServiceConfig2A" CallConv="__stdcall" Arg="ptr int ptr int ptr" />
+    <Export Name="QueryServiceConfig2W" CallConv="__stdcall" Arg="ptr int ptr int ptr" />
+    <Export Name="QueryServiceConfigA" CallConv="__stdcall" Arg="ptr ptr int ptr" />
+    <Export Name="QueryServiceConfigW" CallConv="__stdcall" Arg="ptr ptr int ptr" />
+    <Export Name="QueryServiceObjectSecurity" CallConv="__stdcall" Arg="ptr int ptr int ptr" />
+    <Export Name="QueryServiceStatus" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="QueryServiceStatusEx" CallConv="__stdcall" Arg="ptr int ptr int ptr" />
+    <Export Name="RegisterServiceCtrlHandlerA" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="RegisterServiceCtrlHandlerExA" CallConv="__stdcall" Arg="ptr ptr ptr" />
+    <Export Name="RegisterServiceCtrlHandlerExW" CallConv="__stdcall" Arg="ptr ptr ptr" />
+    <Export Name="RegisterServiceCtrlHandlerW" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="SetServiceObjectSecurity" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="SetServiceStatus" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="StartServiceA" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="StartServiceCtrlDispatcherA" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="StartServiceCtrlDispatcherW" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="StartServiceW" CallConv="__stdcall" Arg="ptr int ptr" />
+  </Dll>
+  <Dll Name="bcd.dll">
+    <Export Name="BcdCloseObject" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdCloseStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdCopyObject" CallConv="__stdcall" Arg="ptr ptr int ptr ptr" />
+    <Export Name="BcdCopyObjectEx" CallConv="__stdcall" Arg="ptr ptr int ptr ptr ptr" />
+    <Export Name="BcdCopyObjects" CallConv="__stdcall" Arg="ptr ptr int ptr" />
+    <Export Name="BcdCreateObject" CallConv="__stdcall" Arg="ptr ptr ptr ptr" />
+    <Export Name="BcdCreateStore" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="BcdDeleteElement" CallConv="__stdcall" Arg="ptr int" />
+    <Export Name="BcdDeleteObject" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdDeleteObjectReferences" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="BcdDeleteSystemStore" CallConv="__stdcall" />
+    <Export Name="BcdEnumerateAndUnpackElements" CallConv="__stdcall" Arg="ptr ptr int ptr ptr ptr" />
+    <Export Name="BcdEnumerateElementTypes" CallConv="__stdcall" Arg="ptr ptr ptr ptr" />
+    <Export Name="BcdEnumerateElements" CallConv="__stdcall" Arg="ptr ptr ptr ptr" />
+    <Export Name="BcdEnumerateElementsWithFlags" CallConv="__stdcall" Arg="ptr int ptr ptr ptr" />
+    <Export Name="BcdEnumerateObjects" CallConv="__stdcall" Arg="ptr ptr ptr ptr ptr" />
+    <Export Name="BcdExportStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdExportStoreEx" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="BcdFlushStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdForciblyUnloadStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdGetElementData" CallConv="__stdcall" Arg="ptr int ptr ptr" />
+    <Export Name="BcdGetElementDataWithFlags" CallConv="__stdcall" Arg="ptr int int ptr ptr" />
+    <Export Name="BcdGetSystemStorePath" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdImportStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdImportStoreWithFlags" CallConv="__stdcall" Arg="ptr int" />
+    <Export Name="BcdMarkAsSystemStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdMigrateObjectElementValues" CallConv="__stdcall" Arg="ptr ptr ptr" />
+    <Export Name="BcdOpenObject" CallConv="__stdcall" Arg="ptr ptr ptr" />
+    <Export Name="BcdOpenStore" CallConv="__stdcall" Arg="ptr int ptr" />
+    <Export Name="BcdOpenStoreFromFile" CallConv="__stdcall" Arg="ptr ptr" />
+    <Export Name="BcdOpenSystemStore" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="BcdQueryObject" CallConv="__stdcall" Arg="ptr int int ptr" />
+    <Export Name="BcdSetElementData" CallConv="__stdcall" Arg="ptr int ptr int" />
+    <Export Name="BcdSetElementDataWithFlags" CallConv="__stdcall" Arg="ptr int int ptr int" />
+    <Export Name="BcdSetLogging" CallConv="__stdcall" Arg="int ptr" />
+    <Export Name="BcdSetSystemStoreDevice" CallConv="__stdcall" Arg="ptr" />
+    <Export Name="GUID_BAD_MEMORY_GROUP" Type="Const" />
+    <Export Name="GUID_BOOT_LOADER_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_CURRENT_BOOT_ENTRY" Type="Const" />
+    <Export Name="GUID_DEBUGGER_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_DEFAULT_BOOT_ENTRY" Type="Const" />
+    <Export Name="GUID_EMS_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_FIRMWARE_BOOTMGR" Type="Const" />
+    <Export Name="GUID_GLOBAL_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_HYPERVISOR_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_KERNEL_DEBUGGER_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_RESUME_LOADER_SETTINGS_GROUP" Type="Const" />
+    <Export Name="GUID_WINDOWS_BOOTMGR" Type="Const" />
+    <Export Name="GUID_WINDOWS_LEGACY_NTLDR" Type="Const" />
+    <Export Name="GUID_WINDOWS_MEMORY_TESTER" Type="Const" />
+    <Export Name="GUID_WINDOWS_OS_TARGET_TEMPLATE_EFI" Type="Const" />
+    <Export Name="GUID_WINDOWS_OS_TARGET_TEMPLATE_PCAT" Type="Const" />
+    <Export Name="GUID_WINDOWS_RESUME_TARGET_TEMPLATE_EFI" Type="Const" />
+    <Export Name="GUID_WINDOWS_RESUME_TARGET_TEMPLATE_PCAT" Type="Const" />
+    <Export Name="GUID_WINDOWS_SETUP_EFI" Type="Const" />
+    <Export Name="GUID_WINDOWS_SETUP_PCAT" Type="Const" />
+    <Export Name="GUID_WINDOWS_SETUP_RAMDISK_OPTIONS" Type="Const" />
+    <Export Name="PARTITION_BASIC_DATA_GUID" Type="Const" />
+    <Export Name="PARTITION_CLUSTER_GUID" Type="Const" />
+    <Export Name="PARTITION_ENTRY_UNUSED_GUID" Type="Const" />
+    <Export Name="PARTITION_LDM_DATA_GUID" Type="Const" />
+    <Export Name="PARTITION_LDM_METADATA_GUID" Type="Const" />
+    <Export Name="PARTITION_MSFT_RECOVERY_GUID" Type="Const" />
+    <Export Name="PARTITION_MSFT_RESERVED_GUID" Type="Const" />
+    <Export Name="PARTITION_MSFT_SNAPSHOT_GUID" Type="Const" />
+    <Export Name="PARTITION_SPACES_GUID" Type="Const" />
+    <Export Name="PARTITION_SYSTEM_GUID" Type="Const" />
+  </Dll>
+</LibCreate>

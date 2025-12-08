@@ -5,7 +5,7 @@
 #include <propkey.h>
 #include <shobjidl.h>
 
-#include "detours.h"
+#include "SlimDetours.h"
 
 #include "utils.h"
 
@@ -29,11 +29,11 @@ HRESULT WINAPI MyPSStringFromPropertyKey(REFPROPERTYKEY pkey,
 }  // namespace
 
 void SetAppId() {
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawPSStringFromPropertyKey),
+  SlimDetoursTransactionBegin();
+  // DetourUpdateThread(GetCurrentThread());
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawPSStringFromPropertyKey),
                reinterpret_cast<void*>(MyPSStringFromPropertyKey));
-  auto status = DetourTransactionCommit();
+  auto status = SlimDetoursTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"SetAppId failed {}", status);
   }

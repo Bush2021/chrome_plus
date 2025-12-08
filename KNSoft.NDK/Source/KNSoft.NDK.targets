@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <IncludePath>$(MSBuildThisFileDirectory)Include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+
+  <!-- Link x64 DLL import libraries for ARM64EC -->
+  <PropertyGroup Condition="'$(Platform)' != 'ARM64EC'">
+    <LibraryPath>$(MSBuildThisFileDirectory)Lib\$(PlatformTarget);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'ARM64EC'">
+    <LibraryPath>$(MSBuildThisFileDirectory)Lib\x64;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

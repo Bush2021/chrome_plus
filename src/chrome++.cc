@@ -3,7 +3,7 @@
 #include <psapi.h>
 #include <stdio.h>
 
-#include "detours.h"
+#include "SlimDetours.h"
 
 #include "appid.h"
 #include "config.h"
@@ -66,11 +66,11 @@ void InstallLoader() {
                        sizeof(MODULEINFO));
   ExeMain = reinterpret_cast<Startup>(mi.EntryPoint);
 
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain),
+  SlimDetoursTransactionBegin();
+  // DetourUpdateThread(GetCurrentThread());
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&ExeMain),
                reinterpret_cast<void*>(Loader));
-  auto status = DetourTransactionCommit();
+  auto status = SlimDetoursTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"InstallLoader failed: {}", status);
   }

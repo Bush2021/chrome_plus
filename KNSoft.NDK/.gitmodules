@@ -1,0 +1,3 @@
+[submodule "Source/SDK/3rdParty/C4Lib"]
+	path = Source/SDK/3rdParty/C4Lib
+	url = https://github.com/KNSoft/C4Lib.git

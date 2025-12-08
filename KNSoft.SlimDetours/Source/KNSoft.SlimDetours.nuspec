@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/01/nuspec.xsd">
+  <metadata>
+    <id>KNSoft.SlimDetours</id>
+    <version>1.1.4-beta</version>
+    <title>KNSoft.SlimDetours</title>
+    <authors>KNSoft</authors>
+    <projectUrl>https://github.com/KNSoft/KNSoft.SlimDetours</projectUrl>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <readme>README.md</readme>
+    <description>KNSoft.SlimDetours is an improved Windows API hooking library base on Microsoft Detours.</description>
+    <tags>native Windows Detours Hook Utility Runtime</tags>
+    <repository type="git" url="https://github.com/KNSoft/KNSoft.SlimDetours" />
+  </metadata>
+  <files>
+    <file src="..\README.md" target="" />
+    <file src="KNSoft.SlimDetours.targets" target="build\" />
+
+    <file src="KNSoft.SlimDetours\*.h" target="build\Include\KNSoft\SlimDetours\" />
+    <file src="Microsoft.Detours\src\*.h" target="build\Include\KNSoft\SlimDetours\" />
+
+    <file src="OutDir\**\*.lib" exclude="OutDir\x86\**" target="build\Lib\" />
+    <file src="OutDir\**\*.pdb" exclude="OutDir\x86\**;OutDir\**\Demo.pdb" target="build\Lib\" />
+    <file src="OutDir\x86\**\*.lib" target="build\Lib\Win32\" />
+    <file src="OutDir\x86\**\*.pdb" exclude="OutDir\x86\**\Demo.pdb" target="build\Lib\Win32\" />
+  </files>
+</package>

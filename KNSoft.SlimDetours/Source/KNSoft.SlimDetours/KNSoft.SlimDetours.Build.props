@@ -1,0 +1,7 @@
+<Project>
+    <ItemDefinitionGroup>
+        <ClCompile>
+            <PreprocessorDefinitions>_USE_KNSOFT_NDK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+        </ClCompile>
+    </ItemDefinitionGroup>
+</Project>

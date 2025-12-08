@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "detours.h"
+#include "SlimDetours.h"
 
 #include "pakfile.h"
 #include "utils.h"
@@ -33,11 +33,11 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
 
     // No more hook needed.
     resources_pak_map = nullptr;
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourDetach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile),
+    SlimDetoursTransactionBegin();
+    // DetourUpdateThread(GetCurrentThread());
+    SlimDetoursDetach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile),
                  reinterpret_cast<void*>(MyMapViewOfFile));
-    auto status = DetourTransactionCommit();
+    auto status = SlimDetoursTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawMapViewOfFile failed {}", status);
     }
@@ -108,20 +108,20 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
 
     // No more hook needed.
     resources_pak_file = nullptr;
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
+    SlimDetoursTransactionBegin();
+    // DetourUpdateThread(GetCurrentThread());
+    SlimDetoursDetach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
                  reinterpret_cast<void*>(MyCreateFileMapping));
-    auto status = DetourTransactionCommit();
+    auto status = SlimDetoursTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFileMapping failed {}", status);
     }
 
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile),
+    SlimDetoursTransactionBegin();
+    // DetourUpdateThread(GetCurrentThread());
+    SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile),
                  reinterpret_cast<void*>(MyMapViewOfFile));
-    status = DetourTransactionCommit();
+    status = SlimDetoursTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawMapViewOfFile failed {}", status);
     }
@@ -147,21 +147,21 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
     resources_pak_file = file;
     resources_pak_size = GetFileSize(resources_pak_file, nullptr);
 
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
+    SlimDetoursTransactionBegin();
+    // DetourUpdateThread(GetCurrentThread());
+    SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
                  reinterpret_cast<void*>(MyCreateFileMapping));
-    auto status = DetourTransactionCommit();
+    auto status = SlimDetoursTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawCreateFileMapping failed {}", status);
     }
 
     // No more hook needed.
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFile),
+    SlimDetoursTransactionBegin();
+    // DetourUpdateThread(GetCurrentThread());
+    SlimDetoursDetach(reinterpret_cast<LPVOID*>(&RawCreateFile),
                  reinterpret_cast<void*>(MyCreateFile));
-    status = DetourTransactionCommit();
+    status = SlimDetoursTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFile failed {}", status);
     }
@@ -173,11 +173,11 @@ HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
 }  // namespace
 
 void PakPatch() {
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFile),
+  SlimDetoursTransactionBegin();
+  // DetourUpdateThread(GetCurrentThread());
+  SlimDetoursAttach(reinterpret_cast<LPVOID*>(&RawCreateFile),
                reinterpret_cast<void*>(MyCreateFile));
-  auto status = DetourTransactionCommit();
+  auto status = SlimDetoursTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"Hook RawCreateFile failed {}", status);
   }

@@ -5,7 +5,7 @@
 #include <intrin.h>
 #include <stdint.h>
 
-#include "detours.h"
+#include "SlimDetours.h"
 
 #define NOP_FUNC        \
   {                     \
@@ -92,10 +92,10 @@ EXPORT(VerQueryValueW)
 namespace {
 // Internal helper functions are kept in the anonymous namespace
 void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
-  DetourTransactionBegin();
-  DetourUpdateThread(GetCurrentThread());
-  DetourAttach(&reinterpret_cast<PVOID&>(pTarget), pDetour);
-  DetourTransactionCommit();
+  SlimDetoursTransactionBegin();
+  // DetourUpdateThread(GetCurrentThread());
+  SlimDetoursAttach(&reinterpret_cast<PVOID&>(pTarget), pDetour);
+  SlimDetoursTransactionCommit();
 }
 
 void LoadVersion(HINSTANCE module_handle) {

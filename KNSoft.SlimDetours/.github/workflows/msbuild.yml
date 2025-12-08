@@ -1,0 +1,62 @@
+name: MSBuild
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  SOLUTION_FILE_PATH: .\Source\KNSoft.SlimDetours.sln
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, windows-11-arm]
+        platform: [x64, x86, ARM64, ARM64EC]
+        config: [Debug, Release]
+      fail-fast: false
+    runs-on: ${{matrix.os}}
+    steps:
+    - name: Source checkout
+      uses: actions/checkout@main
+      with:
+          submodules: recursive
+    - name: Prepare MSBuild
+      uses: microsoft/setup-msbuild@main
+    - name: Build
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: msbuild ${{env.SOLUTION_FILE_PATH}} /restore /m /p:Configuration=${{matrix.config}} /p:Platform=${{matrix.platform}} /p:RestorePackagesConfig=true
+    - name: Archive outputs
+      uses: actions/upload-artifact@main
+      with:
+        name: KNSoft.SlimDetours-${{matrix.os}}-${{matrix.platform}}-${{matrix.config}}-${{github.sha}}
+        path: |
+          .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}
+    - name: Run demos and tests
+      if: ${{(matrix.os == 'windows-latest' && (matrix.platform == 'x64' || matrix.platform == 'x86') || matrix.os == 'windows-11-arm')}}
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run COMHook
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run DeadLock -Engine=SlimDetours
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run DelayHook
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run Instruction
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run TwiceSimpleHook
+    - name: Build [NT5] (x64, x86)
+      if: ${{ matrix.platform == 'x64' || matrix.platform == 'x86' }}
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+          set CL=/D_WIN32_WINNT=0x0500
+          msbuild ${{env.SOLUTION_FILE_PATH}} /restore /m /p:Configuration=${{matrix.config}} /p:Platform=${{matrix.platform}} /p:RestorePackagesConfig=true
+    - name: Run demos and tests [NT5] (x64, x86)
+      if: ${{ matrix.platform == 'x64' || matrix.platform == 'x86' }}
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run COMHook
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run DeadLock -Engine=SlimDetours
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run Instruction
+        .\Source\OutDir\${{matrix.platform}}\${{matrix.config}}\Demo.exe -Run TwiceSimpleHook

@@ -1,0 +1,4 @@
+[submodule "Source/Microsoft.Detours"]
+	path = Source/Microsoft.Detours
+	url = https://github.com/microsoft/Detours.git
+	branch = main

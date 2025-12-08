@@ -1,0 +1,204 @@
+<LibCreate>
+  <Dll Name="ntdll.dll">
+    <!-- Runtime -->
+    <Export Name="__chkstk" CallConv="__cdecl" />
+
+    <!-- String -->
+    <Export Name="__isascii" CallConv="__cdecl" />
+    <Export Name="__iscsym" CallConv="__cdecl" />
+    <Export Name="__iscsymf" CallConv="__cdecl" />
+    <Export Name="__toascii" CallConv="__cdecl" />
+    <Export Name="_atoi64" CallConv="__cdecl" />
+    <Export Name="_i64toa" CallConv="__cdecl" />
+    <Export Name="_i64toa_s" CallConv="__cdecl" />
+    <Export Name="_i64tow" CallConv="__cdecl" />
+    <Export Name="_i64tow_s" CallConv="__cdecl" />
+    <Export Name="_itoa" CallConv="__cdecl" />
+    <Export Name="_itoa_s" CallConv="__cdecl" />
+    <Export Name="_itow" CallConv="__cdecl" />
+    <Export Name="_itow_s" CallConv="__cdecl" />
+    <Export Name="_lfind" CallConv="__cdecl" />
+    <Export Name="_ltoa" CallConv="__cdecl" />
+    <Export Name="_ltoa_s" CallConv="__cdecl" />
+    <Export Name="_ltow" CallConv="__cdecl" />
+    <Export Name="_ltow_s" CallConv="__cdecl" />
+    <Export Name="_makepath_s" CallConv="__cdecl" />
+    <Export Name="_snprintf" CallConv="__cdecl" />
+    <Export Name="_snprintf_s" CallConv="__cdecl" />
+    <Export Name="_snscanf_s" CallConv="__cdecl" />
+    <Export Name="_snwprintf" CallConv="__cdecl" />
+    <Export Name="_snwprintf_s" CallConv="__cdecl" />
+    <Export Name="_snwscanf_s" CallConv="__cdecl" />
+    <Export Name="_splitpath" CallConv="__cdecl" />
+    <Export Name="_splitpath_s" CallConv="__cdecl" />
+    <Export Name="_strcmpi" CallConv="__cdecl" />
+    <Export Name="_stricmp" CallConv="__cdecl" />
+    <Export Name="_strlwr" CallConv="__cdecl" />
+    <Export Name="_strnicmp" CallConv="__cdecl" />
+    <Export Name="_strnset_s" CallConv="__cdecl" />
+    <Export Name="_strset_s" CallConv="__cdecl" />
+    <Export Name="_strupr" CallConv="__cdecl" />
+    <Export Name="_swprintf" CallConv="__cdecl" />
+    <Export Name="_ui64toa" CallConv="__cdecl" />
+    <Export Name="_ui64toa_s" CallConv="__cdecl" />
+    <Export Name="_ui64tow" CallConv="__cdecl" />
+    <Export Name="_ui64tow_s" CallConv="__cdecl" />
+    <Export Name="_ultoa" CallConv="__cdecl" />
+    <Export Name="_ultoa_s" CallConv="__cdecl" />
+    <Export Name="_ultow" CallConv="__cdecl" />
+    <Export Name="_ultow_s" CallConv="__cdecl" />
+    <Export Name="_vscwprintf" CallConv="__cdecl" />
+    <Export Name="_vsnprintf" CallConv="__cdecl" />
+    <Export Name="_vsnprintf_s" CallConv="__cdecl" />
+    <Export Name="_vsnwprintf" CallConv="__cdecl" />
+    <Export Name="_vsnwprintf_s" CallConv="__cdecl" />
+    <Export Name="_vswprintf" CallConv="__cdecl" />
+    <Export Name="_wcsicmp" CallConv="__cdecl" />
+    <Export Name="_wcslwr" CallConv="__cdecl" />
+    <Export Name="_wcsnicmp" CallConv="__cdecl" />
+    <Export Name="_wcsnset_s" CallConv="__cdecl" />
+    <Export Name="_wcsset_s" CallConv="__cdecl" />
+    <Export Name="_wcstoui64" CallConv="__cdecl" />
+    <Export Name="_wcsupr" CallConv="__cdecl" />
+    <Export Name="_wmakepath_s" CallConv="__cdecl" />
+    <Export Name="_wsplitpath_s" CallConv="__cdecl" />
+    <Export Name="_wtoi" CallConv="__cdecl" />
+    <Export Name="_wtoi64" CallConv="__cdecl" />
+    <Export Name="_wtol" CallConv="__cdecl" />
+    <Export Name="isalnum" CallConv="__cdecl" />
+    <Export Name="isalpha" CallConv="__cdecl" />
+    <Export Name="iscntrl" CallConv="__cdecl" />
+    <Export Name="isdigit" CallConv="__cdecl" />
+    <Export Name="isgraph" CallConv="__cdecl" />
+    <Export Name="islower" CallConv="__cdecl" />
+    <Export Name="isprint" CallConv="__cdecl" />
+    <Export Name="ispunct" CallConv="__cdecl" />
+    <Export Name="isspace" CallConv="__cdecl" />
+    <Export Name="isupper" CallConv="__cdecl" />
+    <Export Name="iswalpha" CallConv="__cdecl" />
+    <Export Name="iswctype" CallConv="__cdecl" />
+    <Export Name="iswdigit" CallConv="__cdecl" />
+    <Export Name="iswlower" CallConv="__cdecl" />
+    <Export Name="iswspace" CallConv="__cdecl" />
+    <Export Name="iswxdigit" CallConv="__cdecl" />
+    <Export Name="isxdigit" CallConv="__cdecl" />
+    <Export Name="mbstowcs" CallConv="__cdecl" />
+    <Export Name="sprintf" CallConv="__cdecl" />
+    <Export Name="sprintf_s" CallConv="__cdecl" />
+    <Export Name="sscanf" CallConv="__cdecl" />
+    <Export Name="sscanf_s" CallConv="__cdecl" />
+    <Export Name="strcat" CallConv="__cdecl" />
+    <Export Name="strcat_s" CallConv="__cdecl" />
+    <Export Name="strchr" CallConv="__cdecl" />
+    <Export Name="strcmp" CallConv="__cdecl" />
+    <Export Name="strcpy" CallConv="__cdecl" />
+    <Export Name="strcpy_s" CallConv="__cdecl" />
+    <Export Name="strcspn" CallConv="__cdecl" />
+    <Export Name="strlen" CallConv="__cdecl" />
+    <Export Name="strncat" CallConv="__cdecl" />
+    <Export Name="strncat_s" CallConv="__cdecl" />
+    <Export Name="strncmp" CallConv="__cdecl" />
+    <Export Name="strncpy" CallConv="__cdecl" />
+    <Export Name="strncpy_s" CallConv="__cdecl" />
+    <Export Name="strnlen" CallConv="__cdecl" />
+    <Export Name="strpbrk" CallConv="__cdecl" />
+    <Export Name="strrchr" CallConv="__cdecl" />
+    <Export Name="strspn" CallConv="__cdecl" />
+    <Export Name="strstr" CallConv="__cdecl" />
+    <Export Name="strtok_s" CallConv="__cdecl" />
+    <Export Name="strtol" CallConv="__cdecl" />
+    <Export Name="strtoul" CallConv="__cdecl" />
+    <Export Name="swprintf" CallConv="__cdecl" />
+    <Export Name="swprintf_s" CallConv="__cdecl" />
+    <Export Name="swscanf_s" CallConv="__cdecl" />
+    <Export Name="tolower" CallConv="__cdecl" />
+    <Export Name="toupper" CallConv="__cdecl" />
+    <Export Name="towlower" CallConv="__cdecl" />
+    <Export Name="towupper" CallConv="__cdecl" />
+    <Export Name="vsprintf" CallConv="__cdecl" />
+    <Export Name="vsprintf_s" CallConv="__cdecl" />
+    <Export Name="vswprintf_s" CallConv="__cdecl" />
+    <Export Name="wcscat" CallConv="__cdecl" />
+    <Export Name="wcscat_s" CallConv="__cdecl" />
+    <Export Name="wcschr" CallConv="__cdecl" />
+    <Export Name="wcscmp" CallConv="__cdecl" />
+    <Export Name="wcscpy" CallConv="__cdecl" />
+    <Export Name="wcscpy_s" CallConv="__cdecl" />
+    <Export Name="wcscspn" CallConv="__cdecl" />
+    <Export Name="wcslen" CallConv="__cdecl" />
+    <Export Name="wcsncat" CallConv="__cdecl" />
+    <Export Name="wcsncat_s" CallConv="__cdecl" />
+    <Export Name="wcsncmp" CallConv="__cdecl" />
+    <Export Name="wcsncpy" CallConv="__cdecl" />
+    <Export Name="wcsncpy_s" CallConv="__cdecl" />
+    <Export Name="wcsnlen" CallConv="__cdecl" />
+    <Export Name="wcspbrk" CallConv="__cdecl" />
+    <Export Name="wcsrchr" CallConv="__cdecl" />
+    <Export Name="wcsspn" CallConv="__cdecl" />
+    <Export Name="wcsstr" CallConv="__cdecl" />
+    <Export Name="wcstol" CallConv="__cdecl" />
+    <Export Name="wcstombs" CallConv="__cdecl" />
+    <Export Name="wcstoul" CallConv="__cdecl" />
+
+    <!-- Math -->
+    <Export Name="abs" CallConv="__cdecl" />
+    <Export Name="atan" CallConv="__cdecl" />
+    <Export Name="atoi" CallConv="__cdecl" />
+    <Export Name="atol" CallConv="__cdecl" />
+    <Export Name="bsearch" CallConv="__cdecl" />
+    <Export Name="ceil" CallConv="__cdecl" />
+    <Export Name="cos" CallConv="__cdecl" />
+    <Export Name="fabs" CallConv="__cdecl" />
+    <Export Name="floor" CallConv="__cdecl" />
+    <Export Name="labs" CallConv="__cdecl" />
+    <Export Name="log" CallConv="__cdecl" />
+    <Export Name="pow" CallConv="__cdecl" />
+    <Export Name="qsort" CallConv="__cdecl" />
+    <Export Name="sin" CallConv="__cdecl" />
+    <Export Name="sqrt" CallConv="__cdecl" />
+    <Export Name="tan" CallConv="__cdecl" />
+
+    <!-- Memory -->
+    <Export Name="_memccpy" CallConv="__cdecl" />
+    <Export Name="_memicmp" CallConv="__cdecl" />
+    <Export Name="memset" CallConv="__cdecl" />
+    <Export Name="memcpy" CallConv="__cdecl" />
+    <Export Name="memcpy_s" CallConv="__cdecl" />
+    <Export Name="memmove" CallConv="__cdecl" />
+    <Export Name="memmove_s" CallConv="__cdecl" />
+    <Export Name="memchr" CallConv="__cdecl" />
+    <Export Name="memcmp" CallConv="__cdecl" />
+
+    <!-- x86 -->
+    <Export Name="_CIcos" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_CIlog" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_CIpow" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_CIsin" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_CIsqrt" CallConv="__cdecl" Arch="x86" />
+
+    <Export Name="_alldiv" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_alldvrm" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_allmul" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_allrem" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_allshl" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_allshr" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_aulldiv" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_aulldvrm" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_aullrem" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_aullshr" CallConv="__cdecl" Arch="x86" />
+
+    <Export Name="_ftol" CallConv="__cdecl" Arch="x86" />
+
+    <Export Name="_alloca_probe" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_alloca_probe_8" CallConv="__cdecl" Arch="x86" />
+    <Export Name="_alloca_probe_16" CallConv="__cdecl" Arch="x86" />
+
+    <!-- x64 -->
+    <Export Name="__C_specific_handler" CallConv="__cdecl" Arch="x64" />
+    <Export Name="__misaligned_access" CallConv="__cdecl" Arch="x64" />
+    <Export Name="_local_unwind" CallConv="__cdecl" Arch="x64" />
+    <Export Name="_setjmp" CallConv="__cdecl" Arch="x64" />
+    <Export Name="_setjmpex" CallConv="__cdecl" Arch="x64" />
+    <Export Name="longjmp" CallConv="__cdecl" Arch="x64" />
+  </Dll>
+</LibCreate>

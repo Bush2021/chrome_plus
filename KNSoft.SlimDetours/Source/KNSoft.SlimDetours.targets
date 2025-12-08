@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<Project InitialTargets="SlimDetoursCheckPlatform" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="SlimDetoursCheckPlatform">
+    <Error Text="KNSoft.SlimDetours supports Win32, x64, ARM64, and ARM64EC platforms, but current configured platform is $(Platform)." Condition="'$(Platform)' != 'Win32' and '$(Platform)' != 'x64' and '$(Platform)' != 'ARM64' and '$(Platform)' != 'ARM64EC'" />
+  </Target>
+  <PropertyGroup>
+    <IncludePath>$(MSBuildThisFileDirectory)Include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(Configuration.Contains(`Debug`))">
+    <LibraryPath>$(MSBuildThisFileDirectory)Lib\$(Platform)\Debug;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="$(Configuration.Contains(`Release`))">
+    <LibraryPath>$(MSBuildThisFileDirectory)Lib\$(Platform)\Release;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="!$(Configuration.Contains(`Debug`)) and !$(Configuration.Contains(`Release`))">
+    <LibraryPath>$(MSBuildThisFileDirectory)Lib\$(Platform);$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

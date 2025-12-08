@@ -1,0 +1,453 @@
+;=====================================================================================
+; KNSoft.NDK (https://github.com/KNSoft/KNSoft.NDK) macros for MASM x64 and x86
+; Copyright (c) KNSoft.org (https://github.com/KNSoft). All rights reserved.
+; Licensed under the MIT license.
+;=====================================================================================
+
+;=====================================================================================
+; brief: Make a WORD/DWORD/QWORD.
+; example: $MAKEDWORD(1, 2) is 000020001h.
+;          $MAKEDWORD2(1, 2, 3, 4) is 004030201h.
+;=====================================================================================
+
+$MAKEWORD MACRO l, h
+    EXITM <(((LOW h) SHL 8) OR (LOW l))>
+ENDM
+
+$MAKEDWORD MACRO l, h
+    EXITM <(((LOWORD h) SHL 8) OR (LOWORD l))>
+ENDM
+
+$MAKEQWORD MACRO l, h
+    EXITM <(((LOW32 h) SHL 8) OR (LOW32 l))>
+ENDM
+
+$MAKEDWORD2 MACRO ll, lh, hl, hh
+    EXITM <(((LOW hh) SHL 24) OR ((LOW hl) SHL 16) OR ((LOW lh) SHL 8) OR (LOW ll))>
+ENDM
+
+;=====================================================================================
+; brief: Make a IPv4 Address in little-endian or big-endian.
+; example: $IPV4_LE(127, 0, 0, 1) means IP Address 127.0.0.1 in little-endian.
+; remarks: In little-endian, use bswap instruction before passing to WinSocket.
+;=====================================================================================
+
+$IPV4_LE MACRO v1, v2, v3, v4
+    EXITM $MAKEDWORD2(v1, v2, v3, v4)
+ENDM
+
+$IPV4_BE MACRO v1, v2, v3, v4
+    EXITM $MAKEDWORD2(v4, v3, v2, v1)
+ENDM
+
+;=====================================================================================
+; brief: Make a DWORD for various color formats.
+; example: $A8R8G8B8(255, 0, 0) means red color in A8R8G8B8 format.
+;          $RGB(0, 0, 255) means blue color and compatible with GDI COLORREF value.
+;=====================================================================================
+
+$A8R8G8B8 MACRO r, g, b, a
+    EXITM $MAKEDWORD2(b, g, r, a)
+ENDM
+
+$X8R8G8B8 MACRO r, g, b
+    EXITM $MAKEDWORD2(b, g, r, 0)
+ENDM
+
+$A8B8G8R8 MACRO r, g, b, a
+    EXITM $MAKEDWORD2(r, g, b, a)
+ENDM
+
+$X8B8G8R8 MACRO r, g, b
+    EXITM $MAKEDWORD2(r, g, b, 0)
+ENDM
+
+$RGB MACRO r, g, b
+    EXITM $MAKEDWORD2(r, g, b, 0)
+ENDM
+
+;=====================================================================================
+; brief: Locale stuff, see also corresponding macros in Windows SDK.
+;=====================================================================================
+
+$MAKELANGID MACRO PrimaryLangId, SubLangId
+    EXITM <(((LOWORD SubLangId) SHL 10) OR (LOWORD PrimaryLangId))>
+ENDM
+
+$PRIMARYLANGID MACRO LangId
+    EXITM <((LOWORD LangId) AND 03FFh)>
+ENDM
+
+$SUBLANGID MACRO LangId
+    EXITM <((LOWORD LangId) SHR 10)>
+ENDM
+
+$MAKELCID MACRO LangId, SortId
+    EXITM <(((LOWORD SortId) SHL 16) OR (LOWORD LangId))>
+ENDM
+
+$MAKESORTLCID MACRO LangId, SortId, SortVer
+    EXITM <($MAKELCID(LangId, SortId) OR ((LOWORD SortVer) SHL 20))>
+ENDM
+
+$LANGIDFROMLCID MACRO Lcid
+    EXITM <(LOWORD Lcid)>
+ENDM
+
+$SORTIDFROMLCID MACRO Lcid
+    EXITM <((Lcid SHR 16) AND 0Fh)>
+ENDM
+
+$SORTVERSIONFROMLCID MACRO Lcid
+    EXITM <((Lcid SHR 20) AND 0Fh)>
+ENDM
+
+;=====================================================================================
+; brief: $SEG_INSERT: Insert a segment and save previous segment.
+;        $SEG_RESTORE: Restore segment saved by $SEG_INSERT.
+;=====================================================================================
+
+$SEG_CURRENT TEXTEQU <>
+
+$SEG_INSERT MACRO Seg:REQ
+    $SEG_CURRENT TEXTEQU @CurSeg
+    Seg
+ENDM
+
+$SEG_RESTORE MACRO
+    @CurSeg ENDS
+    IFNB $SEG_CURRENT
+        $SEG_CURRENT SEGMENT
+    ENDIF
+ENDM
+
+;=====================================================================================
+; brief: Determine input is a string or not.
+;=====================================================================================
+
+$IS_STRING MACRO txt
+    LOCAL char, tmp, bStr
+    bStr = 1
+    char SUBSTR <txt>, 1, 1
+    tmp SUBSTR <txt>, @SizeStr(<txt>), 1
+    IFDIF char, <!'>
+        IFDIF char, <!">
+            bStr = 0
+        ENDIF
+    ENDIF
+    IF bStr NE 0
+        IFDIF tmp, char
+            bStr = 0
+        ENDIF
+    ENDIF
+    IF bStr EQ 0
+        EXITM <0>
+    ELSE
+        EXITM <1>
+    ENDIF
+ENDM
+
+;=====================================================================================
+; brief: Define a string.
+;        $STR_SERIAL(A/W)[0]: Define a character array.
+;        $STR_LABEL(A/W)[0]: Define a constant character array and return the label.
+;        $PSTR(A/W)[0]: Define a constant string and return the address.
+;        $STR(A/W)[0]: Defines a constant string.
+;
+;        (A/W): ANSI (A) or Unicode (W) string.
+;        [0]: Ends with null-terminator.
+; example: mov eax, $PSTRW0('Ex\\1')    ; Move pointer of unicode string 'Ex\1' to eax.
+;          szText $STRA0('Text')        ; Define a ANSI string 'Text'.
+; remarks: The following escape sequences are supported: \0, \r, \n, \t, \\, \', \".
+;          String is 4-byte aligned.
+;=====================================================================================
+
+$STR_SERIAL_INTERNAL MACRO txt:REQ, bUnicode:REQ, bZero:REQ
+    LOCAL output, bSlash, iCch, tmp
+    output TEXTEQU <>
+    bSlash = 0
+    iCch = 0
+    tmp SUBSTR <txt>, 2, @SizeStr(<txt>) - 2
+    %FORC char, <tmp>
+        IF iCch EQ 0 AND bSlash EQ 0
+            IF bUnicode NE 0
+                output CATSTR output, <dw >
+            ELSE
+                output CATSTR output, <db >
+            ENDIF
+        ENDIF
+        IF bSlash
+            bSlash = 0
+            IFIDNI <char>, <0>
+                output CATSTR output, <00h,>
+            ELSEIFIDNI <char>, <r>
+                output CATSTR output, <0Dh,>
+            ELSEIFIDNI <char>, <n>
+                output CATSTR output, <0Ah,>
+            ELSEIFIDNI <char>, <t>
+                output CATSTR output, <09h,>
+            ELSEIFIDNI <char>, <\>
+                output CATSTR output, <5Ch,>
+            ELSEIFIDNI <char>, <!">
+                output CATSTR output, <22h,>
+            ELSEIFIDNI <char>, <!'>
+                output CATSTR output, <27h,>
+            ELSE
+                ECHO $STR: Unrecognized character escape sequence '\&char'
+                output CATSTR output, <'&char',>
+            ENDIF
+            iCch = iCch + 1
+        ELSE
+            IFIDNI <char>, <\>
+                bSlash = 1
+            ELSE
+                output CATSTR output, <'&char',>
+                iCch = iCch + 1
+            ENDIF
+        ENDIF
+        IF iCch GE 36
+            @SubStr(%output, 1, @SizeStr(<%output>) - 1)
+            iCch = 0
+            output TEXTEQU <>
+        ENDIF
+    ENDM
+    IFNB output
+        @SubStr(%output, 1, @SizeStr(<%output>) - 1)
+    ENDIF
+    IF bZero NE 0
+        IF bUnicode NE 0
+            dw 0
+        ELSE
+            db 0
+        ENDIF
+    ENDIF
+ENDM
+
+$STR_SERIALW MACRO txt:REQ
+    $STR_SERIAL_INTERNAL txt, 1, 0
+ENDM
+
+$STR_SERIALA MACRO txt:REQ
+    $STR_SERIAL_INTERNAL txt, 0, 0
+ENDM
+
+$STR_SERIALW0 MACRO txt:REQ
+    $STR_SERIAL_INTERNAL txt, 1, 1
+ENDM
+
+$STR_SERIALA0 MACRO txt:REQ
+    $STR_SERIAL_INTERNAL txt, 0, 1
+ENDM
+
+$STR_LABEL_INTERNAL_COUNT = 0
+
+$STR_LABEL_INTERNAL MACRO txt:REQ, bUnicode:REQ, bZero:REQ
+    LOCAL n
+    $STR_LABEL_INTERNAL_COUNT = $STR_LABEL_INTERNAL_COUNT + 1
+    n CATSTR <$STR_LABEL_>, %$STR_LABEL_INTERNAL_COUNT
+    $SEG_INSERT .const
+    align 4
+    IF bUnicode NE 0
+        n LABEL WORD
+    ELSE
+        n LABEL BYTE
+    ENDIF
+    $STR_SERIAL_INTERNAL txt, bUnicode, bZero
+    $SEG_RESTORE
+    EXITM <n>
+ENDM
+
+$STR_LABELW MACRO txt:REQ
+    EXITM $STR_LABEL_INTERNAL(txt, 1, 0)
+ENDM
+
+$STR_LABELA MACRO txt:REQ
+    EXITM $STR_LABEL_INTERNAL(txt, 0, 0)
+ENDM
+
+$STR_LABELW0 MACRO txt:REQ
+    EXITM $STR_LABEL_INTERNAL(txt, 1, 1)
+ENDM
+
+$STR_LABELA0 MACRO txt:REQ
+    EXITM $STR_LABEL_INTERNAL(txt, 0, 1)
+ENDM
+
+$STRW MACRO txt:REQ
+    EXITM <@CatStr(<equ >, $STR_LABEL_INTERNAL(txt, 1, 0))>
+ENDM
+
+$STRA MACRO txt:REQ
+    EXITM <@CatStr(<equ >, $STR_LABEL_INTERNAL(txt, 0, 0))>
+ENDM
+
+$STR0W MACRO txt:REQ
+    EXITM <@CatStr(<equ >, $STR_LABEL_INTERNAL(txt, 1, 1))>
+ENDM
+
+$STR0A MACRO txt:REQ
+    EXITM <@CatStr(<equ >, $STR_LABEL_INTERNAL(txt,0,1))>
+ENDM
+
+$PSTRW MACRO txt:REQ
+    EXITM <@CatStr(<offset >, $STR_LABEL_INTERNAL(txt, 1, 0))>
+ENDM
+
+$PSTRA MACRO txt:REQ
+    EXITM <@CatStr(<offset >, $STR_LABEL_INTERNAL(txt, 0, 0))>
+ENDM
+
+$PSTRW0 MACRO txt:REQ
+    EXITM <@CatStr(<offset >, $STR_LABEL_INTERNAL(txt, 1, 1))>
+ENDM
+
+$PSTRA0 MACRO txt:REQ
+    EXITM <@CatStr(<offset >, $STR_LABEL_INTERNAL(txt, 0, 1))>
+ENDM
+
+;=====================================================================================
+; brief: Set stack frame.
+; example: $STACKFRAME FALSE: No stack frame.
+;          $STACKFRAME TRUE: Default stack frame.
+;=====================================================================================
+
+$STACKFRAME MACRO b:REQ
+    IF b EQ 0
+        OPTION PROLOGUE:NONE
+        OPTION EPILOGUE:NONE
+    ELSE
+        OPTION PROLOGUE:PROLOGUEDEF
+        OPTION EPILOGUE:EPILOGUEDEF
+    ENDIF
+ENDM
+
+;=====================================================================================
+; brief: Return symbol name of variable or function.
+;=====================================================================================
+
+$SYMBOLNAME MACRO Name:REQ, ArgSize
+
+IFDEF _M_IX86
+
+IFNB <ArgSize>
+    EXITM @CatStr(<_>, <Name>, <@>, %(ArgSize))
+ELSE
+    EXITM @CatStr(<_>, <Name>)
+ENDIF
+
+ELSE
+    EXITM <Name>
+ENDIF
+
+ENDM
+
+;=====================================================================================
+; brief: Define a public label with or without type.
+;=====================================================================================
+
+$PUBLIC_LABEL MACRO LabelName:REQ, Type
+    PUBLIC LabelName
+    IFNB <Type>
+        LabelName LABEL Type
+    ELSE
+        LabelName:
+    ENDIF
+ENDM
+
+;=====================================================================================
+; !!! FIXME: The following macros may not supported on x64 !!!
+;=====================================================================================
+
+;=====================================================================================
+; brief: $SRB sets a register to a BOOL (-1, 0 or 1).
+;        $BOOL: sets a register to a BOOL (-1, 0 or 1) and return it.
+; remarks: If register is not specified, eax will be used by default.
+;=====================================================================================
+
+$SRB MACRO r:REQ, b:REQ
+    xor r,r
+    IF b EQ -1
+        dec r
+    ELSEIF b EQ 1
+        inc r
+    ELSEIF b NE 0
+        .ERR @CatStr(<$SRB: Incorrect BOOL value: >, b)
+    ENDIF
+ENDM
+
+$BOOL MACRO b:REQ, r
+    LOCAL reg
+    IFNB <r>
+        reg TEXTEQU <r>
+    ELSE
+        reg TEXTEQU <eax>
+    ENDIF
+    $SRB reg, b
+    EXITM <reg>
+ENDM
+
+;=====================================================================================
+; brief: Inline an instruction and return a register
+; example: "invoke ExitProcess, $EDX(mov edx, 6)" passes 6 to the function via edx.
+;          "shl $EDX(xchg ecx, edx), 2" equals to "xchg ecx, edx" and then "shl edx, 2"
+;=====================================================================================
+
+$EAX MACRO p1:REQ, pxs:VARARG
+    LOCAL tmp
+    tmp TEXTEQU <p1>
+    FOR p, <pxs>
+        tmp CATSTR tmp, <, p>
+    ENDM
+    tmp
+    EXITM <eax>
+ENDM
+
+$EDX MACRO p1:REQ, pxs:VARARG
+    LOCAL tmp
+    tmp TEXTEQU <p1>
+    FOR p, <pxs>
+        tmp CATSTR tmp, <, p>
+    ENDM
+    tmp
+    EXITM <edx>
+ENDM
+
+$ECX MACRO p1:REQ, pxs:VARARG
+    LOCAL tmp
+    tmp TEXTEQU <p1>
+    FOR p, <pxs>
+        tmp CATSTR tmp, <, p>
+    ENDM
+    tmp
+    EXITM <ecx>
+ENDM
+
+$EBX MACRO p1:REQ, pxs:VARARG
+    LOCAL tmp
+    tmp TEXTEQU <p1>
+    FOR p, <pxs>
+        tmp CATSTR tmp, <, p>
+    ENDM
+    tmp
+    EXITM <ebx>
+ENDM
+
+$EDI MACRO p1:REQ,pxs:VARARG
+    LOCAL tmp
+    tmp TEXTEQU <p1>
+    FOR p,<pxs>
+        tmp CATSTR tmp,<,p>
+    ENDM
+    tmp
+    EXITM <edi>
+ENDM
+
+$ESI MACRO p1:REQ, pxs:VARARG
+    LOCAL tmp
+    tmp TEXTEQU <p1>
+    FOR p, <pxs>
+        tmp CATSTR tmp, <, p>
+    ENDM
+    tmp
+    EXITM <esi>
+ENDM
