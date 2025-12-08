@@ -189,3 +189,13 @@ void PakPatch() {
     DebugLog(L"Hook RawCreateFile failed {}", status);
   }
 }
+
+// TODO: If Chrome forces `WebUIInProcessResourceLoading`, we may try two ways.
+// 1. Instead of modifying view, we create a page file with modified content,
+// and return its handle.
+// 2. In crbugs.com/362511750, there is a exception saying that "Dynamic
+// Resources (out of scope): resources not included in the ui::ResourceBundle
+// ... will still require IPCs". So if we can make the html a dynamic resource,
+// or modify the index of ResourceBundle (e.g., point it to empty) to trigger
+// fallback, it may work. We need to research more on
+// ResourceBundle::GetRawDataResource().
