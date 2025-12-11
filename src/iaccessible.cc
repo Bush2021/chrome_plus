@@ -415,6 +415,19 @@ NodePtr GetTopContainerView(HWND hwnd) {
   return top_container_view;
 }
 
+// Generates a fingerprint for a given accessibility node. We use the
+// Accessibility Role and the screen Location (Rect) as a composite ID. If a tab
+// moves or a new tab appears in the same spot, the Rect or Role/Object identity
+// usually helps distinguish them.
+ElementFingerprint GetElementFingerprint(const NodePtr& node) {
+  ElementFingerprint fp;
+  if (node) {
+    fp.role = GetAccessibleRole(node);
+    GetAccessibleSize(node, [&](RECT r) { fp.rect = r; });
+  }
+  return fp;
+}
+
 // Gets the current number of tabs.
 int GetTabCount(const NodePtr& top) {
   NodePtr page_tab_pane = FindPageTabPane(top);
