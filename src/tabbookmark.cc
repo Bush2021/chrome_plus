@@ -7,10 +7,21 @@
 #include "iaccessible.h"
 #include "utils.h"
 
+#include <optional>
+
 namespace {
 
 HHOOK mouse_hook = nullptr;
 static POINT lbutton_down_point = {-1, -1};
+
+// Stores the fingerprint of the tab captured during the last 'Left Button Up'
+// event.
+static ElementFingerprint last_click_fingerprint;
+struct TabCaptureResult {
+  HWND hwnd = nullptr;
+  NodePtr top_container;
+  ElementFingerprint fingerprint;
+};
 
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key) {
@@ -97,30 +108,68 @@ bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
-// Double-click to close tab.
-bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
+// Attempts to find a tab under the mouse cursor and generate its fingerprint.
+std::optional<TabCaptureResult> CaptureTabFingerprint(POINT pt) {
+  // We only handle double-click right now.
   if (!config.IsDoubleClickClose()) {
-    return false;
+    return std::nullopt;
   }
-
-  POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
-    return false;
+    return std::nullopt;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
-  bool is_on_close_button = IsOnCloseButton(top_container_view, pt);
-  if (!is_on_one_tab || is_on_close_button) {
-    return false;
+  // Ensure we are strictly on a tab element (and not, for example, the close
+  // button).
+  NodePtr tab_node;
+  if (!IsOnOneTab(top_container_view, pt, &tab_node) ||
+      // TODO: It might be ok to simply check if not on a PUSHBUTTON
+      IsOnCloseButton(top_container_view, pt)) {
+    return std::nullopt;
   }
 
-  if (IsOnlyOneTab(top_container_view)) {
-    ExecuteCommand(IDC_NEW_TAB, hwnd);
-    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  return TabCaptureResult{
+      .hwnd = hwnd,
+      .top_container = top_container_view,
+      .fingerprint = GetElementFingerprint(tab_node),
+  };
+}
+
+void UpdateClickFingerprint(PMOUSEHOOKSTRUCT pmouse) {
+  auto result = CaptureTabFingerprint(pmouse->pt);
+  if (result.has_value()) {
+    last_click_fingerprint = result->fingerprint;
   } else {
-    ExecuteCommand(IDC_CLOSE_TAB, hwnd);
+    last_click_fingerprint = {};
+  }
+}
+
+// Double-click to close tab.
+bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
+  auto result = CaptureTabFingerprint(pmouse->pt);
+  if (!result.has_value()) {
+    return false;
+  }
+
+  // Compare the current tab's fingerprint with the one stored from the previous
+  // click (HandleLeftButtonUp). Scenarios prevented:
+  // - User clicks "New Tab" (Tab A created), then clicks again quickly.
+  //   Without this, it registers as a double-click on Tab A, closing it
+  //   instantly.
+  // - User closes a tab, next tab shifts under cursor. Rapid clicking acts as a
+  // double-click on the NEW tab.
+  //   The fingerprints will differ (different rect or element identity), so we
+  //   block the close action.
+  if (result->fingerprint != last_click_fingerprint) {
+    return false;
+  }
+
+  if (IsOnlyOneTab(result->top_container)) {
+    ExecuteCommand(IDC_NEW_TAB, result->hwnd);
+    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, result->hwnd);
+  } else {
+    ExecuteCommand(IDC_CLOSE_TAB, result->hwnd);
   }
   return true;
 }
@@ -277,7 +326,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     case WM_LBUTTONUP:
       if (HandleDrag(pmouse)) {
         break;
-      } else if (HandleBookmark(pmouse)) {
+      }
+      UpdateClickFingerprint(pmouse);
+      if (HandleBookmark(pmouse)) {
         handled = true;
       } else if (HandleCloseButton(pmouse)) {
         handled = true;

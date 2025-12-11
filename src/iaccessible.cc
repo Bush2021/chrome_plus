@@ -415,6 +415,19 @@ NodePtr GetTopContainerView(HWND hwnd) {
   return top_container_view;
 }
 
+// Generates a fingerprint for a given accessibility node. We use the
+// Accessibility Role and the screen Location (Rect) as a composite ID. If a tab
+// moves or a new tab appears in the same spot, the Rect or Role/Object identity
+// usually helps distinguish them.
+ElementFingerprint GetElementFingerprint(const NodePtr& node) {
+  ElementFingerprint fp;
+  if (node) {
+    fp.role = GetAccessibleRole(node);
+    GetAccessibleSize(node, [&](RECT r) { fp.rect = r; });
+  }
+  return fp;
+}
+
 // Gets the current number of tabs.
 int GetTabCount(const NodePtr& top) {
   NodePtr page_tab_pane = FindPageTabPane(top);
@@ -436,26 +449,35 @@ int GetTabCount(const NodePtr& top) {
       }));
 }
 
-// Whether the mouse is on a tab
-bool IsOnOneTab(const NodePtr& top, POINT pt) {
+// Whether the mouse is on a tab; optionally returns the tab node under the
+// point.
+bool IsOnOneTab(const NodePtr& top, POINT pt, NodePtr* tab_out) {
   NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(page_tab_pane, [&flag, &pt](const NodePtr& child) {
-    if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
-      return false;
-    }
-    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
-      if (PtInRect(&rect, pt)) {
-        flag = true;
-      }
-    });
-    return flag;
-  });
+  TraversalAccessible(
+      page_tab_pane, [&flag, &pt, tab_out](const NodePtr& child) {
+        if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
+          return false;
+        }
+        GetAccessibleSize(child, [&flag, &pt, &child, tab_out](RECT rect) {
+          if (PtInRect(&rect, pt)) {
+            flag = true;
+            if (tab_out) {
+              *tab_out = child;
+            }
+          }
+        });
+        return flag;
+      });
   return flag;
+}
+
+bool IsOnOneTab(const NodePtr& top, POINT pt) {
+  return IsOnOneTab(top, pt, nullptr);
 }
 
 bool IsOnlyOneTab(const NodePtr& top) {
