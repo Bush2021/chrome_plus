@@ -24,6 +24,7 @@ NodePtr GetTopContainerView(HWND hwnd);
 ElementFingerprint GetElementFingerprint(const NodePtr& node);
 int GetTabCount(const NodePtr& top);
 bool IsOnOneTab(const NodePtr& top, POINT pt);
+bool IsOnOneTab(const NodePtr& top, POINT pt, NodePtr* tab_out);
 bool IsOnlyOneTab(const NodePtr& top);
 bool IsOnTheTabBar(const NodePtr& top, POINT pt);
 bool IsOnNewTab(const NodePtr& top);

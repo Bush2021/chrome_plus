@@ -7,7 +7,7 @@
 #include "iaccessible.h"
 #include "utils.h"
 
-#include "optional"
+#include <optional>
 
 namespace {
 
@@ -108,30 +108,6 @@ bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
-// Double-click to close tab.
-ElementFingerprint GetFingerprintFromPoint(POINT pt) {
-  ElementFingerprint fingerprint;
-
-  VARIANT var_child = {};
-  NodePtr node;
-  if (AccessibleObjectFromPoint(pt, node.GetAddressOf(), &var_child) != S_OK) {
-    return fingerprint;
-  }
-
-  if (var_child.vt != VT_I4 || var_child.lVal != CHILDID_SELF) {
-    Microsoft::WRL::ComPtr<IDispatch> child_dispatch;
-    if (SUCCEEDED(node->get_accChild(var_child, &child_dispatch))) {
-      NodePtr child;
-      child_dispatch.As(&child);
-      if (child) {
-        node = child;
-      }
-    }
-  }
-
-  return GetElementFingerprint(node);
-}
-
 // Attempts to find a tab under the mouse cursor and generate its fingerprint.
 std::optional<TabCaptureResult> CaptureTabFingerprint(POINT pt) {
   // We only handle double-click right now.
@@ -146,7 +122,8 @@ std::optional<TabCaptureResult> CaptureTabFingerprint(POINT pt) {
 
   // Ensure we are strictly on a tab element (and not, for example, the close
   // button).
-  if (!IsOnOneTab(top_container_view, pt) ||
+  NodePtr tab_node;
+  if (!IsOnOneTab(top_container_view, pt, &tab_node) ||
       // TODO: It might be ok to simply check if not on a PUSHBUTTON
       IsOnCloseButton(top_container_view, pt)) {
     return std::nullopt;
@@ -155,7 +132,7 @@ std::optional<TabCaptureResult> CaptureTabFingerprint(POINT pt) {
   return TabCaptureResult{
       .hwnd = hwnd,
       .top_container = top_container_view,
-      .fingerprint = GetFingerprintFromPoint(pt),
+      .fingerprint = GetElementFingerprint(tab_node),
   };
 }
 

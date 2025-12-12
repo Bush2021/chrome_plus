@@ -449,26 +449,35 @@ int GetTabCount(const NodePtr& top) {
       }));
 }
 
-// Whether the mouse is on a tab
-bool IsOnOneTab(const NodePtr& top, POINT pt) {
+// Whether the mouse is on a tab; optionally returns the tab node under the
+// point.
+bool IsOnOneTab(const NodePtr& top, POINT pt, NodePtr* tab_out) {
   NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
     return false;
   }
 
   bool flag = false;
-  TraversalAccessible(page_tab_pane, [&flag, &pt](const NodePtr& child) {
-    if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
-      return false;
-    }
-    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
-      if (PtInRect(&rect, pt)) {
-        flag = true;
-      }
-    });
-    return flag;
-  });
+  TraversalAccessible(
+      page_tab_pane, [&flag, &pt, tab_out](const NodePtr& child) {
+        if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
+          return false;
+        }
+        GetAccessibleSize(child, [&flag, &pt, &child, tab_out](RECT rect) {
+          if (PtInRect(&rect, pt)) {
+            flag = true;
+            if (tab_out) {
+              *tab_out = child;
+            }
+          }
+        });
+        return flag;
+      });
   return flag;
+}
+
+bool IsOnOneTab(const NodePtr& top, POINT pt) {
+  return IsOnOneTab(top, pt, nullptr);
 }
 
 bool IsOnlyOneTab(const NodePtr& top) {
