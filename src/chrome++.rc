@@ -14,7 +14,7 @@ BEGIN
     BEGIN
         BLOCK "080404b0"
         BEGIN
-            VALUE "FileDescription", "chrome++ modified version"
+            VALUE "FileDescription", "Chrome++ Next"
             VALUE "FileVersion", RELEASE_VER_STR
             VALUE "InternalName", "chrome++.dll"
             VALUE "LegalCopyright", "GPL-3.0 License"

@@ -11,6 +11,13 @@
 #include "version.h"
 
 namespace {
+#if defined(_M_ARM64)
+#define BUILD_ARCH " (ARM64)"
+#elif defined(_M_X64)
+#define BUILD_ARCH " (64-bit)"
+#else
+#define BUILD_ARCH " (32-bit)"
+#endif
 
 static DWORD resources_pak_size = 0;
 static HANDLE resources_pak_map = nullptr;
@@ -68,8 +75,8 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
           }
 
           const char prouct_title[] =
-              R"({aboutBrowserVersion}</div><div class="secondary"><a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++</a> )" RELEASE_VER_STR
-              R"( modified version</div>)";
+              R"({aboutBrowserVersion}</div><div class="secondary">Powered by <a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++ Next</a> )" RELEASE_VER_STR BUILD_ARCH
+              R"(</div>)";
           ReplaceStringInPlace(html, R"({aboutBrowserVersion}</div>)",
                                prouct_title);
 
