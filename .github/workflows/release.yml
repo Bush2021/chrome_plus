@@ -98,6 +98,13 @@ jobs:
           7z a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z *
           cd ..
 
+      - name: Attest Release Packages
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
+            setdll.7z
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
