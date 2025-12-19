@@ -223,7 +223,7 @@ std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
     if (SUCCEEDED(collection->GetCount(&count))) {
       for (UINT i = 0; i < count; ++i) {
         IMMDevice* device = nullptr;
-        if (SUCCEEDED(collection->GetItem(i, &device))) {
+        if (SUCCEEDED(collection->Item(i, &device))) {
           AddAudioDevice(devices, seen_ids, device);
         }
       }
