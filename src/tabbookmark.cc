@@ -343,27 +343,35 @@ int HandleOpenUrlNewTab(WPARAM wParam) {
   return 0;
 }
 
-int HandleTranslateKey(WPARAM wParam) {
-  auto hotkey = ParseTranslateKey();
+bool IsHotkeyMatch(UINT hotkey, WPARAM wParam) {
   if (hotkey == 0) {
-    return 0;
+    return false;
   }
 
   auto vk = HIWORD(hotkey);
   auto modifiers = LOWORD(hotkey);
   if ((modifiers & MOD_SHIFT) && !IsPressed(VK_SHIFT)) {
-    return 0;
+    return false;
   }
   if ((modifiers & MOD_CONTROL) && !IsPressed(VK_CONTROL)) {
-    return 0;
+    return false;
   }
   if ((modifiers & MOD_ALT) && !IsPressed(VK_MENU)) {
-    return 0;
+    return false;
   }
   if ((modifiers & MOD_WIN) && !IsPressed(VK_LWIN) && !IsPressed(VK_RWIN)) {
-    return 0;
+    return false;
   }
   if (wParam != vk) {
+    return false;
+  }
+
+  return true;
+}
+
+int HandleTranslateKey(WPARAM wParam) {
+  auto hotkey = ParseTranslateKey();
+  if (!IsHotkeyMatch(hotkey, wParam)) {
     return 0;
   }
 
@@ -371,6 +379,22 @@ int HandleTranslateKey(WPARAM wParam) {
   keybd_event(VK_RIGHT, 0, 0, 0);
   keybd_event(VK_RIGHT, 0, KEYEVENTF_KEYUP, 0);
   return 1;
+}
+
+int HandleSwitchTabKey(WPARAM wParam) {
+  auto prev_hotkey = ParseSwitchToPrevKey();
+  if (IsHotkeyMatch(prev_hotkey, wParam)) {
+    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+    return 1;
+  }
+
+  auto next_hotkey = ParseSwitchToNextKey();
+  if (IsHotkeyMatch(next_hotkey, wParam)) {
+    ExecuteCommand(IDC_SELECT_NEXT_TAB);
+    return 1;
+  }
+
+  return 0;
 }
 
 HHOOK keyboard_hook = nullptr;
@@ -386,6 +410,10 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
     }
 
     if (HandleTranslateKey(wParam) != 0) {
+      return 1;
+    }
+
+    if (HandleSwitchTabKey(wParam) != 0) {
       return 1;
     }
   }

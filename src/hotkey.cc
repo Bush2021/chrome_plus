@@ -255,6 +255,22 @@ UINT ParseTranslateKey() {
   return ParseHotkeys(translate_key.c_str());
 }
 
+UINT ParseSwitchToPrevKey() {
+  const auto& switch_to_prev = config.GetSwitchToPrevKey();
+  if (switch_to_prev.empty()) {
+    return 0;
+  }
+  return ParseHotkeys(switch_to_prev.c_str());
+}
+
+UINT ParseSwitchToNextKey() {
+  const auto& switch_to_next = config.GetSwitchToNextKey();
+  if (switch_to_next.empty()) {
+    return 0;
+  }
+  return ParseHotkeys(switch_to_next.c_str());
+}
+
 void GetHotkey() {
   const auto& boss_key = config.GetBossKey();
   if (!boss_key.empty()) {

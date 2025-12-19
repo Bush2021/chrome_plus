@@ -30,6 +30,8 @@ class Config {
   int GetBookmarkNewTabMode() const { return bookmark_new_tab_; }
   bool IsNewTabDisable() const { return new_tab_disable_; }
   const std::wstring& GetDisableTabName() const { return disable_tab_name_; }
+  const std::wstring& GetSwitchToPrevKey() const { return switch_to_prev_; }
+  const std::wstring& GetSwitchToNextKey() const { return switch_to_next_; }
 
  private:
   Config();
@@ -65,6 +67,8 @@ class Config {
   int bookmark_new_tab_;
   bool new_tab_disable_;
   std::wstring disable_tab_name_;
+  std::wstring switch_to_prev_;
+  std::wstring switch_to_next_;
 };
 
 extern const Config& config;

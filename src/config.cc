@@ -46,6 +46,8 @@ void Config::LoadConfig() {
   new_tab_disable_ = ::GetPrivateProfileIntW(L"tabs", L"new_tab_disable", 1,
                                              GetIniPath().c_str()) != 0;
   disable_tab_name_ = GetIniString(L"tabs", L"new_tab_disable_name", L"");
+  switch_to_prev_ = GetIniString(L"tabs", L"switch_to_prev", L"");
+  switch_to_next_ = GetIniString(L"tabs", L"switch_to_next", L"");
 }
 
 std::wstring Config::LoadDirPath(const std::wstring& dir_type) {
