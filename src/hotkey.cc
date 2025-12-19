@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cwctype>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -26,7 +27,7 @@ using HotkeyAction = void (*)();
 // Static variables for internal use
 bool is_hide = false;
 std::vector<HWND> hwnd_list;
-std::unordered_map<DWORD, bool> original_mute_states;
+std::unordered_map<std::wstring, bool> original_mute_states;
 
 #define MOD_NOREPEAT 0x4000
 
@@ -133,6 +134,17 @@ std::vector<DWORD> GetAppPids() {
   return pids;
 }
 
+std::optional<std::wstring> GetSessionKey(IAudioSessionControl2* session2) {
+  LPWSTR session_key = nullptr;
+  if (SUCCEEDED(session2->GetSessionInstanceIdentifier(&session_key)) &&
+      session_key) {
+    std::wstring key(session_key);
+    CoTaskMemFree(session_key);
+    return key;
+  }
+  return std::nullopt;
+}
+
 void MuteProcess(const std::vector<DWORD>& pids,
                  bool set_mute,
                  bool save_mute_state = false) {
@@ -162,21 +174,32 @@ void MuteProcess(const std::vector<DWORD>& pids,
 
       for (DWORD pid : pids) {
         if (session_pid == pid) {
+          auto session_key = GetSessionKey(session2);
           ISimpleAudioVolume* volume = nullptr;
           if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
                                                  (void**)&volume))) {
             if (save_mute_state) {
               BOOL is_muted;
               volume->GetMute(&is_muted);
-              original_mute_states[pid] = (is_muted == TRUE);
+              if (session_key) {
+                original_mute_states[*session_key] = (is_muted == TRUE);
+              }
             }
 
             if (set_mute) {
               volume->SetMute(TRUE, nullptr);
             } else {
-              // Only unmute if the original state was not muted beforehand
-              auto it = original_mute_states.find(pid);
-              if (it != original_mute_states.end() && !it->second) {
+              // Only unmute sessions we muted before. If the session key is not
+              // recorded (e.g. session recreated), unmute to avoid stuck
+              // system-level mute.
+              bool should_unmute = true;
+              if (session_key) {
+                auto it = original_mute_states.find(*session_key);
+                if (it != original_mute_states.end()) {
+                  should_unmute = !it->second;
+                }
+              }
+              if (should_unmute) {
                 volume->SetMute(FALSE, nullptr);
               }
             }
@@ -195,6 +218,10 @@ void MuteProcess(const std::vector<DWORD>& pids,
   device->Release();
   enumerator->Release();
   CoUninitialize();
+
+  if (!set_mute) {
+    original_mute_states.clear();
+  }
 }
 
 void HideAndShow() {
