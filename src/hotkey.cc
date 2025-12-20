@@ -34,7 +34,7 @@ bool had_unmuted_session = false;
 // Retry unmute briefly to catch late audio session creation.
 constexpr UINT_PTR kUnmuteRetryTimerId = 1;
 constexpr UINT kUnmuteRetryDelayMs = 200;
-constexpr int kUnmuteRetryMax = 5;
+constexpr int kUnmuteRetryMax = 20;
 int unmute_retry_left = 0;
 bool unmute_watch_active = false;
 bool unmute_watch_com_initialized = false;
@@ -501,12 +501,12 @@ void UnregisterUnmuteWatch(bool clear_state) {
   }
 }
 
-void RegisterUnmuteWatch() {
+bool RegisterUnmuteWatch() {
   if (unmute_watch_active) {
-    return;
+    return true;
   }
   if (!EnsureUnmuteWatchComInitialized()) {
-    return;
+    return false;
   }
   unmute_watch_notification = new SessionNotification();
 
@@ -533,12 +533,11 @@ void RegisterUnmuteWatch() {
     enumerator->Release();
   }
   if (unmute_watch_managers.empty()) {
-    if (unmute_watch_notification) {
-      unmute_watch_notification->Release();
-      unmute_watch_notification = nullptr;
-    }
+    UnregisterUnmuteWatch(false);
+    return false;
   }
   unmute_watch_active = true;
+  return true;
 }
 
 void StartUnmuteWatch() {
@@ -553,6 +552,9 @@ void HandleUnmuteRetryTimer() {
   }
   auto chrome_pids = GetAppPids();
   MuteProcess(chrome_pids, false, false, false);
+  if (!unmute_watch_active) {
+    RegisterUnmuteWatch();
+  }
   --unmute_retry_left;
   if (unmute_retry_left <= 0) {
     StopUnmuteRetries(true);
