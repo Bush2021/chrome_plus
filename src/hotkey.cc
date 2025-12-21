@@ -8,6 +8,7 @@
 #include <tlhelp32.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cwctype>
 #include <iterator>
 #include <optional>
@@ -31,7 +32,7 @@ std::vector<HWND> hwnd_list;
 std::unordered_map<std::wstring, bool> original_mute_states;
 bool saved_any_session = false;
 bool had_unmuted_session = false;
-bool unmute_wait_for_session = false;
+std::atomic_bool pending_unmute(false);
 // Retry unmute with a fast/slow cadence to catch late audio session creation.
 constexpr UINT_PTR kUnmuteRetryTimerId = 1;
 constexpr UINT kUnmuteRetryFastDelayMs = 200;
@@ -205,7 +206,7 @@ void AddAudioDevice(std::vector<IMMDevice*>& devices,
   }
 }
 
-std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
+std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {  
   std::vector<IMMDevice*> devices;
   if (!enumerator) {
     return devices;
@@ -239,12 +240,20 @@ std::vector<IMMDevice*> CollectAudioDevices(IMMDeviceEnumerator* enumerator) {
   return devices;
 }
 
+struct MuteProcessResult {
+  bool saw_session = false;
+  bool any_mute_state_known = false;
+  bool had_muted_session = false;
+  bool did_mute = false;
+  bool did_unmute = false;
+};
+
 void ProcessSessions(IAudioSessionManager2* manager,
                      const std::vector<DWORD>& pids,
                      bool set_mute,
                      bool save_mute_state,
                      bool force_unmute,
-                     bool* saw_session) {
+                     MuteProcessResult* result) {
   if (!manager) {
     return;
   }
@@ -275,30 +284,47 @@ void ProcessSessions(IAudioSessionManager2* manager,
 
       for (DWORD pid : pids) {
         if (session_pid == pid) {
-          if (saw_session) {
-            *saw_session = true;
+          if (result) {
+            result->saw_session = true;
           }
           auto session_key = GetSessionKey(session2);
           ISimpleAudioVolume* volume = nullptr;
           if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
                                                  (void**)&volume))) {
+            BOOL is_muted = FALSE;
+            bool mute_known = SUCCEEDED(volume->GetMute(&is_muted));
+            if (mute_known && result) {
+              result->any_mute_state_known = true;
+              if (is_muted == TRUE) {
+                result->had_muted_session = true;
+              }
+            }
             if (save_mute_state) {
-              BOOL is_muted = FALSE;
-              if (SUCCEEDED(volume->GetMute(&is_muted))) {
+              if (mute_known) {
                 saved_any_session = true;
                 if (is_muted == FALSE) {
                   had_unmuted_session = true;
                 }
                 if (session_key) {
-                  original_mute_states[*session_key] = (is_muted == TRUE);
+                  original_mute_states[*session_key] = (is_muted == TRUE);      
                 }
               }
             }
 
             if (set_mute) {
-              volume->SetMute(TRUE, nullptr);
+              if (!mute_known || is_muted == FALSE) {
+                if (SUCCEEDED(volume->SetMute(TRUE, nullptr)) && result &&
+                    (!mute_known || is_muted == FALSE)) {
+                  result->did_mute = true;
+                }
+              }
             } else if (force_unmute) {
-              volume->SetMute(FALSE, nullptr);
+              if (!mute_known || is_muted == TRUE) {
+                if (SUCCEEDED(volume->SetMute(FALSE, nullptr)) && result &&
+                    (!mute_known || is_muted == TRUE)) {
+                  result->did_unmute = true;
+                }
+              }
             } else {
               // Only unmute sessions we muted before. If the session key is not
               // recorded (e.g. session recreated), unmute to avoid stuck
@@ -313,7 +339,10 @@ void ProcessSessions(IAudioSessionManager2* manager,
                 should_unmute = ShouldUnmuteUnknownSession();
               }
               if (should_unmute) {
-                volume->SetMute(FALSE, nullptr);
+                if (SUCCEEDED(volume->SetMute(FALSE, nullptr)) && result &&
+                    (!mute_known || is_muted == TRUE)) {
+                  result->did_unmute = true;
+                }
               }
             }
             volume->Release();
@@ -329,16 +358,16 @@ void ProcessSessions(IAudioSessionManager2* manager,
   session_enumerator->Release();
 }
 
-bool MuteProcess(const std::vector<DWORD>& pids,
-                 bool set_mute,
-                 bool save_mute_state = false,
-                 bool clear_state = true,
-                 bool force_unmute = false) {
-  bool saw_session = false;
+MuteProcessResult MuteProcess(const std::vector<DWORD>& pids,
+                              bool set_mute,
+                              bool save_mute_state = false,
+                              bool clear_state = true,
+                              bool force_unmute = false) {
+  MuteProcessResult result;
   HRESULT hr = CoInitialize(nullptr);
   const bool should_uninit = (hr == S_OK || hr == S_FALSE);
   if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
-    return false;
+    return result;
   }
   IMMDeviceEnumerator* enumerator = nullptr;
 
@@ -355,7 +384,7 @@ bool MuteProcess(const std::vector<DWORD>& pids,
                                  nullptr, (void**)&manager);
       if (SUCCEEDED(hr) && manager) {
         ProcessSessions(manager, pids, set_mute, save_mute_state,
-                        force_unmute, &saw_session);
+                        force_unmute, &result);
         manager->Release();
       }
       device_item->Release();
@@ -373,14 +402,13 @@ Cleanup:
   if (!set_mute && clear_state) {
     ClearMuteStatesIfIdle();
   }
-  return saw_session;
+  return result;
 }
 
 void StopUnmuteRetries(bool clear_state) {
   KillTimer(nullptr, kUnmuteRetryTimerId);
   unmute_retry_left = 0;
   unmute_retry_slow_left = 0;
-  unmute_wait_for_session = false;
   if (clear_state) {
     ClearMuteStatesIfIdle();
   }
@@ -390,7 +418,6 @@ void StartUnmuteRetries() {
   StopUnmuteRetries(false);
   unmute_retry_left = kUnmuteRetryFastMax;
   unmute_retry_slow_left = kUnmuteRetrySlowMax;
-  unmute_wait_for_session = true;
   if (unmute_retry_left <= 0 && unmute_retry_slow_left <= 0) {
     return;
   }
@@ -448,7 +475,8 @@ class SessionNotification final : public IAudioSessionNotification {
 
   HRESULT STDMETHODCALLTYPE OnSessionCreated(
       IAudioSessionControl* new_session) override {
-    if (!new_session || !unmute_watch_active || is_hide) {
+    if (!new_session || !unmute_watch_active || is_hide ||
+        !pending_unmute.load()) {
       return S_OK;
     }
     IAudioSessionControl2* session2 = nullptr;
@@ -472,7 +500,16 @@ class SessionNotification final : public IAudioSessionNotification {
     hr = session2->QueryInterface(__uuidof(ISimpleAudioVolume),
                                   (void**)&volume);
     if (SUCCEEDED(hr) && volume) {
-      volume->SetMute(FALSE, nullptr);
+      BOOL is_muted = FALSE;
+      bool mute_known = SUCCEEDED(volume->GetMute(&is_muted));
+      if (mute_known && is_muted == FALSE) {
+        pending_unmute.store(false);
+      } else if (!mute_known || is_muted == TRUE) {
+        if (SUCCEEDED(volume->SetMute(FALSE, nullptr)) &&
+            (!mute_known || is_muted == TRUE)) {
+          pending_unmute.store(false);
+        }
+      }
       volume->Release();
     }
     session2->Release();
@@ -557,10 +594,17 @@ void HandleUnmuteRetryTimer() {
     StopUnmuteRetries(true);
     return;
   }
+  if (!pending_unmute.load()) {
+    StopUnmuteRetries(true);
+    return;
+  }
   auto chrome_pids = GetAppPids();
-  bool saw_session = MuteProcess(chrome_pids, false, false, false, true);
-  if (saw_session) {
-    unmute_wait_for_session = false;
+  auto result = MuteProcess(chrome_pids, false, false, false, true);
+  if (result.saw_session) {
+    if (result.did_unmute ||
+        (result.any_mute_state_known && !result.had_muted_session)) {
+      pending_unmute.store(false);
+    }
   }
   if (!unmute_watch_active) {
     RegisterUnmuteWatch();
@@ -578,9 +622,9 @@ void HandleUnmuteRetryTimer() {
     --unmute_retry_slow_left;
   }
   if (unmute_retry_left <= 0 && unmute_retry_slow_left <= 0) {
-    if (unmute_wait_for_session) {
+    if (pending_unmute.load()) {
       unmute_retry_slow_left = kUnmuteRetrySlowMax;
-      if (SetTimer(nullptr, kUnmuteRetryTimerId, kUnmuteRetrySlowDelayMs,
+      if (SetTimer(nullptr, kUnmuteRetryTimerId, kUnmuteRetrySlowDelayMs,       
                    nullptr) == 0) {
         StopUnmuteRetries(true);
       }
@@ -597,7 +641,8 @@ void HideAndShow() {
     UnregisterUnmuteWatch(false);
     ResetMuteStateTracking();
     EnumWindows(SearchChromeWindow, 0);
-    MuteProcess(chrome_pids, true, true);
+    auto result = MuteProcess(chrome_pids, true, true);
+    pending_unmute.store(result.did_mute);
   } else {
     for (auto r_iter = hwnd_list.rbegin(); r_iter != hwnd_list.rend();
          ++r_iter) {
@@ -609,9 +654,17 @@ void HideAndShow() {
       SetActiveWindow(*r_iter);
     }
     hwnd_list.clear();
-    MuteProcess(chrome_pids, false, false, false, true);
-    StartUnmuteRetries();
-    StartUnmuteWatch();
+    auto result = MuteProcess(chrome_pids, false, false, false, true);
+    if (result.saw_session) {
+      if (result.did_unmute ||
+          (result.any_mute_state_known && !result.had_muted_session)) {
+        pending_unmute.store(false);
+      }
+    }
+    if (pending_unmute.load()) {
+      StartUnmuteRetries();
+      StartUnmuteWatch();
+    }
   }
   is_hide = !is_hide;
 }
