@@ -31,6 +31,7 @@ std::vector<HWND> hwnd_list;
 std::unordered_map<std::wstring, bool> original_mute_states;
 bool saved_any_session = false;
 bool had_unmuted_session = false;
+bool unmute_wait_for_session = false;
 // Retry unmute with a fast/slow cadence to catch late audio session creation.
 constexpr UINT_PTR kUnmuteRetryTimerId = 1;
 constexpr UINT kUnmuteRetryFastDelayMs = 200;
@@ -242,7 +243,8 @@ void ProcessSessions(IAudioSessionManager2* manager,
                      const std::vector<DWORD>& pids,
                      bool set_mute,
                      bool save_mute_state,
-                     bool force_unmute) {
+                     bool force_unmute,
+                     bool* saw_session) {
   if (!manager) {
     return;
   }
@@ -273,6 +275,9 @@ void ProcessSessions(IAudioSessionManager2* manager,
 
       for (DWORD pid : pids) {
         if (session_pid == pid) {
+          if (saw_session) {
+            *saw_session = true;
+          }
           auto session_key = GetSessionKey(session2);
           ISimpleAudioVolume* volume = nullptr;
           if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
@@ -324,15 +329,16 @@ void ProcessSessions(IAudioSessionManager2* manager,
   session_enumerator->Release();
 }
 
-void MuteProcess(const std::vector<DWORD>& pids,
+bool MuteProcess(const std::vector<DWORD>& pids,
                  bool set_mute,
                  bool save_mute_state = false,
                  bool clear_state = true,
                  bool force_unmute = false) {
+  bool saw_session = false;
   HRESULT hr = CoInitialize(nullptr);
   const bool should_uninit = (hr == S_OK || hr == S_FALSE);
   if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
-    return;
+    return false;
   }
   IMMDeviceEnumerator* enumerator = nullptr;
 
@@ -345,11 +351,11 @@ void MuteProcess(const std::vector<DWORD>& pids,
     auto devices = CollectAudioDevices(enumerator);
     for (auto* device_item : devices) {
       IAudioSessionManager2* manager = nullptr;
-      hr = device_item->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL,
+      hr = device_item->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL,   
                                  nullptr, (void**)&manager);
       if (SUCCEEDED(hr) && manager) {
         ProcessSessions(manager, pids, set_mute, save_mute_state,
-                        force_unmute);
+                        force_unmute, &saw_session);
         manager->Release();
       }
       device_item->Release();
@@ -367,12 +373,14 @@ Cleanup:
   if (!set_mute && clear_state) {
     ClearMuteStatesIfIdle();
   }
+  return saw_session;
 }
 
 void StopUnmuteRetries(bool clear_state) {
   KillTimer(nullptr, kUnmuteRetryTimerId);
   unmute_retry_left = 0;
   unmute_retry_slow_left = 0;
+  unmute_wait_for_session = false;
   if (clear_state) {
     ClearMuteStatesIfIdle();
   }
@@ -382,6 +390,7 @@ void StartUnmuteRetries() {
   StopUnmuteRetries(false);
   unmute_retry_left = kUnmuteRetryFastMax;
   unmute_retry_slow_left = kUnmuteRetrySlowMax;
+  unmute_wait_for_session = true;
   if (unmute_retry_left <= 0 && unmute_retry_slow_left <= 0) {
     return;
   }
@@ -549,7 +558,10 @@ void HandleUnmuteRetryTimer() {
     return;
   }
   auto chrome_pids = GetAppPids();
-  MuteProcess(chrome_pids, false, false, false, true);
+  bool saw_session = MuteProcess(chrome_pids, false, false, false, true);
+  if (saw_session) {
+    unmute_wait_for_session = false;
+  }
   if (!unmute_watch_active) {
     RegisterUnmuteWatch();
   }
@@ -565,10 +577,15 @@ void HandleUnmuteRetryTimer() {
   } else if (unmute_retry_slow_left > 0) {
     --unmute_retry_slow_left;
   }
-  if (unmute_watch_active && unmute_retry_left <= 0) {
-    unmute_retry_slow_left = 0;
-  }
   if (unmute_retry_left <= 0 && unmute_retry_slow_left <= 0) {
+    if (unmute_wait_for_session) {
+      unmute_retry_slow_left = kUnmuteRetrySlowMax;
+      if (SetTimer(nullptr, kUnmuteRetryTimerId, kUnmuteRetrySlowDelayMs,
+                   nullptr) == 0) {
+        StopUnmuteRetries(true);
+      }
+      return;
+    }
     StopUnmuteRetries(true);
   }
 }
