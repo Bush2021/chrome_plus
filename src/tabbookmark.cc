@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <vector>
+
 #include "config.h"
 #include "hotkey.h"
 #include "iaccessible.h"
@@ -15,6 +17,86 @@ static POINT lbutton_down_point = {-1, -1};
 #define KEY_PRESSED 0x8000
 bool IsPressed(int key) {
   return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
+}
+
+bool IsWinPressed() {
+  return IsPressed(VK_LWIN) || IsPressed(VK_RWIN);
+}
+
+bool IsModifiersMatch(UINT modifiers) {
+  if ((modifiers & MOD_SHIFT) != 0) {
+    if (!IsPressed(VK_SHIFT)) {
+      return false;
+    }
+  } else if (IsPressed(VK_SHIFT)) {
+    return false;
+  }
+
+  if ((modifiers & MOD_CONTROL) != 0) {
+    if (!IsPressed(VK_CONTROL)) {
+      return false;
+    }
+  } else if (IsPressed(VK_CONTROL)) {
+    return false;
+  }
+
+  if ((modifiers & MOD_ALT) != 0) {
+    if (!IsPressed(VK_MENU)) {
+      return false;
+    }
+  } else if (IsPressed(VK_MENU)) {
+    return false;
+  }
+
+  if ((modifiers & MOD_WIN) != 0) {
+    if (!IsWinPressed()) {
+      return false;
+    }
+  } else if (IsWinPressed()) {
+    return false;
+  }
+
+  return true;
+}
+
+void SendMappedKeys(UINT modifiers, UINT vk) {
+  std::vector<UINT> keys;
+  if (modifiers & MOD_CONTROL) {
+    keys.emplace_back(VK_CONTROL);
+  }
+  if (modifiers & MOD_SHIFT) {
+    keys.emplace_back(VK_SHIFT);
+  }
+  if (modifiers & MOD_ALT) {
+    keys.emplace_back(VK_MENU);
+  }
+  if (modifiers & MOD_WIN) {
+    keys.emplace_back(VK_LWIN);
+  }
+  if (vk != 0) {
+    keys.emplace_back(vk);
+  }
+  if (keys.empty()) {
+    return;
+  }
+
+  switch (keys.size()) {
+    case 1:
+      SendKey(keys[0]);
+      break;
+    case 2:
+      SendKey(keys[0], keys[1]);
+      break;
+    case 3:
+      SendKey(keys[0], keys[1], keys[2]);
+      break;
+    case 4:
+      SendKey(keys[0], keys[1], keys[2], keys[3]);
+      break;
+    default:
+      SendKey(keys[0], keys[1], keys[2], keys[3], keys[4]);
+      break;
+  }
 }
 
 // Compared with `IsOnlyOneTab`, this function additionally implements tick
@@ -373,10 +455,36 @@ int HandleTranslateKey(WPARAM wParam) {
   return 1;
 }
 
+int HandleKeyMapping(WPARAM wParam) {
+  const auto& mappings = config.GetKeyMappings();
+  if (mappings.empty()) {
+    return 0;
+  }
+  for (const auto& mapping : mappings) {
+    if (wParam != mapping.from_vk) {
+      continue;
+    }
+    if (!IsModifiersMatch(mapping.from_modifiers)) {
+      continue;
+    }
+    SendMappedKeys(mapping.to_modifiers, mapping.to_vk);
+    return 1;
+  }
+  return 0;
+}
+
 HHOOK keyboard_hook = nullptr;
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
   {
+    if (static_cast<uint32_t>(GetMessageExtraInfo()) == GetMagicCode()) {
+      return CallNextHookEx(keyboard_hook, nCode, wParam, lParam);
+    }
+
+    if (HandleKeyMapping(wParam) != 0) {
+      return 1;
+    }
+
     if (HandleKeepTab(wParam) != 0) {
       return 1;
     }

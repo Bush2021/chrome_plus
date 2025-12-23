@@ -52,6 +52,9 @@ std::vector<std::string> StringSplit(std::string_view str,
                                      const char delim,
                                      std::string_view enclosure = "");
 
+// Parse a hotkey string like "Ctrl+PageUp" to modifiers/vk (MAKELPARAM).
+UINT ParseHotkeys(std::wstring_view keys);
+
 // HTML compression functions
 void compression_html(std::string& html);
 
