@@ -271,7 +271,7 @@ std::vector<Config::KeyMapping> Config::LoadKeyMappings() {
         continue;
       }
       std::wstring section = Trim(trimmed.substr(1, end - 1));
-      in_section = EqualsIgnoreCase(section, L"keymapping");
+      in_section = EqualsIgnoreCase(section, L"general");
       continue;
     }
 
