@@ -6,7 +6,7 @@ English | [简体中文](README_CN.md)
 ## Features
 * Double-click to close tab.
 * Right-click to close tab (hold Shift to show the original menu).
-* Preserve the last tab (prevent the browser from closing when the last tab is closed; clicking the close button will not work).
+* Preserve the last tab (prevent the browser from closing when the last tab is closed).
 * Use the mouse wheel to switch tabs when hovering over the tab bar.
 * Use the mouse wheel to switch tabs when holding the right mouse button.
 * Create new tab to opens the contents entered in address bar (can be configured to open in foreground or background).

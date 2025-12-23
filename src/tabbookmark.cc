@@ -173,6 +173,31 @@ bool HandleMiddleClick(PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
+bool HandleCloseButton(PMOUSEHOOKSTRUCT pmouse) {
+  if (!config.IsKeepLastTab()) {
+    return false;
+  }
+
+  POINT pt = pmouse->pt;
+  HWND hwnd = WindowFromPoint(pt);
+  NodePtr top_container_view = HandleFindBar(hwnd, pt);
+  if (!top_container_view) {
+    return false;
+  }
+
+  if (!IsOnOneTab(top_container_view, pt) ||
+      !IsOnCloseButton(top_container_view, pt)) {
+    return false;
+  }
+
+  if (!IsNeedKeep(top_container_view)) {
+    return false;
+  }
+  ExecuteCommand(IDC_NEW_TAB, hwnd);
+  ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  return true;
+}
+
 // Check if mouse movement is a drag operation.
 // Since `MouseProc` hook doesn't handle any drag-related events,
 // this detection can return early to avoid interference.
@@ -253,6 +278,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
       if (HandleDrag(pmouse)) {
         break;
       } else if (HandleBookmark(pmouse)) {
+        handled = true;
+      } else if (HandleCloseButton(pmouse)) {
         handled = true;
       }
       break;
