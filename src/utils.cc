@@ -7,13 +7,21 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cwctype>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
+
+#ifndef MOD_NOREPEAT
+constexpr UINT kModNoRepeat = 0x4000;
+#else
+constexpr UINT kModNoRepeat = MOD_NOREPEAT;
+#endif
 
 // Global variable definitions
 HMODULE hInstance = nullptr;
@@ -74,6 +82,58 @@ std::vector<std::string> StringSplit(std::string_view str,
     result.emplace_back(part_sv);
   }
   return result;
+}
+
+UINT ParseHotkeys(std::wstring_view keys) {
+  UINT mo = 0;
+  UINT vk = 0;
+  std::wstring temp(keys);
+  std::vector<std::wstring> key_parts = StringSplit(temp, L'+');
+
+  static const std::unordered_map<std::wstring, UINT> key_map = {
+      {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
+      {L"win", MOD_WIN},      {L"left", VK_LEFT},     {L"right", VK_RIGHT},
+      {L"up", VK_UP},         {L"down", VK_DOWN},     {L"←", VK_LEFT},
+      {L"→", VK_RIGHT},       {L"↑", VK_UP},          {L"↓", VK_DOWN},
+      {L"esc", VK_ESCAPE},    {L"tab", VK_TAB},       {L"backspace", VK_BACK},
+      {L"enter", VK_RETURN},  {L"space", VK_SPACE},   {L"prtsc", VK_SNAPSHOT},
+      {L"scroll", VK_SCROLL}, {L"pause", VK_PAUSE},   {L"insert", VK_INSERT},
+      {L"delete", VK_DELETE}, {L"end", VK_END},       {L"home", VK_HOME},
+      {L"pageup", VK_PRIOR},  {L"pagedown", VK_NEXT},
+  };
+
+  for (auto& key : key_parts) {
+    std::ranges::transform(key, key.begin(), ::towlower);
+
+    if (key_map.contains(key)) {
+      if (key == L"shift" || key == L"ctrl" || key == L"alt" || key == L"win") {
+        mo |= key_map.at(key);
+      } else {
+        vk = key_map.at(key);
+      }
+    } else {
+      TCHAR wch = key[0];
+      if (key.length() == 1)  // Parse single characters A-Z, 0-9, etc.
+      {
+        if (isalnum(wch)) {
+          vk = toupper(wch);
+        } else {
+          vk = LOWORD(VkKeyScan(wch));
+        }
+      } else if (wch == 'F' || wch == 'f')  // Parse the F1-F24 function keys.
+      {
+        if (isdigit(key[1])) {
+          int fx = _wtoi(&key[1]);
+          if (fx >= 1 && fx <= 24) {
+            vk = VK_F1 + fx - 1;
+          }
+        }
+      }
+    }
+  }
+
+  mo |= kModNoRepeat;
+  return MAKELPARAM(mo, vk);
 }
 
 // Compression html.

@@ -1,10 +1,20 @@
 #ifndef CHROME_PLUS_SRC_CONFIG_H_
 #define CHROME_PLUS_SRC_CONFIG_H_
 
+#include <windows.h>
+
 #include <string>
+#include <vector>
 
 class Config {
  public:
+  struct KeyMapping {
+    UINT from_modifiers;
+    UINT from_vk;
+    UINT to_modifiers;
+    UINT to_vk;
+  };
+
   static Config& Instance();
 
   // general
@@ -15,6 +25,7 @@ class Config {
   const std::wstring& GetDiskCacheDir() const { return disk_cache_dir_; }
   const std::wstring& GetBossKey() const { return boss_key_; }
   const std::wstring& GetTranslateKey() const { return translate_key_; }
+  const std::vector<KeyMapping>& GetKeyMappings() const { return key_mappings_; }
   bool IsShowPassword() const { return show_password_; }
   bool IsWin32K() const { return win32k_; }
 
@@ -42,6 +53,7 @@ class Config {
   std::wstring LoadDirPath(const std::wstring& dir_type);
   int LoadOpenUrlNewTabMode();
   int LoadBookmarkNewTabMode();
+  std::vector<KeyMapping> LoadKeyMappings();
 
  private:
   // general
@@ -52,6 +64,7 @@ class Config {
   std::wstring disk_cache_dir_;
   std::wstring boss_key_;
   std::wstring translate_key_;
+  std::vector<KeyMapping> key_mappings_;
   bool show_password_;
   bool win32k_;
 

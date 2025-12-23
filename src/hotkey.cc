@@ -7,12 +7,8 @@
 #include <mmdeviceapi.h>
 #include <tlhelp32.h>
 
-#include <algorithm>
-#include <cwctype>
-#include <iterator>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -27,60 +23,142 @@ using HotkeyAction = void (*)();
 bool is_hide = false;
 std::vector<HWND> hwnd_list;
 std::unordered_map<DWORD, bool> original_mute_states;
+HWND last_active_hwnd = nullptr;
+HWND last_focus_hwnd = nullptr;
+HWND bosskey_hwnd = nullptr;
+ATOM bosskey_window_class = 0;
+HotkeyAction bosskey_action = nullptr;
+constexpr UINT kBossKeyHotkeyId = 1;
 
-#define MOD_NOREPEAT 0x4000
+bool IsChromeWindow(HWND hwnd) {
+  if (!hwnd) {
+    return false;
+  }
+  wchar_t buff[256];
+  GetClassNameW(hwnd, buff, 255);
+  if (wcscmp(buff, L"Chrome_WidgetWin_1") != 0) {
+    return false;
+  }
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+  return pid == GetCurrentProcessId();
+}
 
-UINT ParseHotkeys(std::wstring_view keys) {
-  UINT mo = 0;
-  UINT vk = 0;
-  std::wstring temp(keys);
-  std::vector<std::wstring> key_parts = StringSplit(temp, L'+');
-
-  static const std::unordered_map<std::wstring, UINT> key_map = {
-      {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
-      {L"win", MOD_WIN},      {L"left", VK_LEFT},     {L"right", VK_RIGHT},
-      {L"up", VK_UP},         {L"down", VK_DOWN},     {L"←", VK_LEFT},
-      {L"→", VK_RIGHT},       {L"↑", VK_UP},          {L"↓", VK_DOWN},
-      {L"esc", VK_ESCAPE},    {L"tab", VK_TAB},       {L"backspace", VK_BACK},
-      {L"enter", VK_RETURN},  {L"space", VK_SPACE},   {L"prtsc", VK_SNAPSHOT},
-      {L"scroll", VK_SCROLL}, {L"pause", VK_PAUSE},   {L"insert", VK_INSERT},
-      {L"delete", VK_DELETE}, {L"end", VK_END},       {L"home", VK_HOME},
-      {L"pageup", VK_PRIOR},  {L"pagedown", VK_NEXT},
-  };
-
-  for (auto& key : key_parts) {
-    std::ranges::transform(key, key.begin(), ::towlower);
-
-    if (key_map.contains(key)) {
-      if (key == L"shift" || key == L"ctrl" || key == L"alt" || key == L"win") {
-        mo |= key_map.at(key);
-      } else {
-        vk = key_map.at(key);
-      }
-    } else {
-      TCHAR wch = key[0];
-      if (key.length() == 1)  // Parse single characters A-Z, 0-9, etc.
-      {
-        if (isalnum(wch)) {
-          vk = toupper(wch);
-        } else {
-          vk = LOWORD(VkKeyScan(wch));
+bool EnsureBossKeyWindow() {
+  if (bosskey_hwnd) {
+    return true;
+  }
+  if (bosskey_window_class == 0) {
+    WNDCLASSEXW wc = {};
+    wc.cbSize = sizeof(wc);
+    wc.lpfnWndProc = [](HWND hwnd, UINT msg, WPARAM wParam,
+                        LPARAM lParam) -> LRESULT {
+      if (msg == WM_HOTKEY && wParam == kBossKeyHotkeyId) {
+        if (bosskey_action) {
+          bosskey_action();
         }
-      } else if (wch == 'F' || wch == 'f')  // Parse the F1-F24 function keys.
-      {
-        if (isdigit(key[1])) {
-          int fx = _wtoi(&key[1]);
-          if (fx >= 1 && fx <= 24) {
-            vk = VK_F1 + fx - 1;
-          }
-        }
+        return 0;
       }
+      return DefWindowProcW(hwnd, msg, wParam, lParam);
+    };
+    wc.hInstance = hInstance;
+    wc.lpszClassName = L"ChromePlusBossKeyWindow";
+    bosskey_window_class = RegisterClassExW(&wc);
+    if (bosskey_window_class == 0) {
+      if (GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        return false;
+      }
+      bosskey_window_class = 1;
     }
   }
+  bosskey_hwnd = CreateWindowExW(0, L"ChromePlusBossKeyWindow", L"", 0, 0, 0, 0,
+                                 0, HWND_MESSAGE, nullptr, hInstance, nullptr);
+  return bosskey_hwnd != nullptr;
+}
 
-  mo |= MOD_NOREPEAT;
+bool IsSameRootWindow(HWND child, HWND root) {
+  if (!child || !root) {
+    return false;
+  }
+  return GetAncestor(child, GA_ROOT) == GetAncestor(root, GA_ROOT);
+}
 
-  return MAKELPARAM(mo, vk);
+HWND GetThreadFocusWindow(HWND root) {
+  if (!IsWindow(root)) {
+    return nullptr;
+  }
+  DWORD thread_id = GetWindowThreadProcessId(root, nullptr);
+  GUITHREADINFO info = {};
+  info.cbSize = sizeof(info);
+  if (!GetGUIThreadInfo(thread_id, &info)) {
+    return nullptr;
+  }
+  HWND focus = info.hwndFocus ? info.hwndFocus : info.hwndActive;
+  if (!IsWindow(focus)) {
+    return nullptr;
+  }
+  if (!IsSameRootWindow(focus, root)) {
+    return nullptr;
+  }
+  if (!IsWindowVisible(focus) || !IsWindowEnabled(focus)) {
+    return nullptr;
+  }
+  return focus;
+}
+
+HWND FindFocusableChromeChild(HWND parent) {
+  struct EnumState {
+    HWND best = nullptr;
+  };
+  EnumState state;
+  EnumChildWindows(
+      parent,
+      [](HWND hwnd, LPARAM lparam) -> BOOL {
+        auto* state = reinterpret_cast<EnumState*>(lparam);
+        if (!IsWindowVisible(hwnd) || !IsWindowEnabled(hwnd)) {
+          return true;
+        }
+        wchar_t cls[256];
+        GetClassNameW(hwnd, cls, 255);
+        if (wcscmp(cls, L"Chrome_RenderWidgetHostHWND") == 0 ||
+            wcscmp(cls, L"Chrome_WidgetWin_0") == 0) {
+          state->best = hwnd;
+          return false;
+        }
+        if (!state->best) {
+          state->best = hwnd;
+        }
+        return true;
+      },
+      reinterpret_cast<LPARAM>(&state));
+  return state.best;
+}
+
+HWND SelectFocusTarget(HWND root, HWND preferred_focus) {
+  if (preferred_focus && IsWindow(preferred_focus) &&
+      IsSameRootWindow(preferred_focus, root) &&
+      IsWindowVisible(preferred_focus) && IsWindowEnabled(preferred_focus)) {
+    return preferred_focus;
+  }
+  HWND candidate = FindFocusableChromeChild(root);
+  return candidate ? candidate : root;
+}
+
+void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
+  if (!IsWindow(hwnd)) {
+    return;
+  }
+  if (IsIconic(hwnd)) {
+    ShowWindow(hwnd, SW_RESTORE);
+  } else {
+    ShowWindow(hwnd, SW_SHOW);
+  }
+
+  SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+  SetForegroundWindow(hwnd);
+  SetActiveWindow(hwnd);
+  HWND focus_target = SelectFocusTarget(hwnd, preferred_focus);
+  SetFocus(focus_target);
 }
 
 BOOL CALLBACK SearchChromeWindow(HWND hwnd, LPARAM lparam) {
@@ -200,6 +278,10 @@ void MuteProcess(const std::vector<DWORD>& pids,
 void HideAndShow() {
   auto chrome_pids = GetAppPids();
   if (!is_hide) {
+    HWND foreground = GetForegroundWindow();
+    last_active_hwnd = IsChromeWindow(foreground) ? foreground : nullptr;
+    last_focus_hwnd =
+        last_active_hwnd ? GetThreadFocusWindow(last_active_hwnd) : nullptr;
     original_mute_states.clear();
     EnumWindows(SearchChromeWindow, 0);
     MuteProcess(chrome_pids, true, true);
@@ -208,10 +290,15 @@ void HideAndShow() {
          ++r_iter) {
       ShowWindow(*r_iter, SW_SHOW);
       SetWindowPos(*r_iter, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-      SetForegroundWindow(*r_iter);
       SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0,
                    SWP_NOMOVE | SWP_NOSIZE);
-      SetActiveWindow(*r_iter);
+    }
+    HWND target = IsWindow(last_active_hwnd) ? last_active_hwnd
+                                             : (hwnd_list.empty()
+                                                    ? nullptr
+                                                    : hwnd_list.back());
+    if (target) {
+      ForceForegroundWindow(target, last_focus_hwnd);
     }
     hwnd_list.clear();
     MuteProcess(chrome_pids, false);
@@ -219,30 +306,17 @@ void HideAndShow() {
   is_hide = !is_hide;
 }
 
-void OnHotkey(HotkeyAction action) {
-  action();
-}
-
 void Hotkey(std::wstring_view keys, HotkeyAction action) {
   if (keys.empty()) {
     return;
-  } else {
-    UINT flag = ParseHotkeys(keys.data());
-
-    std::thread th([flag, action]() {
-      RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag));
-
-      MSG msg;
-      while (GetMessage(&msg, nullptr, 0, 0)) {
-        if (msg.message == WM_HOTKEY) {
-          OnHotkey(action);
-        }
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-      }
-    });
-    th.detach();
   }
+  if (!EnsureBossKeyWindow()) {
+    return;
+  }
+  UINT flag = ParseHotkeys(keys.data());
+  bosskey_action = action;
+  UnregisterHotKey(bosskey_hwnd, kBossKeyHotkeyId);
+  RegisterHotKey(bosskey_hwnd, kBossKeyHotkeyId, LOWORD(flag), HIWORD(flag));
 }
 
 }  // anonymous namespace
