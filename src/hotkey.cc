@@ -27,6 +27,56 @@ using HotkeyAction = void (*)();
 bool is_hide = false;
 std::vector<HWND> hwnd_list;
 std::unordered_map<DWORD, bool> original_mute_states;
+HWND last_active_hwnd = nullptr;
+
+bool IsChromeWindow(HWND hwnd) {
+  if (!hwnd) {
+    return false;
+  }
+  wchar_t buff[256];
+  GetClassNameW(hwnd, buff, 255);
+  if (wcscmp(buff, L"Chrome_WidgetWin_1") != 0) {
+    return false;
+  }
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+  return pid == GetCurrentProcessId();
+}
+
+void ForceForegroundWindow(HWND hwnd) {
+  if (!IsWindow(hwnd)) {
+    return;
+  }
+  if (IsIconic(hwnd)) {
+    ShowWindow(hwnd, SW_RESTORE);
+  } else {
+    ShowWindow(hwnd, SW_SHOW);
+  }
+
+  HWND foreground = GetForegroundWindow();
+  DWORD fg_thread = foreground ? GetWindowThreadProcessId(foreground, nullptr)
+                               : 0;
+  DWORD target_thread = GetWindowThreadProcessId(hwnd, nullptr);
+  DWORD current_thread = GetCurrentThreadId();
+
+  if (fg_thread && fg_thread != current_thread) {
+    AttachThreadInput(fg_thread, current_thread, TRUE);
+  }
+  if (target_thread && target_thread != current_thread) {
+    AttachThreadInput(target_thread, current_thread, TRUE);
+  }
+
+  SetForegroundWindow(hwnd);
+  SetActiveWindow(hwnd);
+  SetFocus(hwnd);
+
+  if (target_thread && target_thread != current_thread) {
+    AttachThreadInput(target_thread, current_thread, FALSE);
+  }
+  if (fg_thread && fg_thread != current_thread) {
+    AttachThreadInput(fg_thread, current_thread, FALSE);
+  }
+}
 
 BOOL CALLBACK SearchChromeWindow(HWND hwnd, LPARAM lparam) {
   if (IsWindowVisible(hwnd)) {
@@ -145,6 +195,8 @@ void MuteProcess(const std::vector<DWORD>& pids,
 void HideAndShow() {
   auto chrome_pids = GetAppPids();
   if (!is_hide) {
+    HWND foreground = GetForegroundWindow();
+    last_active_hwnd = IsChromeWindow(foreground) ? foreground : nullptr;
     original_mute_states.clear();
     EnumWindows(SearchChromeWindow, 0);
     MuteProcess(chrome_pids, true, true);
@@ -153,10 +205,15 @@ void HideAndShow() {
          ++r_iter) {
       ShowWindow(*r_iter, SW_SHOW);
       SetWindowPos(*r_iter, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-      SetForegroundWindow(*r_iter);
       SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0,
                    SWP_NOMOVE | SWP_NOSIZE);
-      SetActiveWindow(*r_iter);
+    }
+    HWND target = IsWindow(last_active_hwnd) ? last_active_hwnd
+                                             : (hwnd_list.empty()
+                                                    ? nullptr
+                                                    : hwnd_list.back());
+    if (target) {
+      ForceForegroundWindow(target);
     }
     hwnd_list.clear();
     MuteProcess(chrome_pids, false);
