@@ -58,28 +58,41 @@ void ForceForegroundWindow(HWND hwnd) {
                                : 0;
   DWORD target_thread = GetWindowThreadProcessId(hwnd, nullptr);
   DWORD current_thread = GetCurrentThreadId();
+  bool attached_fg_target = false;
+  bool attached_current_target = false;
+  bool attached_current_fg = false;
 
-  if (fg_thread && fg_thread != current_thread) {
-    AttachThreadInput(fg_thread, current_thread, TRUE);
+  if (fg_thread && target_thread && fg_thread != target_thread) {
+    attached_fg_target = AttachThreadInput(fg_thread, target_thread, TRUE);
   }
   if (target_thread && target_thread != current_thread) {
-    AttachThreadInput(target_thread, current_thread, TRUE);
+    attached_current_target =
+        AttachThreadInput(current_thread, target_thread, TRUE);
+  }
+  if (fg_thread && fg_thread != current_thread) {
+    attached_current_fg = AttachThreadInput(current_thread, fg_thread, TRUE);
   }
 
   BringWindowToTop(hwnd);
   SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+  AllowSetForegroundWindow(ASFW_ANY);
+  LockSetForegroundWindow(LSFW_UNLOCK);
   SetForegroundWindow(hwnd);
   SetActiveWindow(hwnd);
   SetFocus(hwnd);
 
-  if (target_thread && target_thread != current_thread) {
-    AttachThreadInput(target_thread, current_thread, FALSE);
+  if (attached_current_fg) {
+    AttachThreadInput(current_thread, fg_thread, FALSE);
   }
-  if (fg_thread && fg_thread != current_thread) {
-    AttachThreadInput(fg_thread, current_thread, FALSE);
+  if (attached_current_target) {
+    AttachThreadInput(current_thread, target_thread, FALSE);
+  }
+  if (attached_fg_target) {
+    AttachThreadInput(fg_thread, target_thread, FALSE);
   }
 
   if (GetForegroundWindow() != hwnd) {
+    SwitchToThisWindow(hwnd, TRUE);
     INPUT inputs[2] = {};
     inputs[0].type = INPUT_KEYBOARD;
     inputs[0].ki.wVk = VK_MENU;
@@ -223,6 +236,7 @@ void HideAndShow() {
       SetWindowPos(*r_iter, HWND_NOTOPMOST, 0, 0, 0, 0,
                    SWP_NOMOVE | SWP_NOSIZE);
     }
+    Sleep(10);
     HWND target = IsWindow(last_active_hwnd) ? last_active_hwnd
                                              : (hwnd_list.empty()
                                                     ? nullptr
