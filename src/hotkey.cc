@@ -155,6 +155,10 @@ HWND GetThreadFocusWindow(HWND root) {
   return focus;
 }
 
+bool HasFocusInWindow(HWND root) {
+  return GetThreadFocusWindow(root) != nullptr;
+}
+
 HWND FindFocusableChromeChild(HWND parent) {
   struct EnumState {
     HWND best = nullptr;
@@ -328,25 +332,58 @@ void ActivateByClientClick(HWND hwnd, HWND focus_target) {
   if (!IsWindow(hwnd)) {
     return;
   }
+  HWND click_target = focus_target ? focus_target : hwnd;
   RECT rect = {};
-  if (!GetWindowRect(hwnd, &rect)) {
+  if (!GetClientRect(click_target, &rect)) {
     return;
   }
-  POINT pt = {rect.left + 60, rect.top + 80};
-  HWND click_target = focus_target ? focus_target : hwnd;
-  if (!ScreenToClient(click_target, &pt)) {
-    // ScreenToClient failed; fallback to a small client-area offset.
-    pt.x = 30;
-    pt.y = 30;
+  POINT pt = {rect.left + 30, rect.top + 40};
+  if (pt.x >= rect.right) {
+    pt.x = rect.right > 1 ? rect.right - 1 : rect.left;
   }
-  LPARAM lparam = MAKELPARAM(pt.x, pt.y);
-  DWORD_PTR result = 0;
-  SendMessageTimeoutW(click_target, WM_MOUSEMOVE, 0, lparam,
-                      SMTO_ABORTIFHUNG, 80, &result);
-  SendMessageTimeoutW(click_target, WM_LBUTTONDOWN, MK_LBUTTON, lparam,
-                      SMTO_ABORTIFHUNG, 80, &result);
-  SendMessageTimeoutW(click_target, WM_LBUTTONUP, 0, lparam, SMTO_ABORTIFHUNG,
-                      80, &result);
+  if (pt.y >= rect.bottom) {
+    pt.y = rect.bottom > 1 ? rect.bottom - 1 : rect.top;
+  }
+  if (!ClientToScreen(click_target, &pt)) {
+    return;
+  }
+
+  POINT original = {};
+  if (!GetCursorPos(&original)) {
+    return;
+  }
+  int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+  int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+  int vw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+  int vh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+  if (vw <= 1 || vh <= 1) {
+    return;
+  }
+
+  auto to_absolute = [&](int value, int origin, int max_value) -> LONG {
+    return static_cast<LONG>(((value - origin) * 65535) / (max_value - 1));
+  };
+
+  INPUT inputs[4] = {};
+  inputs[0].type = INPUT_MOUSE;
+  inputs[0].mi.dwFlags =
+      MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_VIRTUALDESK;
+  inputs[0].mi.dx = to_absolute(pt.x, vx, vw);
+  inputs[0].mi.dy = to_absolute(pt.y, vy, vh);
+
+  inputs[1].type = INPUT_MOUSE;
+  inputs[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+
+  inputs[2].type = INPUT_MOUSE;
+  inputs[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
+  inputs[3].type = INPUT_MOUSE;
+  inputs[3].mi.dwFlags =
+      MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE | MOUSEEVENTF_VIRTUALDESK;
+  inputs[3].mi.dx = to_absolute(original.x, vx, vw);
+  inputs[3].mi.dy = to_absolute(original.y, vy, vh);
+
+  SendInput(4, inputs, sizeof(INPUT));
 }
 
 void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
@@ -420,10 +457,10 @@ void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
   if (GetForegroundWindow() != hwnd) {
     ActivateByForegroundHelper(hwnd, focus_target);
   }
-  if (GetForegroundWindow() != hwnd) {
+  SendProbeKey(focus_target ? focus_target : hwnd);
+  if (!HasFocusInWindow(hwnd)) {
     ActivateByClientClick(hwnd, focus_target);
   }
-  SendProbeKey(focus_target ? focus_target : hwnd);
 
   if (attached_current_fg) {
     AttachThreadInput(current_thread, fg_thread, FALSE);
