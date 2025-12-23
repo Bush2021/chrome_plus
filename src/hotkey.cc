@@ -28,6 +28,9 @@ bool is_hide = false;
 std::vector<HWND> hwnd_list;
 std::unordered_map<DWORD, bool> original_mute_states;
 HWND last_active_hwnd = nullptr;
+HHOOK bosskey_hook = nullptr;
+UINT bosskey_activate_msg = 0;
+DWORD bosskey_hook_thread_id = 0;
 
 bool IsChromeWindow(HWND hwnd) {
   if (!hwnd) {
@@ -41,6 +44,63 @@ bool IsChromeWindow(HWND hwnd) {
   DWORD pid = 0;
   GetWindowThreadProcessId(hwnd, &pid);
   return pid == GetCurrentProcessId();
+}
+
+void ForceForegroundWindow(HWND hwnd);
+
+LRESULT CALLBACK BossKeyMsgProc(int nCode, WPARAM wParam, LPARAM lParam) {
+  if (nCode == HC_ACTION) {
+    auto* msg = reinterpret_cast<MSG*>(lParam);
+    if (msg && msg->message == bosskey_activate_msg) {
+      HWND target = reinterpret_cast<HWND>(msg->wParam);
+      if (IsWindow(target)) {
+        ForceForegroundWindow(target);
+      }
+      msg->message = WM_NULL;
+      msg->wParam = 0;
+      msg->lParam = 0;
+      return 1;
+    }
+  }
+  return CallNextHookEx(bosskey_hook, nCode, wParam, lParam);
+}
+
+void EnsureBossKeyHook(DWORD thread_id) {
+  if (bosskey_activate_msg == 0) {
+    bosskey_activate_msg =
+        RegisterWindowMessageW(L"ChromePlusBossKeyActivate");
+  }
+  if (thread_id == 0) {
+    return;
+  }
+  if (bosskey_hook && bosskey_hook_thread_id == thread_id) {
+    return;
+  }
+  if (bosskey_hook) {
+    UnhookWindowsHookEx(bosskey_hook);
+    bosskey_hook = nullptr;
+    bosskey_hook_thread_id = 0;
+  }
+  bosskey_hook_thread_id = thread_id;
+  bosskey_hook =
+      SetWindowsHookEx(WH_GETMESSAGE, BossKeyMsgProc, hInstance, thread_id);
+  if (!bosskey_hook) {
+    bosskey_hook_thread_id = 0;
+  }
+}
+
+bool PostActivateRequest(HWND target) {
+  if (!target) {
+    return false;
+  }
+  DWORD thread_id = GetWindowThreadProcessId(target, nullptr);
+  EnsureBossKeyHook(thread_id);
+  if (!bosskey_hook || bosskey_hook_thread_id == 0 ||
+      bosskey_activate_msg == 0) {
+    return false;
+  }
+  return PostThreadMessageW(bosskey_hook_thread_id, bosskey_activate_msg,
+                            reinterpret_cast<WPARAM>(target), 0) != 0;
 }
 
 HWND FindFocusableChromeChild(HWND parent) {
@@ -94,6 +154,50 @@ void ActivateByNonClientClick(HWND hwnd) {
                       SMTO_ABORTIFHUNG, 80, &result);
   SendMessageTimeoutW(hwnd, WM_NCLBUTTONUP, HTCAPTION, lparam,
                       SMTO_ABORTIFHUNG, 80, &result);
+}
+
+void ActivateByMouseInput(HWND hwnd) {
+  RECT rect = {};
+  if (!GetWindowRect(hwnd, &rect)) {
+    return;
+  }
+  POINT original = {};
+  if (!GetCursorPos(&original)) {
+    return;
+  }
+  int screen_width = GetSystemMetrics(SM_CXSCREEN);
+  int screen_height = GetSystemMetrics(SM_CYSCREEN);
+  if (screen_width <= 1 || screen_height <= 1) {
+    return;
+  }
+
+  int x = rect.left + 20;
+  int y = rect.top + 10;
+  x = std::max(0, std::min(x, screen_width - 1));
+  y = std::max(0, std::min(y, screen_height - 1));
+
+  auto to_absolute = [](int value, int max_value) -> LONG {
+    return static_cast<LONG>((value * 65535) / (max_value - 1));
+  };
+
+  INPUT inputs[4] = {};
+  inputs[0].type = INPUT_MOUSE;
+  inputs[0].mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
+  inputs[0].mi.dx = to_absolute(x, screen_width);
+  inputs[0].mi.dy = to_absolute(y, screen_height);
+
+  inputs[1].type = INPUT_MOUSE;
+  inputs[1].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+
+  inputs[2].type = INPUT_MOUSE;
+  inputs[2].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
+  inputs[3].type = INPUT_MOUSE;
+  inputs[3].mi.dwFlags = MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_MOVE;
+  inputs[3].mi.dx = to_absolute(original.x, screen_width);
+  inputs[3].mi.dy = to_absolute(original.y, screen_height);
+
+  SendInput(4, inputs, sizeof(INPUT));
 }
 
 void ForceForegroundWindow(HWND hwnd) {
@@ -152,6 +256,13 @@ void ForceForegroundWindow(HWND hwnd) {
   }
   if (GetForegroundWindow() != hwnd) {
     ActivateByNonClientClick(hwnd);
+    SetForegroundWindow(hwnd);
+    SetActiveWindow(hwnd);
+    SetFocus(focus_target ? focus_target : hwnd);
+    SendActivateMessages(hwnd, focus_target);
+  }
+  if (GetForegroundWindow() != hwnd) {
+    ActivateByMouseInput(hwnd);
     SetForegroundWindow(hwnd);
     SetActiveWindow(hwnd);
     SetFocus(focus_target ? focus_target : hwnd);
@@ -305,7 +416,9 @@ void HideAndShow() {
                                                     ? nullptr
                                                     : hwnd_list.back());
     if (target) {
-      ForceForegroundWindow(target);
+      if (!PostActivateRequest(target)) {
+        ForceForegroundWindow(target);
+      }
     }
     hwnd_list.clear();
     MuteProcess(chrome_pids, false);
@@ -352,6 +465,7 @@ UINT ParseTranslateKey() {
 void GetHotkey() {
   const auto& boss_key = config.GetBossKey();
   if (!boss_key.empty()) {
+    EnsureBossKeyHook(GetCurrentThreadId());
     Hotkey(boss_key, HideAndShow);
   }
 }
