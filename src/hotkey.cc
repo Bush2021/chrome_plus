@@ -32,6 +32,7 @@ HWND last_focus_hwnd = nullptr;
 HHOOK bosskey_hook = nullptr;
 UINT bosskey_activate_msg = 0;
 DWORD bosskey_hook_thread_id = 0;
+ATOM bosskey_helper_class = 0;
 
 bool IsChromeWindow(HWND hwnd) {
   if (!hwnd) {
@@ -49,6 +50,23 @@ bool IsChromeWindow(HWND hwnd) {
 
 void ForceForegroundWindow(HWND hwnd, HWND preferred_focus);
 void ApplyFocusInUIThread(HWND hwnd, HWND preferred_focus);
+
+bool EnsureBossKeyHelperClass() {
+  if (bosskey_helper_class != 0) {
+    return true;
+  }
+  WNDCLASSEXW wc = {};
+  wc.cbSize = sizeof(wc);
+  wc.lpfnWndProc = DefWindowProcW;
+  wc.hInstance = hInstance;
+  wc.lpszClassName = L"ChromePlusBossKeyHelper";
+  bosskey_helper_class = RegisterClassExW(&wc);
+  if (bosskey_helper_class == 0 &&
+      GetLastError() == ERROR_CLASS_ALREADY_EXISTS) {
+    bosskey_helper_class = 1;
+  }
+  return bosskey_helper_class != 0;
+}
 
 LRESULT CALLBACK BossKeyMsgProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION) {
@@ -274,6 +292,38 @@ void ActivateByMouseInput(HWND hwnd) {
   SendInput(4, inputs, sizeof(INPUT));
 }
 
+void ActivateByForegroundHelper(HWND hwnd, HWND focus_target) {
+  if (!EnsureBossKeyHelperClass()) {
+    return;
+  }
+  AllowSetForegroundWindow(ASFW_ANY);
+  LockSetForegroundWindow(LSFW_UNLOCK);
+
+  HWND helper =
+      CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_LAYERED,
+                      L"ChromePlusBossKeyHelper", L"", WS_POPUP, 0, 0, 1, 1,
+                      nullptr, nullptr, hInstance, nullptr);
+  if (!helper) {
+    return;
+  }
+  SetLayeredWindowAttributes(helper, 0, 1, LWA_ALPHA);
+  ShowWindow(helper, SW_SHOW);
+  SetWindowPos(helper, HWND_TOPMOST, 0, 0, 1, 1,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+  SetForegroundWindow(helper);
+  SetActiveWindow(helper);
+  SetFocus(helper);
+  Sleep(10);
+
+  SetForegroundWindow(hwnd);
+  SetActiveWindow(hwnd);
+  SetFocus(focus_target);
+  SendActivateMessages(hwnd, focus_target);
+  SendProbeKey(focus_target ? focus_target : hwnd);
+
+  DestroyWindow(helper);
+}
+
 void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
   if (!IsWindow(hwnd)) {
     return;
@@ -341,6 +391,9 @@ void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
     SetActiveWindow(hwnd);
     SetFocus(focus_target);
     SendActivateMessages(hwnd, focus_target);
+  }
+  if (GetForegroundWindow() != hwnd) {
+    ActivateByForegroundHelper(hwnd, focus_target);
   }
   SendProbeKey(focus_target ? focus_target : hwnd);
 
