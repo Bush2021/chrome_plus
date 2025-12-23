@@ -324,6 +324,31 @@ void ActivateByForegroundHelper(HWND hwnd, HWND focus_target) {
   DestroyWindow(helper);
 }
 
+void ActivateByClientClick(HWND hwnd, HWND focus_target) {
+  if (!IsWindow(hwnd)) {
+    return;
+  }
+  RECT rect = {};
+  if (!GetWindowRect(hwnd, &rect)) {
+    return;
+  }
+  POINT pt = {rect.left + 60, rect.top + 80};
+  HWND click_target = focus_target ? focus_target : hwnd;
+  if (!ScreenToClient(click_target, &pt)) {
+    // ScreenToClient failed; fallback to a small client-area offset.
+    pt.x = 30;
+    pt.y = 30;
+  }
+  LPARAM lparam = MAKELPARAM(pt.x, pt.y);
+  DWORD_PTR result = 0;
+  SendMessageTimeoutW(click_target, WM_MOUSEMOVE, 0, lparam,
+                      SMTO_ABORTIFHUNG, 80, &result);
+  SendMessageTimeoutW(click_target, WM_LBUTTONDOWN, MK_LBUTTON, lparam,
+                      SMTO_ABORTIFHUNG, 80, &result);
+  SendMessageTimeoutW(click_target, WM_LBUTTONUP, 0, lparam, SMTO_ABORTIFHUNG,
+                      80, &result);
+}
+
 void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
   if (!IsWindow(hwnd)) {
     return;
@@ -394,6 +419,9 @@ void ForceForegroundWindow(HWND hwnd, HWND preferred_focus) {
   }
   if (GetForegroundWindow() != hwnd) {
     ActivateByForegroundHelper(hwnd, focus_target);
+  }
+  if (GetForegroundWindow() != hwnd) {
+    ActivateByClientClick(hwnd, focus_target);
   }
   SendProbeKey(focus_target ? focus_target : hwnd);
 
