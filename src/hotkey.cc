@@ -43,6 +43,44 @@ bool IsChromeWindow(HWND hwnd) {
   return pid == GetCurrentProcessId();
 }
 
+HWND FindFocusableChromeChild(HWND parent) {
+  struct EnumState {
+    HWND best = nullptr;
+  };
+  EnumState state;
+  EnumChildWindows(
+      parent,
+      [](HWND hwnd, LPARAM lparam) -> BOOL {
+        auto* state = reinterpret_cast<EnumState*>(lparam);
+        if (!IsWindowVisible(hwnd) || !IsWindowEnabled(hwnd)) {
+          return true;
+        }
+        wchar_t cls[256];
+        GetClassNameW(hwnd, cls, 255);
+        if (wcscmp(cls, L"Chrome_RenderWidgetHostHWND") == 0 ||
+            wcscmp(cls, L"Chrome_WidgetWin_0") == 0) {
+          state->best = hwnd;
+          return false;
+        }
+        if (!state->best) {
+          state->best = hwnd;
+        }
+        return true;
+      },
+      reinterpret_cast<LPARAM>(&state));
+  return state.best;
+}
+
+void SendActivateMessages(HWND hwnd, HWND focus_target) {
+  DWORD_PTR result = 0;
+  SendMessageTimeoutW(hwnd, WM_ACTIVATE, WA_ACTIVE, 0, SMTO_ABORTIFHUNG, 80,
+                      &result);
+  SendMessageTimeoutW(hwnd, WM_ACTIVATEAPP, TRUE, 0, SMTO_ABORTIFHUNG, 80,
+                      &result);
+  HWND target = focus_target ? focus_target : hwnd;
+  SendMessageTimeoutW(target, WM_SETFOCUS, 0, 0, SMTO_ABORTIFHUNG, 80, &result);
+}
+
 void ForceForegroundWindow(HWND hwnd) {
   if (!IsWindow(hwnd)) {
     return;
@@ -79,17 +117,9 @@ void ForceForegroundWindow(HWND hwnd) {
   LockSetForegroundWindow(LSFW_UNLOCK);
   SetForegroundWindow(hwnd);
   SetActiveWindow(hwnd);
-  SetFocus(hwnd);
-
-  if (attached_current_fg) {
-    AttachThreadInput(current_thread, fg_thread, FALSE);
-  }
-  if (attached_current_target) {
-    AttachThreadInput(current_thread, target_thread, FALSE);
-  }
-  if (attached_fg_target) {
-    AttachThreadInput(fg_thread, target_thread, FALSE);
-  }
+  HWND focus_target = FindFocusableChromeChild(hwnd);
+  SetFocus(focus_target ? focus_target : hwnd);
+  SendActivateMessages(hwnd, focus_target);
 
   if (GetForegroundWindow() != hwnd) {
     SwitchToThisWindow(hwnd, TRUE);
@@ -102,7 +132,18 @@ void ForceForegroundWindow(HWND hwnd) {
     SendInput(2, inputs, sizeof(INPUT));
     SetForegroundWindow(hwnd);
     SetActiveWindow(hwnd);
-    SetFocus(hwnd);
+    SetFocus(focus_target ? focus_target : hwnd);
+    SendActivateMessages(hwnd, focus_target);
+  }
+
+  if (attached_current_fg) {
+    AttachThreadInput(current_thread, fg_thread, FALSE);
+  }
+  if (attached_current_target) {
+    AttachThreadInput(current_thread, target_thread, FALSE);
+  }
+  if (attached_fg_target) {
+    AttachThreadInput(fg_thread, target_thread, FALSE);
   }
 }
 
