@@ -173,8 +173,16 @@ void ActivateByMouseInput(HWND hwnd) {
 
   int x = rect.left + 20;
   int y = rect.top + 10;
-  x = std::max(0, std::min(x, screen_width - 1));
-  y = std::max(0, std::min(y, screen_height - 1));
+  if (x < 0) {
+    x = 0;
+  } else if (x > screen_width - 1) {
+    x = screen_width - 1;
+  }
+  if (y < 0) {
+    y = 0;
+  } else if (y > screen_height - 1) {
+    y = screen_height - 1;
+  }
 
   auto to_absolute = [](int value, int max_value) -> LONG {
     return static_cast<LONG>((value * 65535) / (max_value - 1));
