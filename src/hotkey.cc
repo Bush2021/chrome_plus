@@ -66,6 +66,8 @@ void ForceForegroundWindow(HWND hwnd) {
     AttachThreadInput(target_thread, current_thread, TRUE);
   }
 
+  BringWindowToTop(hwnd);
+  SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
   SetForegroundWindow(hwnd);
   SetActiveWindow(hwnd);
   SetFocus(hwnd);
@@ -75,6 +77,19 @@ void ForceForegroundWindow(HWND hwnd) {
   }
   if (fg_thread && fg_thread != current_thread) {
     AttachThreadInput(fg_thread, current_thread, FALSE);
+  }
+
+  if (GetForegroundWindow() != hwnd) {
+    INPUT inputs[2] = {};
+    inputs[0].type = INPUT_KEYBOARD;
+    inputs[0].ki.wVk = VK_MENU;
+    inputs[1].type = INPUT_KEYBOARD;
+    inputs[1].ki.wVk = VK_MENU;
+    inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(2, inputs, sizeof(INPUT));
+    SetForegroundWindow(hwnd);
+    SetActiveWindow(hwnd);
+    SetFocus(hwnd);
   }
 }
 
