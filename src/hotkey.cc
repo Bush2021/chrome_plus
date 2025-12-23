@@ -12,7 +12,6 @@
 #include <iterator>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -33,6 +32,10 @@ HHOOK bosskey_hook = nullptr;
 UINT bosskey_activate_msg = 0;
 DWORD bosskey_hook_thread_id = 0;
 ATOM bosskey_helper_class = 0;
+HWND bosskey_hwnd = nullptr;
+ATOM bosskey_window_class = 0;
+HotkeyAction bosskey_action = nullptr;
+constexpr UINT kBossKeyHotkeyId = 1;
 
 bool IsChromeWindow(HWND hwnd) {
   if (!hwnd) {
@@ -50,6 +53,36 @@ bool IsChromeWindow(HWND hwnd) {
 
 void ForceForegroundWindow(HWND hwnd, HWND preferred_focus);
 void ApplyFocusInUIThread(HWND hwnd, HWND preferred_focus);
+
+bool EnsureBossKeyWindow() {
+  if (bosskey_hwnd) {
+    return true;
+  }
+  if (bosskey_window_class == 0) {
+    WNDCLASSEXW wc = {};
+    wc.cbSize = sizeof(wc);
+    wc.lpfnWndProc = [](HWND hwnd, UINT msg, WPARAM wParam,
+                        LPARAM lParam) -> LRESULT {
+      if (msg == WM_HOTKEY && wParam == kBossKeyHotkeyId) {
+        if (bosskey_action) {
+          bosskey_action();
+        }
+        return 0;
+      }
+      return DefWindowProcW(hwnd, msg, wParam, lParam);
+    };
+    wc.hInstance = hInstance;
+    wc.lpszClassName = L"ChromePlusBossKeyWindow";
+    bosskey_window_class = RegisterClassExW(&wc);
+    if (bosskey_window_class == 0 &&
+        GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+      return false;
+    }
+  }
+  bosskey_hwnd = CreateWindowExW(0, L"ChromePlusBossKeyWindow", L"", 0, 0, 0, 0,
+                                 0, HWND_MESSAGE, nullptr, hInstance, nullptr);
+  return bosskey_hwnd != nullptr;
+}
 
 bool EnsureBossKeyHelperClass() {
   if (bosskey_helper_class != 0) {
@@ -627,23 +660,14 @@ void OnHotkey(HotkeyAction action) {
 void Hotkey(std::wstring_view keys, HotkeyAction action) {
   if (keys.empty()) {
     return;
-  } else {
-    UINT flag = ParseHotkeys(keys.data());
-
-    std::thread th([flag, action]() {
-      RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag));
-
-      MSG msg;
-      while (GetMessage(&msg, nullptr, 0, 0)) {
-        if (msg.message == WM_HOTKEY) {
-          OnHotkey(action);
-        }
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-      }
-    });
-    th.detach();
   }
+  if (!EnsureBossKeyWindow()) {
+    return;
+  }
+  UINT flag = ParseHotkeys(keys.data());
+  bosskey_action = action;
+  UnregisterHotKey(bosskey_hwnd, kBossKeyHotkeyId);
+  RegisterHotKey(bosskey_hwnd, kBossKeyHotkeyId, LOWORD(flag), HIWORD(flag));
 }
 
 }  // anonymous namespace
