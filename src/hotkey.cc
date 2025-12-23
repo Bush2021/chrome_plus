@@ -81,6 +81,21 @@ void SendActivateMessages(HWND hwnd, HWND focus_target) {
   SendMessageTimeoutW(target, WM_SETFOCUS, 0, 0, SMTO_ABORTIFHUNG, 80, &result);
 }
 
+void ActivateByNonClientClick(HWND hwnd) {
+  RECT rect = {};
+  if (!GetWindowRect(hwnd, &rect)) {
+    return;
+  }
+  int x = rect.left + 20;
+  int y = rect.top + 10;
+  LPARAM lparam = MAKELPARAM(x, y);
+  DWORD_PTR result = 0;
+  SendMessageTimeoutW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, lparam,
+                      SMTO_ABORTIFHUNG, 80, &result);
+  SendMessageTimeoutW(hwnd, WM_NCLBUTTONUP, HTCAPTION, lparam,
+                      SMTO_ABORTIFHUNG, 80, &result);
+}
+
 void ForceForegroundWindow(HWND hwnd) {
   if (!IsWindow(hwnd)) {
     return;
@@ -130,6 +145,13 @@ void ForceForegroundWindow(HWND hwnd) {
     inputs[1].ki.wVk = VK_MENU;
     inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
     SendInput(2, inputs, sizeof(INPUT));
+    SetForegroundWindow(hwnd);
+    SetActiveWindow(hwnd);
+    SetFocus(focus_target ? focus_target : hwnd);
+    SendActivateMessages(hwnd, focus_target);
+  }
+  if (GetForegroundWindow() != hwnd) {
+    ActivateByNonClientClick(hwnd);
     SetForegroundWindow(hwnd);
     SetActiveWindow(hwnd);
     SetFocus(focus_target ? focus_target : hwnd);
