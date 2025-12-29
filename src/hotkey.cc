@@ -33,8 +33,7 @@ std::unordered_map<DWORD, bool> original_mute_states;
 UINT ParseHotkeys(std::wstring_view keys) {
   UINT mo = 0;
   UINT vk = 0;
-  std::wstring temp(keys);
-  std::vector<std::wstring> key_parts = StringSplit(temp, L'+');
+  auto key_parts = StringSplit(keys, L'+');
 
   static const std::unordered_map<std::wstring, UINT> key_map = {
       {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
