@@ -355,9 +355,11 @@ bool IsNameNewTab(const NodePtr& top) {
 // Determine whether it is a new tab page from the document value of the tab
 // page.
 bool IsDocNewTab() {
-  const auto cr_command_line = config.GetCommandLine();
-  if (cr_command_line.find(L"--force-renderer-accessibility") ==
-      std::wstring::npos) {
+  static const bool has_a11y_flag =
+      config.GetCommandLine().find(L"--force-renderer-accessibility") !=
+      std::wstring::npos;
+
+  if (!has_a11y_flag) {
     return false;
   }
 
