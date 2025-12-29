@@ -259,3 +259,42 @@ bool IsFullScreen(HWND hwnd) {
            windowRect.right == GetSystemMetrics(SM_CXSCREEN) &&
            windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
 }
+
+// Parse a single key string to virtual key code
+UINT ParseKeyString(std::wstring_view key) {
+  static const std::unordered_map<std::wstring, UINT> key_map = {
+      {L"left", VK_LEFT},       {L"right", VK_RIGHT},
+      {L"up", VK_UP},           {L"down", VK_DOWN},
+      {L"←", VK_LEFT},          {L"→", VK_RIGHT},
+      {L"↑", VK_UP},            {L"↓", VK_DOWN},
+      {L"esc", VK_ESCAPE},      {L"tab", VK_TAB},
+      {L"backspace", VK_BACK},  {L"enter", VK_RETURN},
+      {L"space", VK_SPACE},     {L"prtsc", VK_SNAPSHOT},
+      {L"scroll", VK_SCROLL},   {L"pause", VK_PAUSE},
+      {L"insert", VK_INSERT},   {L"delete", VK_DELETE},
+      {L"end", VK_END},         {L"home", VK_HOME},
+      {L"pageup", VK_PRIOR},    {L"pagedown", VK_NEXT},
+  };
+
+  if (key_map.contains(key)) {
+    return key_map.at(key);
+  }
+
+  TCHAR wch = key[0];
+  if (key.length() == 1) {
+    if (isalnum(wch)) {
+      return toupper(wch);
+    } else {
+      return LOWORD(VkKeyScan(wch));
+    }
+  } else if (wch == 'F' || wch == 'f') {
+    if (key.length() > 1 && isdigit(key[1])) {
+      int fx = _wtoi(&key[1]);
+      if (fx >= 1 && fx <= 24) {
+        return VK_F1 + fx - 1;
+      }
+    }
+  }
+
+  return 0;
+}

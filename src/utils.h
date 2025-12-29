@@ -118,6 +118,9 @@ void LaunchCommands(const std::wstring& get_commands);
 bool IsFullScreen(HWND hwnd);
 
 // Keyboard and mouse input functions
+// Parse a single key string to virtual key code
+UINT ParseKeyString(std::wstring_view key);
+
 // Template function for sending combined key operations - kept in header
 template <typename... T>
 void SendKey(T&&... keys) {

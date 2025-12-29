@@ -10,6 +10,7 @@
 #include "green.h"
 #include "hijack.h"
 #include "hotkey.h"
+#include "keymapping.h"
 #include "pakpatch.h"
 #include "portable.h"
 #include "tabbookmark.h"
@@ -35,6 +36,9 @@ void ChromePlus() {
 
   // Process the hotkey.
   GetHotkey();
+
+  // Install key mapping.
+  InstallKeyMapping();
 }
 
 void ChromePlusCommand(LPWSTR param) {
@@ -88,6 +92,7 @@ BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv) {
 
     InstallLoader();
   } else if (dwReason == DLL_PROCESS_DETACH && ::should_run_exit_cmd) {
+    UninstallKeyMapping();
     LaunchCommands(config.GetLaunchOnExit());
     should_run_exit_cmd = false;
   }
