@@ -259,6 +259,11 @@ NodePtr FindPageTabPane(const NodePtr& node) {
 // tab page.
 std::optional<std::wstring> GetStdNameFromNewTabButton(
     const NodePtr& page_tab_list) {
+  static std::optional<std::wstring> cached_std_name;
+  if (cached_std_name.has_value()) {
+    return cached_std_name;
+  }
+
   if (!page_tab_list) {
     return std::nullopt;
   }
@@ -281,8 +286,11 @@ std::optional<std::wstring> GetStdNameFromNewTabButton(
     });
     return !std_name.empty();
   });
-  return std_name.empty() ? std::nullopt
-                          : std::optional<std::wstring>{std_name};
+
+  if (!std_name.empty()) {
+    cached_std_name = std_name;
+  }
+  return cached_std_name;
 }
 
 // Determine whether it is a new tab page from the name of the current tab page.
