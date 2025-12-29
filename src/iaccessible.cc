@@ -313,8 +313,7 @@ bool IsNameNewTab(const NodePtr& top) {
   }
 
   bool is_new_tab = false;
-  const auto names_from_config =
-      StringSplit(config.GetDisableTabName(), L',', L"\"");
+  const auto& names_from_config = config.GetDisableTabNames();
   const auto std_name = GetStdNameFromNewTabButton(page_tab_list);
   TraversalAccessible(
       page_tab_pane,
