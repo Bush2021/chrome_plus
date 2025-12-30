@@ -176,8 +176,9 @@ void InitKeyMapping() {
   for (const auto& [source, target] : mappings) {
     KeyMapping mapping = {};
 
-    UINT source_parsed = ParseHotkeys(source);
-    mapping.source_modifiers = LOWORD(source_parsed) & ~0x4000;
+    // Pass false for no_repeat since we don't need MOD_NOREPEAT in key mappings
+    UINT source_parsed = ParseHotkeys(source, /*no_repeat=*/false);
+    mapping.source_modifiers = LOWORD(source_parsed);
     mapping.source_vk = HIWORD(source_parsed);
 
     if (mapping.source_vk == 0) {
@@ -194,8 +195,8 @@ void InitKeyMapping() {
         continue;
       }
     } else {
-      UINT target_parsed = ParseHotkeys(target);
-      mapping.target_modifiers = LOWORD(target_parsed) & ~0x4000;
+      UINT target_parsed = ParseHotkeys(target, /*no_repeat=*/false);
+      mapping.target_modifiers = LOWORD(target_parsed);
       mapping.target_vk = HIWORD(target_parsed);
 
       if (mapping.target_vk == 0) {

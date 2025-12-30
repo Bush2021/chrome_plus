@@ -10,10 +10,11 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <cwctype>
+#include <optional>
 #include <ranges>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 // Global variable definitions
@@ -261,54 +262,136 @@ bool IsFullScreen(HWND hwnd) {
            windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
 }
 
-UINT ParseHotkeys(std::wstring_view keys) {
-  UINT mo = 0;
-  UINT vk = 0;
-  auto key_parts = StringSplit(keys, L'+');
+namespace {
 
-  static const std::unordered_map<std::wstring, UINT> key_map = {
-      {L"shift", MOD_SHIFT},  {L"ctrl", MOD_CONTROL}, {L"alt", MOD_ALT},
-      {L"win", MOD_WIN},      {L"left", VK_LEFT},     {L"right", VK_RIGHT},
-      {L"up", VK_UP},         {L"down", VK_DOWN},     {L"←", VK_LEFT},
-      {L"→", VK_RIGHT},       {L"↑", VK_UP},          {L"↓", VK_DOWN},
-      {L"esc", VK_ESCAPE},    {L"tab", VK_TAB},       {L"backspace", VK_BACK},
-      {L"enter", VK_RETURN},  {L"space", VK_SPACE},   {L"prtsc", VK_SNAPSHOT},
-      {L"scroll", VK_SCROLL}, {L"pause", VK_PAUSE},   {L"insert", VK_INSERT},
-      {L"delete", VK_DELETE}, {L"end", VK_END},       {L"home", VK_HOME},
-      {L"pageup", VK_PRIOR},  {L"pagedown", VK_NEXT},
-  };
+// Modifier keys mapping
+constexpr std::pair<std::wstring_view, UINT> kModifierKeys[] = {
+    {L"shift", MOD_SHIFT},     {L"ctrl", MOD_CONTROL},
+    {L"control", MOD_CONTROL},  // alias
+    {L"alt", MOD_ALT},         {L"win", MOD_WIN},
+};
 
-  for (auto& key : key_parts) {
-    std::ranges::transform(key, key.begin(), ::towlower);
+// Special virtual keys mapping
+constexpr std::pair<std::wstring_view, UINT> kSpecialKeys[] = {
+    // Arrow keys
+    {L"left", VK_LEFT},
+    {L"right", VK_RIGHT},
+    {L"up", VK_UP},
+    {L"down", VK_DOWN},
+    {L"←", VK_LEFT},
+    {L"→", VK_RIGHT},
+    {L"↑", VK_UP},
+    {L"↓", VK_DOWN},
+    // Control keys
+    {L"esc", VK_ESCAPE},
+    {L"escape", VK_ESCAPE},  // alias
+    {L"tab", VK_TAB},
+    {L"backspace", VK_BACK},
+    {L"enter", VK_RETURN},
+    {L"return", VK_RETURN},  // alias
+    {L"space", VK_SPACE},
+    // System keys
+    {L"prtsc", VK_SNAPSHOT},
+    {L"printscreen", VK_SNAPSHOT},  // alias
+    {L"scroll", VK_SCROLL},
+    {L"pause", VK_PAUSE},
+    // Navigation keys
+    {L"insert", VK_INSERT},
+    {L"delete", VK_DELETE},
+    {L"del", VK_DELETE},  // alias
+    {L"home", VK_HOME},
+    {L"end", VK_END},
+    {L"pageup", VK_PRIOR},
+    {L"pgup", VK_PRIOR},  // alias
+    {L"pagedown", VK_NEXT},
+    {L"pgdn", VK_NEXT},  // alias
+};
 
-    if (key_map.contains(key)) {
-      if (key == L"shift" || key == L"ctrl" || key == L"alt" || key == L"win") {
-        mo |= key_map.at(key);
-      } else {
-        vk = key_map.at(key);
-      }
-    } else {
-      TCHAR wch = key[0];
-      if (key.length() == 1)  // Parse single characters A-Z, 0-9, etc.
-      {
-        if (isalnum(wch)) {
-          vk = toupper(wch);
-        } else {
-          vk = LOWORD(VkKeyScan(wch));
-        }
-      } else if (wch == 'F' || wch == 'f')  // Parse the F1-F24 function keys.
-      {
-        if (isdigit(key[1])) {
-          int fx = _wtoi(&key[1]);
-          if (fx >= 1 && fx <= 24) {
-            vk = VK_F1 + fx - 1;
-          }
-        }
-      }
-    }
+constexpr bool EqualsIgnoreCase(std::wstring_view a, std::wstring_view b) {
+  if (a.size() != b.size())
+    return false;
+  for (size_t i = 0; i < a.size(); ++i) {
+    if (std::towlower(a[i]) != std::towlower(b[i]))  // case-insensitive
+      return false;
+  }
+  return true;
+}
+
+template <size_t N>
+constexpr std::optional<UINT> FindInKeyMap(
+    std::wstring_view key,
+    const std::pair<std::wstring_view, UINT> (&map)[N]) {
+  for (const auto& [name, code] : map) {
+    if (EqualsIgnoreCase(key, name))
+      return code;
+  }
+  return std::nullopt;
+}
+
+// Parse function key (F1-F24)
+std::optional<UINT> ParseFunctionKey(std::wstring_view key) {
+  if (key.size() < 2 || (key[0] != L'F' && key[0] != L'f'))
+    return std::nullopt;
+
+  auto num_part = key.substr(1);
+  if (num_part.empty() || !std::ranges::all_of(num_part, ::iswdigit))
+    return std::nullopt;
+
+  int fx = 0;
+  for (wchar_t c : num_part) {
+    fx = fx * 10 + (c - L'0');
   }
 
-  mo |= MOD_NOREPEAT;
+  if (fx >= 1 && fx <= 24)
+    return VK_F1 + fx - 1;
+  return std::nullopt;
+}
 
-  return MAKELPARAM(mo, vk);
+// Parse single character key (A-Z, 0-9, symbols)
+std::optional<UINT> ParseCharacterKey(std::wstring_view key) {
+  if (key.size() != 1)
+    return std::nullopt;
+
+  wchar_t ch = key[0];
+  if (std::iswalnum(ch))
+    return static_cast<UINT>(std::towupper(ch));
+
+  // For other characters, use `VkKeyScan`
+  SHORT scan = ::VkKeyScanW(ch);
+  if (scan != -1)
+    return LOBYTE(scan);
+
+  return std::nullopt;
+}
+
+}  // namespace
+
+UINT ParseHotkeys(std::wstring_view keys, bool no_repeat) {
+  UINT modifiers = 0;
+  UINT virtual_key = 0;
+
+  for (const auto& part : std::views::split(keys, L'+')) {
+    std::wstring_view key(part.begin(), part.end());
+    if (key.empty())
+      continue;
+    if (auto mod = FindInKeyMap(key, kModifierKeys)) {
+      modifiers |= *mod;
+      continue;
+    }
+    if (auto vk = FindInKeyMap(key, kSpecialKeys)) {
+      virtual_key = *vk;
+      continue;
+    }
+    if (auto vk = ParseFunctionKey(key)) {
+      virtual_key = *vk;
+      continue;
+    }
+    if (auto vk = ParseCharacterKey(key))
+      virtual_key = *vk;
+  }
+
+  if (no_repeat)
+    modifiers |= MOD_NOREPEAT;
+
+  return MAKELPARAM(modifiers, virtual_key);
 }

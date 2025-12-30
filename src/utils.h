@@ -194,8 +194,10 @@ void SendKey(T&&... keys) {
 }
 
 // Parse hotkey string like "Ctrl+Shift+A" into MAKELPARAM(modifiers, vk)
-// Supports modifiers: shift, ctrl, alt, win
+// Supports modifiers: shift, ctrl/control, alt, win
 // Supports keys: F1-F24, A-Z, 0-9, arrow keys, special keys (esc, tab, etc.)
-UINT ParseHotkeys(std::wstring_view keys);
+// Returns: LOWORD = modifiers, HIWORD = virtual key code
+// no_repeat: if true, adds MOD_NOREPEAT flag (default for `RegisterHotKey`)
+UINT ParseHotkeys(std::wstring_view keys, bool no_repeat = true);
 
 #endif  // CHROME_PLUS_SRC_UTILS_H_
