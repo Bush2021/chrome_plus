@@ -14,6 +14,7 @@ English | [简体中文](README_CN.md)
 * Disable the above two features when the current tab is a new tab.
 * Customize hotkeys to quickly hide the browser window (boss key).
 * Customize hotkeys to translate web page.
+* Key mapping: Remap keyboard shortcuts to other keys or Chrome commands.
 * Portable design (incompatible with the original data; you can reinstall the system or change computers without losing data).
 * Allow custom Chromium command line switches.
 * For more features, see [INI configuration file](src/chrome++.ini).

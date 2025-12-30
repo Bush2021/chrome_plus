@@ -5,17 +5,12 @@
 #include "config.h"
 #include "hotkey.h"
 #include "iaccessible.h"
+#include "inputhook.h"
 #include "utils.h"
 
 namespace {
 
-HHOOK mouse_hook = nullptr;
-static POINT lbutton_down_point = {-1, -1};
-
-#define KEY_PRESSED 0x8000
-bool IsPressed(int key) {
-  return key && (::GetKeyState(key) & KEY_PRESSED) != 0;
-}
+POINT lbutton_down_point = {-1, -1};
 
 // Compared with `IsOnlyOneTab`, this function additionally implements tick
 // fault tolerance to prevent users from directly closing the window when
@@ -90,7 +85,7 @@ bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
   }
 
   // If it is used to switch tabs when the right button is held.
-  if (config.IsWheelTabWhenPressRightButton() && IsPressed(VK_RBUTTON)) {
+  if (config.IsWheelTabWhenPressRightButton() && IsKeyPressed(VK_RBUTTON)) {
     return switch_tabs();
   }
 
@@ -127,7 +122,7 @@ bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
 
 // Right-click to close tab (Hold Shift to show the original menu).
 bool HandleRightClick(PMOUSEHOOKSTRUCT pmouse) {
-  if (IsPressed(VK_SHIFT) || !config.IsRightClickClose()) {
+  if (IsKeyPressed(VK_SHIFT) || !config.IsRightClickClose()) {
     return false;
   }
 
@@ -214,7 +209,7 @@ bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
 // Open bookmarks in a new tab.
 bool HandleBookmark(PMOUSEHOOKSTRUCT pmouse) {
   int mode = config.GetBookmarkNewTabMode();
-  if (IsPressed(VK_CONTROL) || IsPressed(VK_SHIFT) || mode == 0) {
+  if (IsKeyPressed(VK_CONTROL) || IsKeyPressed(VK_SHIFT) || mode == 0) {
     return false;
   }
 
@@ -251,80 +246,65 @@ bool HandleBookmark(PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
-LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  if (nCode != HC_ACTION) {
-    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-  }
-
-  if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
-    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-  }
+// Mouse handler for tab and bookmark operations
+bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
   PMOUSEHOOKSTRUCT pmouse = reinterpret_cast<PMOUSEHOOKSTRUCT>(lParam);
 
-  // Defining a `dwExtraInfo` value to prevent hook the message sent by
-  // Chrome++ itself.
-  if (pmouse->dwExtraInfo == GetMagicCode()) {
-    return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-  }
-
   static bool wheel_tab_ing_with_rbutton = false;
-  bool handled = false;
+
   switch (wParam) {
     case WM_LBUTTONDOWN:
       // Simply record the position of `LBUTTONDOWN` for drag detection
       lbutton_down_point = pmouse->pt;
-      break;
+      return false;
     case WM_LBUTTONUP:
       if (HandleDrag(pmouse)) {
-        break;
+        return false;
       } else if (HandleBookmark(pmouse)) {
-        handled = true;
+        return true;
       } else if (HandleCloseButton(pmouse)) {
-        handled = true;
+        return true;
       }
-      break;
+      return false;
     case WM_RBUTTONUP:
       if (wheel_tab_ing_with_rbutton) {
         // Swallow the first RBUTTONUP that follows a wheel-based tab switch to
         // suppress Chrome's context menu; the RBUTTONUP arrives after
         // WM_MOUSEWHEEL.
         wheel_tab_ing_with_rbutton = false;
-        handled = true;
+        return true;
       } else if (HandleRightClick(pmouse)) {
-        handled = true;
+        return true;
       }
-      break;
+      return false;
     case WM_MOUSEWHEEL:
       if (HandleMouseWheel(lParam, pmouse)) {
         // Mark it true only when a tab switch is performed via mouse wheel with
         // right button pressed. Otherwise, normal mouse wheel to switch tabs
         // will swallow irrelevant RBUTTONUP events, causing #198.
-        wheel_tab_ing_with_rbutton = IsPressed(VK_RBUTTON);
-        handled = true;
+        wheel_tab_ing_with_rbutton = IsKeyPressed(VK_RBUTTON);
+        return true;
       }
-      break;
+      return false;
     case WM_LBUTTONDBLCLK:
       if (HandleDoubleClick(pmouse)) {
-        // Do not return 1. Returning 1 could cause the keep_tab to fail
+        // Do not return true. Returning true could cause the keep_tab to fail
         // or trigger double-click operations consecutively when the user
         // double-clicks on the tab page rapidly and repeatedly.
       }
-      break;
+      return false;
     case WM_MBUTTONUP:
       if (HandleMiddleClick(pmouse)) {
-        handled = true;
+        return true;
       }
-      break;
+      return false;
   }
-  if (handled) {
-    return 1;  // Swallow the event
-  }
-  return CallNextHookEx(mouse_hook, nCode, wParam, lParam);  // Pass
+  return false;
 }
 
 int HandleKeepTab(WPARAM wParam) {
-  if (!(wParam == 'W' && IsPressed(VK_CONTROL) && !IsPressed(VK_SHIFT)) &&
-      !(wParam == VK_F4 && IsPressed(VK_CONTROL))) {
+  if (!(wParam == 'W' && IsKeyPressed(VK_CONTROL) && !IsKeyPressed(VK_SHIFT)) &&
+      !(wParam == VK_F4 && IsKeyPressed(VK_CONTROL))) {
     return 0;
   }
 
@@ -354,7 +334,7 @@ int HandleKeepTab(WPARAM wParam) {
 
 int HandleOpenUrlNewTab(WPARAM wParam) {
   int mode = config.GetOpenUrlNewTabMode();
-  if (!(mode != 0 && wParam == VK_RETURN && !IsPressed(VK_MENU))) {
+  if (!(mode != 0 && wParam == VK_RETURN && !IsKeyPressed(VK_MENU))) {
     return 0;
   }
 
@@ -378,16 +358,17 @@ int HandleTranslateKey(WPARAM wParam) {
 
   auto vk = HIWORD(hotkey);
   auto modifiers = LOWORD(hotkey);
-  if ((modifiers & MOD_SHIFT) && !IsPressed(VK_SHIFT)) {
+  if ((modifiers & MOD_SHIFT) && !IsKeyPressed(VK_SHIFT)) {
     return 0;
   }
-  if ((modifiers & MOD_CONTROL) && !IsPressed(VK_CONTROL)) {
+  if ((modifiers & MOD_CONTROL) && !IsKeyPressed(VK_CONTROL)) {
     return 0;
   }
-  if ((modifiers & MOD_ALT) && !IsPressed(VK_MENU)) {
+  if ((modifiers & MOD_ALT) && !IsKeyPressed(VK_MENU)) {
     return 0;
   }
-  if ((modifiers & MOD_WIN) && !IsPressed(VK_LWIN) && !IsPressed(VK_RWIN)) {
+  if ((modifiers & MOD_WIN) && !IsKeyPressed(VK_LWIN) &&
+      !IsKeyPressed(VK_RWIN)) {
     return 0;
   }
   if (wParam != vk) {
@@ -400,30 +381,31 @@ int HandleTranslateKey(WPARAM wParam) {
   return 1;
 }
 
-HHOOK keyboard_hook = nullptr;
-LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
-  if (nCode == HC_ACTION && !(lParam & 0x80000000))  // pressed
-  {
-    if (HandleKeepTab(wParam) != 0) {
-      return 1;
-    }
-
-    if (HandleOpenUrlNewTab(wParam) != 0) {
-      return 1;
-    }
-
-    if (HandleTranslateKey(wParam) != 0) {
-      return 1;
-    }
+// Keyboard handler for tab and bookmark operations
+bool TabBookmarkKeyboardHandler(WPARAM wParam, LPARAM lParam) {
+  // Only handle key down events
+  if (lParam & 0x80000000) {
+    return false;
   }
-  return CallNextHookEx(keyboard_hook, nCode, wParam, lParam);
+
+  if (HandleKeepTab(wParam) != 0) {
+    return true;
+  }
+
+  if (HandleOpenUrlNewTab(wParam) != 0) {
+    return true;
+  }
+
+  if (HandleTranslateKey(wParam) != 0) {
+    return true;
+  }
+
+  return false;
 }
 
 }  // namespace
 
 void TabBookmark() {
-  mouse_hook =
-      SetWindowsHookEx(WH_MOUSE, MouseProc, hInstance, GetCurrentThreadId());
-  keyboard_hook = SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, hInstance,
-                                   GetCurrentThreadId());
+  RegisterMouseHandler(TabBookmarkMouseHandler, HandlerPriority::kNormal);
+  RegisterKeyboardHandler(TabBookmarkKeyboardHandler, HandlerPriority::kNormal);
 }

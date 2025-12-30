@@ -3,6 +3,8 @@
 #include <windows.h>
 
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "utils.h"
 
@@ -47,6 +49,46 @@ void Config::LoadConfig() {
                                              GetIniPath().c_str()) != 0;
   disable_tab_name_ = GetIniString(L"tabs", L"new_tab_disable_name", L"");
   disable_tab_names_ = StringSplit(disable_tab_name_, L',', L"\"");
+
+  // keymapping
+  LoadKeyMappings();
+}
+
+void Config::LoadKeyMappings() {
+  std::vector<wchar_t> buffer(4096);
+  const DWORD chars_read = ::GetPrivateProfileSectionW(
+      L"keymapping", buffer.data(), static_cast<DWORD>(buffer.size()),
+      GetIniPath().c_str());
+
+  if (chars_read == 0) {
+    return;
+  }
+
+  const wchar_t* current = buffer.data();
+  while (*current != L'\0') {
+    const std::wstring_view line(current);
+    current += line.length() + 1;
+
+    const auto eq_pos = line.find(L'=');
+    if (eq_pos == std::wstring_view::npos || eq_pos == 0) {
+      continue;
+    }
+
+    std::wstring_view key = line.substr(0, eq_pos);
+    std::wstring_view value = line.substr(eq_pos + 1);
+
+    while (!key.empty() && (key.back() == L' ' || key.back() == L'\t')) {
+      key.remove_suffix(1);
+    }
+    while (!value.empty() &&
+           (value.front() == L' ' || value.front() == L'\t')) {
+      value.remove_prefix(1);
+    }
+
+    if (!key.empty() && !value.empty()) {
+      key_mappings_.emplace_back(std::wstring(key), std::wstring(value));
+    }
+  }
 }
 
 std::wstring Config::LoadDirPath(const std::wstring& dir_type) {

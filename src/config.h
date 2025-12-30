@@ -2,6 +2,7 @@
 #define CHROME_PLUS_SRC_CONFIG_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 class Config {
@@ -35,6 +36,10 @@ class Config {
     return disable_tab_names_;
   }
 
+  // keymapping
+  using KeyMappingPair = std::pair<std::wstring, std::wstring>;
+  const auto& GetKeyMappings() const { return key_mappings_; }
+
  private:
   Config();
   ~Config() = default;
@@ -42,6 +47,7 @@ class Config {
   Config& operator=(const Config&) = delete;
 
   void LoadConfig();
+  void LoadKeyMappings();
 
   std::wstring LoadDirPath(const std::wstring& dir_type);
   int LoadOpenUrlNewTabMode();
@@ -70,6 +76,9 @@ class Config {
   bool new_tab_disable_;
   std::wstring disable_tab_name_;
   std::vector<std::wstring> disable_tab_names_;
+
+  // keymapping
+  std::vector<KeyMappingPair> key_mappings_;
 };
 
 extern const Config& config;

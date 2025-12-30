@@ -10,6 +10,8 @@
 #include "green.h"
 #include "hijack.h"
 #include "hotkey.h"
+#include "inputhook.h"
+#include "keymapping.h"
 #include "pakpatch.h"
 #include "portable.h"
 #include "tabbookmark.h"
@@ -27,8 +29,14 @@ void ChromePlus() {
   // Portable hijack patch.
   MakeGreen();
 
+  // Initialize key mapping
+  InitKeyMapping();
+
   // Enhancement of the address bar, tab, and bookmark.
   TabBookmark();
+
+  // Install input hooks (must be called after all handlers are registered).
+  InstallInputHooks();
 
   // Patch the pak file.
   PakPatch();

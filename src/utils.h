@@ -193,4 +193,9 @@ void SendKey(T&&... keys) {
   SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
 }
 
+// Parse hotkey string like "Ctrl+Shift+A" into MAKELPARAM(modifiers, vk)
+// Supports modifiers: shift, ctrl, alt, win
+// Supports keys: F1-F24, A-Z, 0-9, arrow keys, special keys (esc, tab, etc.)
+UINT ParseHotkeys(std::wstring_view keys);
+
 #endif  // CHROME_PLUS_SRC_UTILS_H_
