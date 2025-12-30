@@ -58,20 +58,20 @@ NodePtr HandleFindBar(HWND hwnd, POINT pt) {
 }
 
 // Use the mouse wheel to switch tabs
-bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
+bool HandleMouseWheel(LPARAM lParam, const MOUSEHOOKSTRUCT* pmouse) {
   if (!config.IsWheelTab() && !config.IsWheelTabWhenPressRightButton()) {
     return false;
   }
 
   HWND hwnd = GetFocus();
-  NodePtr top_container_view = GetTopContainerView(hwnd);
+  const NodePtr top_container_view = GetTopContainerView(hwnd);
 
-  PMOUSEHOOKSTRUCTEX pwheel = reinterpret_cast<PMOUSEHOOKSTRUCTEX>(lParam);
-  int zDelta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
+  const auto* pwheel = reinterpret_cast<const MOUSEHOOKSTRUCTEX*>(lParam);
+  const int delta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
   auto switch_tabs = [&]() {
     hwnd = GetTopWnd(hwnd);
-    if (zDelta > 0) {
+    if (delta > 0) {
       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
     } else {
       ExecuteCommand(IDC_SELECT_NEXT_TAB, hwnd);
@@ -93,14 +93,14 @@ bool HandleMouseWheel(LPARAM lParam, PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // Double-click to close tab.
-bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
+bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
   if (!config.IsDoubleClickClose()) {
     return false;
   }
 
-  POINT pt = pmouse->pt;
+  const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  NodePtr top_container_view = HandleFindBar(hwnd, pt);
+  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
     return false;
   }
@@ -121,14 +121,14 @@ bool HandleDoubleClick(PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // Right-click to close tab (Hold Shift to show the original menu).
-bool HandleRightClick(PMOUSEHOOKSTRUCT pmouse) {
+bool HandleRightClick(const MOUSEHOOKSTRUCT* pmouse) {
   if (IsKeyPressed(VK_SHIFT) || !config.IsRightClickClose()) {
     return false;
   }
 
-  POINT pt = pmouse->pt;
+  const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  NodePtr top_container_view = HandleFindBar(hwnd, pt);
+  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
     return false;
   }
@@ -148,16 +148,16 @@ bool HandleRightClick(PMOUSEHOOKSTRUCT pmouse) {
 }
 
 // Preserve the last tab when the middle button is clicked on the tab.
-bool HandleMiddleClick(PMOUSEHOOKSTRUCT pmouse) {
-  POINT pt = pmouse->pt;
+bool HandleMiddleClick(const MOUSEHOOKSTRUCT* pmouse) {
+  const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  NodePtr top_container_view = HandleFindBar(hwnd, pt);
+  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
     return false;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
-  bool keep_tab = IsNeedKeep(top_container_view);
+  const bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
+  const bool keep_tab = IsNeedKeep(top_container_view);
 
   if (is_on_one_tab && keep_tab) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
@@ -168,14 +168,14 @@ bool HandleMiddleClick(PMOUSEHOOKSTRUCT pmouse) {
   return false;
 }
 
-bool HandleCloseButton(PMOUSEHOOKSTRUCT pmouse) {
+bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
   if (!config.IsKeepLastTab()) {
     return false;
   }
 
-  POINT pt = pmouse->pt;
+  const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  NodePtr top_container_view = HandleFindBar(hwnd, pt);
+  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
   if (!top_container_view) {
     return false;
   }
@@ -196,24 +196,24 @@ bool HandleCloseButton(PMOUSEHOOKSTRUCT pmouse) {
 // Check if mouse movement is a drag operation.
 // Since `MouseProc` hook doesn't handle any drag-related events,
 // this detection can return early to avoid interference.
-bool HandleDrag(PMOUSEHOOKSTRUCT pmouse) {
+bool HandleDrag(const MOUSEHOOKSTRUCT* pmouse) {
   // Add drag detection logic for
   // https://github.com/Bush2021/chrome_plus/issues/152
-  static int dragThresholdX = GetSystemMetrics(SM_CXDRAG);
-  static int dragThresholdY = GetSystemMetrics(SM_CYDRAG);
-  int dx = pmouse->pt.x - lbutton_down_point.x;
-  int dy = pmouse->pt.y - lbutton_down_point.y;
-  return (abs(dx) > dragThresholdX || abs(dy) > dragThresholdY);
+  static const int kDragThresholdX = GetSystemMetrics(SM_CXDRAG);
+  static const int kDragThresholdY = GetSystemMetrics(SM_CYDRAG);
+  const int dx = pmouse->pt.x - lbutton_down_point.x;
+  const int dy = pmouse->pt.y - lbutton_down_point.y;
+  return (abs(dx) > kDragThresholdX || abs(dy) > kDragThresholdY);
 }
 
 // Open bookmarks in a new tab.
-bool HandleBookmark(PMOUSEHOOKSTRUCT pmouse) {
-  int mode = config.GetBookmarkNewTabMode();
+bool HandleBookmark(const MOUSEHOOKSTRUCT* pmouse) {
+  const int mode = config.GetBookmarkNewTabMode();
   if (IsKeyPressed(VK_CONTROL) || IsKeyPressed(VK_SHIFT) || mode == 0) {
     return false;
   }
 
-  POINT pt = pmouse->pt;
+  const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
 
   if (!IsOnBookmark(hwnd, pt)) {
