@@ -3,7 +3,6 @@
 #include <windows.h>
 
 #include "config.h"
-#include "hotkey.h"
 #include "iaccessible.h"
 #include "inputhook.h"
 #include "utils.h"
@@ -350,37 +349,6 @@ int HandleOpenUrlNewTab(WPARAM wParam) {
   return 0;
 }
 
-int HandleTranslateKey(WPARAM wParam) {
-  auto hotkey = ParseTranslateKey();
-  if (hotkey == 0) {
-    return 0;
-  }
-
-  auto vk = HIWORD(hotkey);
-  auto modifiers = LOWORD(hotkey);
-  if ((modifiers & MOD_SHIFT) && !IsKeyPressed(VK_SHIFT)) {
-    return 0;
-  }
-  if ((modifiers & MOD_CONTROL) && !IsKeyPressed(VK_CONTROL)) {
-    return 0;
-  }
-  if ((modifiers & MOD_ALT) && !IsKeyPressed(VK_MENU)) {
-    return 0;
-  }
-  if ((modifiers & MOD_WIN) && !IsKeyPressed(VK_LWIN) &&
-      !IsKeyPressed(VK_RWIN)) {
-    return 0;
-  }
-  if (wParam != vk) {
-    return 0;
-  }
-
-  ExecuteCommand(IDC_SHOW_TRANSLATE);
-  keybd_event(VK_RIGHT, 0, 0, 0);
-  keybd_event(VK_RIGHT, 0, KEYEVENTF_KEYUP, 0);
-  return 1;
-}
-
 // Keyboard handler for tab and bookmark operations
 bool TabBookmarkKeyboardHandler(WPARAM wParam, LPARAM lParam) {
   // Only handle key down events
@@ -393,10 +361,6 @@ bool TabBookmarkKeyboardHandler(WPARAM wParam, LPARAM lParam) {
   }
 
   if (HandleOpenUrlNewTab(wParam) != 0) {
-    return true;
-  }
-
-  if (HandleTranslateKey(wParam) != 0) {
     return true;
   }
 

@@ -20,7 +20,13 @@ struct KeyMapping {
   int target_command;
 };
 
+struct TranslateKey {
+  UINT vk = 0;
+  UINT modifiers = 0;
+};
+
 std::vector<KeyMapping> key_mappings;
+TranslateKey translate_key;
 
 bool CheckModifiers(UINT modifiers) {
   const bool shift_ok = !(modifiers & MOD_SHIFT) || IsKeyPressed(VK_SHIFT);
@@ -157,6 +163,25 @@ bool KeyMappingHandler(WPARAM wParam, LPARAM lParam) {
   return false;
 }
 
+bool TranslateKeyHandler(WPARAM wParam, LPARAM lParam) {
+  if (lParam & 0x80000000) {
+    return false;
+  }
+
+  if (translate_key.vk == 0) {
+    return false;
+  }
+
+  if (wParam != translate_key.vk || !CheckModifiers(translate_key.modifiers)) {
+    return false;
+  }
+
+  ExecuteCommand(IDC_SHOW_TRANSLATE);
+  keybd_event(VK_RIGHT, 0, 0, 0);
+  keybd_event(VK_RIGHT, 0, KEYEVENTF_KEYUP, 0);
+  return true;
+}
+
 int ParseCommand(std::wstring_view str) {
   int result = 0;
   for (const wchar_t c : str) {
@@ -167,8 +192,6 @@ int ParseCommand(std::wstring_view str) {
   }
   return result;
 }
-
-}  // namespace
 
 void InitKeyMapping() {
   const auto& mappings = config.GetKeyMappings();
@@ -213,4 +236,30 @@ void InitKeyMapping() {
     RegisterKeyboardHandler(KeyMappingHandler, HandlerPriority::kHigh);
     DebugLog(L"KeyMapping: Registered {} mappings", key_mappings.size());
   }
+}
+
+void InitTranslateKey() {
+  const auto& translate_key_str = config.GetTranslateKey();
+  if (translate_key_str.empty()) {
+    return;
+  }
+
+  UINT parsed = ParseHotkeys(translate_key_str, /*no_repeat=*/false);
+  translate_key.modifiers = LOWORD(parsed);
+  translate_key.vk = HIWORD(parsed);
+
+  if (translate_key.vk == 0) {
+    DebugLog(L"TranslateKey: Invalid key '{}'", translate_key_str);
+    return;
+  }
+
+  RegisterKeyboardHandler(TranslateKeyHandler, HandlerPriority::kHigh);
+  DebugLog(L"TranslateKey: Registered '{}'", translate_key_str);
+}
+
+}  // namespace
+
+void KeyMapping() {
+  InitKeyMapping();
+  InitTranslateKey();
 }

@@ -29,8 +29,8 @@ void ChromePlus() {
   // Portable hijack patch.
   MakeGreen();
 
-  // Initialize key mapping
-  InitKeyMapping();
+  // Initialize key mapping and translate key
+  KeyMapping();
 
   // Enhancement of the address bar, tab, and bookmark.
   TabBookmark();
