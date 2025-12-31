@@ -9,6 +9,7 @@ using NodePtr = Microsoft::WRL::ComPtr<IAccessible>;
 NodePtr GetChromeWidgetWin(HWND hwnd);
 NodePtr GetTopContainerView(HWND hwnd);
 int GetTabCount(const NodePtr& top);
+NodePtr GetTabUnderMouse(const NodePtr& top, POINT pt);
 bool IsOnOneTab(const NodePtr& top, POINT pt);
 bool IsOnlyOneTab(const NodePtr& top);
 bool IsOnTheTabBar(const NodePtr& top, POINT pt);

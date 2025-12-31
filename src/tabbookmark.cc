@@ -104,9 +104,13 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
 
-  bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
-  bool is_on_close_button = IsOnCloseButton(top_container_view, pt);
-  if (!is_on_one_tab || is_on_close_button) {
+  const NodePtr tab_under_mouse = GetTabUnderMouse(top_container_view, pt);
+  if (!tab_under_mouse) {
+    return false;
+  }
+
+  // Avoid triggering on close button clicks.
+  if (IsOnCloseButton(tab_under_mouse, pt)) {
     return false;
   }
 
@@ -179,8 +183,11 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
 
-  if (!IsOnOneTab(top_container_view, pt) ||
-      !IsOnCloseButton(top_container_view, pt)) {
+  // Get the tab under mouse and check if close button is clicked within it.
+  // This prevents false positives from other PUSHBUTTON elements like
+  // "New Tab" button.
+  const NodePtr tab_under_mouse = GetTabUnderMouse(top_container_view, pt);
+  if (!tab_under_mouse || !IsOnCloseButton(tab_under_mouse, pt)) {
     return false;
   }
 

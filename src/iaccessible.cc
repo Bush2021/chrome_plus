@@ -445,26 +445,32 @@ int GetTabCount(const NodePtr& top) {
       }));
 }
 
-// Whether the mouse is on a tab
-bool IsOnOneTab(const NodePtr& top, POINT pt) {
+// Get the tab node that the mouse is currently on
+NodePtr GetTabUnderMouse(const NodePtr& top, POINT pt) {
   NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
-    return false;
+    return nullptr;
   }
 
-  bool flag = false;
-  TraversalAccessible(page_tab_pane, [&flag, &pt](const NodePtr& child) {
-    if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
-      return false;
-    }
-    GetAccessibleSize(child, [&flag, &pt](RECT rect) {
-      if (PtInRect(&rect, pt)) {
-        flag = true;
-      }
-    });
-    return flag;
-  });
-  return flag;
+  NodePtr tab_under_mouse = nullptr;
+  TraversalAccessible(
+      page_tab_pane, [&tab_under_mouse, &pt](const NodePtr& child) {
+        if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
+          return false;
+        }
+        GetAccessibleSize(child, [&tab_under_mouse, &pt, &child](RECT rect) {
+          if (PtInRect(&rect, pt)) {
+            tab_under_mouse = child;
+          }
+        });
+        return tab_under_mouse != nullptr;
+      });
+  return tab_under_mouse;
+}
+
+// Whether the mouse is on a tab
+bool IsOnOneTab(const NodePtr& top, POINT pt) {
+  return GetTabUnderMouse(top, pt) != nullptr;
 }
 
 bool IsOnlyOneTab(const NodePtr& top) {
@@ -587,16 +593,16 @@ bool IsOmniboxFocus(const NodePtr& top) {
 }
 
 // Whether the mouse is on the close button of a tab.
-// Should be used together with `IsOnOneTab` to search the close button.
-bool IsOnCloseButton(const NodePtr& top, POINT pt) {
-  if (!top) {
+// Pass the specific tab node to search the close button within that tab only.
+bool IsOnCloseButton(const NodePtr& node, POINT pt) {
+  if (!node) {
     return false;
   }
 
   bool found = false;
-  auto find_hit_button = [&](this auto&& self, const NodePtr& node) -> bool {
-    if (GetAccessibleRole(node) == ROLE_SYSTEM_PUSHBUTTON) {
-      GetAccessibleSize(node, [&](RECT rect) {
+  auto find_hit_button = [&](this auto&& self, const NodePtr& child) -> bool {
+    if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
+      GetAccessibleSize(child, [&](RECT rect) {
         if (PtInRect(&rect, pt)) {
           found = true;
         }
@@ -605,10 +611,10 @@ bool IsOnCloseButton(const NodePtr& top, POINT pt) {
         return true;
       }
     }
-    TraversalAccessible(node, self);
+    TraversalAccessible(child, self);
     return found;
   };
-  TraversalAccessible(top, find_hit_button, false);
+  TraversalAccessible(node, find_hit_button, false);
   return found;
 }
 
