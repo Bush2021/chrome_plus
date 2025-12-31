@@ -6,10 +6,13 @@
 #include <endpointvolume.h>
 #include <mmdeviceapi.h>
 #include <tlhelp32.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <cwctype>
 #include <iterator>
+#include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -21,12 +24,36 @@
 
 namespace {
 
+using Microsoft::WRL::ComPtr;
 using HotkeyAction = void (*)();
+
+class ComInitializer {
+ public:
+  ComInitializer() {
+    hr_ = CoInitialize(nullptr);
+    initialized_ = SUCCEEDED(hr_) || hr_ == RPC_E_CHANGED_MODE;
+    should_uninit_ = (hr_ == S_OK || hr_ == S_FALSE);
+  }
+  ~ComInitializer() {
+    if (should_uninit_) {
+      CoUninitialize();
+    }
+  }
+  ComInitializer(const ComInitializer&) = delete;
+  ComInitializer& operator=(const ComInitializer&) = delete;
+
+  [[nodiscard]] bool IsInitialized() const { return initialized_; }
+
+ private:
+  HRESULT hr_ = E_FAIL;
+  bool initialized_ = false;
+  bool should_uninit_ = false;
+};
 
 // Static variables for internal use
 bool is_hide = false;
 std::vector<HWND> hwnd_list;
-std::unordered_map<DWORD, bool> original_mute_states;
+std::unordered_map<std::wstring, bool> original_mute_states;
 
 #define MOD_NOREPEAT 0x4000
 
@@ -80,68 +107,116 @@ std::vector<DWORD> GetAppPids() {
   return pids;
 }
 
+std::optional<std::wstring> GetSessionKey(IAudioSessionControl2* session2) {
+  if (!session2) {
+    return std::nullopt;
+  }
+  LPWSTR session_id = nullptr;
+  if (SUCCEEDED(session2->GetSessionInstanceIdentifier(&session_id)) &&
+      session_id) {
+    std::wstring key(session_id);
+    CoTaskMemFree(session_id);
+    return key;
+  }
+  return std::nullopt;
+}
+
+void ProcessAudioSession(IAudioSessionControl* session,
+                         const std::vector<DWORD>& pids,
+                         bool set_mute,
+                         bool save_mute_state) {
+  ComPtr<IAudioSessionControl2> session2;
+  if (FAILED(session->QueryInterface(IID_PPV_ARGS(&session2)))) {
+    return;
+  }
+
+  DWORD session_pid = 0;
+  if (FAILED(session2->GetProcessId(&session_pid))) {
+    return;
+  }
+
+  auto it = std::find(pids.begin(), pids.end(), session_pid);
+  if (it == pids.end()) {
+    return;
+  }
+
+  ComPtr<ISimpleAudioVolume> volume;
+  if (FAILED(session2->QueryInterface(IID_PPV_ARGS(&volume)))) {
+    return;
+  }
+
+  auto session_key = GetSessionKey(session2.Get());
+
+  if (save_mute_state && session_key) {
+    BOOL is_muted = FALSE;
+    if (SUCCEEDED(volume->GetMute(&is_muted))) {
+      original_mute_states[*session_key] = (is_muted == TRUE);
+    }
+  }
+
+  if (set_mute) {
+    volume->SetMute(TRUE, nullptr);
+  } else {
+    // Unmute logic:
+    // - If we have recorded state for this session, respect it
+    // - If session is new (not in our records), unmute it
+    //   (it was likely created after hide, so it should be unmuted)
+    bool should_unmute = true;
+    if (session_key) {
+      auto state_it = original_mute_states.find(*session_key);
+      if (state_it != original_mute_states.end()) {
+        should_unmute = !state_it->second;  // unmute only if was not muted
+      }
+    }
+    if (should_unmute) {
+      volume->SetMute(FALSE, nullptr);
+    }
+  }
+}
+
 void MuteProcess(const std::vector<DWORD>& pids,
                  bool set_mute,
                  bool save_mute_state = false) {
-  CoInitialize(nullptr);
-  IMMDeviceEnumerator* enumerator = nullptr;
-  IMMDevice* device = nullptr;
-  IAudioSessionManager2* manager = nullptr;
-  IAudioSessionEnumerator* session_enumerator = nullptr;
-
-  CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
-                   IID_PPV_ARGS(&enumerator));
-  enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device);
-  device->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL, nullptr,
-                   (void**)&manager);
-  manager->GetSessionEnumerator(&session_enumerator);
-
-  int session_count = 0;
-  session_enumerator->GetCount(&session_count);
-  for (int i = 0; i < session_count; ++i) {
-    IAudioSessionControl* session = nullptr;
-    session_enumerator->GetSession(i, &session);
-    IAudioSessionControl2* session2 = nullptr;
-    if (SUCCEEDED(session->QueryInterface(__uuidof(IAudioSessionControl2),
-                                          (void**)&session2))) {
-      DWORD session_pid = 0;
-      session2->GetProcessId(&session_pid);
-
-      for (DWORD pid : pids) {
-        if (session_pid == pid) {
-          ISimpleAudioVolume* volume = nullptr;
-          if (SUCCEEDED(session2->QueryInterface(__uuidof(ISimpleAudioVolume),
-                                                 (void**)&volume))) {
-            if (save_mute_state) {
-              BOOL is_muted;
-              volume->GetMute(&is_muted);
-              original_mute_states[pid] = (is_muted == TRUE);
-            }
-
-            if (set_mute) {
-              volume->SetMute(TRUE, nullptr);
-            } else {
-              // Only unmute if the original state was not muted beforehand
-              auto it = original_mute_states.find(pid);
-              if (it != original_mute_states.end() && !it->second) {
-                volume->SetMute(FALSE, nullptr);
-              }
-            }
-            volume->Release();
-          }
-          break;
-        }
-      }
-      session2->Release();
-    }
-    session->Release();
+  ComInitializer com;
+  if (!com.IsInitialized()) {
+    return;
   }
 
-  session_enumerator->Release();
-  manager->Release();
-  device->Release();
-  enumerator->Release();
-  CoUninitialize();
+  ComPtr<IMMDeviceEnumerator> enumerator;
+  if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                              IID_PPV_ARGS(&enumerator)))) {
+    return;
+  }
+
+  ComPtr<IMMDevice> device;
+  if (FAILED(
+          enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, &device))) {
+    return;
+  }
+
+  ComPtr<IAudioSessionManager2> manager;
+  if (FAILED(
+          device->Activate(__uuidof(IAudioSessionManager2), CLSCTX_ALL, nullptr,
+                           reinterpret_cast<void**>(manager.GetAddressOf())))) {
+    return;
+  }
+
+  ComPtr<IAudioSessionEnumerator> session_enumerator;
+  if (FAILED(manager->GetSessionEnumerator(&session_enumerator))) {
+    return;
+  }
+
+  int session_count = 0;
+  if (FAILED(session_enumerator->GetCount(&session_count))) {
+    return;
+  }
+
+  for (int i = 0; i < session_count; ++i) {
+    ComPtr<IAudioSessionControl> session;
+    if (SUCCEEDED(session_enumerator->GetSession(i, &session)) && session) {
+      ProcessAudioSession(session.Get(), pids, set_mute, save_mute_state);
+    }
+  }
 }
 
 void HideAndShow() {
@@ -162,6 +237,7 @@ void HideAndShow() {
     }
     hwnd_list.clear();
     MuteProcess(chrome_pids, false);
+    original_mute_states.clear();
   }
   is_hide = !is_hide;
 }
