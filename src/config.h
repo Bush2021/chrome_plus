@@ -1,6 +1,7 @@
 #ifndef CHROME_PLUS_SRC_CONFIG_H_
 #define CHROME_PLUS_SRC_CONFIG_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -13,8 +14,12 @@ class Config {
   const std::wstring& GetCommandLine() const { return command_line_; }
   const std::wstring& GetLaunchOnStartup() const { return launch_on_startup_; }
   const std::wstring& GetLaunchOnExit() const { return launch_on_exit_; }
-  const std::wstring& GetUserDataDir() const { return user_data_dir_; }
-  const std::wstring& GetDiskCacheDir() const { return disk_cache_dir_; }
+  const std::optional<std::wstring>& GetUserDataDir() const {
+    return user_data_dir_;
+  }
+  const std::optional<std::wstring>& GetDiskCacheDir() const {
+    return disk_cache_dir_;
+  }
   const std::wstring& GetBossKey() const { return boss_key_; }
   const std::wstring& GetTranslateKey() const { return translate_key_; }
   bool IsShowPassword() const { return show_password_; }
@@ -49,7 +54,7 @@ class Config {
   void LoadConfig();
   void LoadKeyMappings();
 
-  std::wstring LoadDirPath(const std::wstring& dir_type);
+  std::optional<std::wstring> LoadDirPath(const std::wstring& dir_type);
   int LoadOpenUrlNewTabMode();
   int LoadBookmarkNewTabMode();
 
@@ -58,8 +63,8 @@ class Config {
   std::wstring command_line_;
   std::wstring launch_on_startup_;
   std::wstring launch_on_exit_;
-  std::wstring user_data_dir_;
-  std::wstring disk_cache_dir_;
+  std::optional<std::wstring> user_data_dir_;
+  std::optional<std::wstring> disk_cache_dir_;
   std::wstring boss_key_;
   std::wstring translate_key_;
   bool show_password_;

@@ -208,13 +208,13 @@ void InjectConfigPaths(std::vector<std::wstring>& args,
                        bool has_user_data_dir,
                        bool has_disk_cache_dir) {
   if (!has_user_data_dir) {
-    if (auto userdata = config.GetUserDataDir(); !userdata.empty()) {
-      args.emplace_back(L"--user-data-dir=" + userdata);
+    if (auto userdata = config.GetUserDataDir(); userdata.has_value()) {
+      args.emplace_back(L"--user-data-dir=" + *userdata);
     }
   }
   if (!has_disk_cache_dir) {
-    if (auto diskcache = config.GetDiskCacheDir(); !diskcache.empty()) {
-      args.emplace_back(L"--disk-cache-dir=" + diskcache);
+    if (auto diskcache = config.GetDiskCacheDir(); diskcache.has_value()) {
+      args.emplace_back(L"--disk-cache-dir=" + *diskcache);
     }
   }
 }

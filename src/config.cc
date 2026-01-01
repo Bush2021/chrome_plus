@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -91,13 +92,13 @@ void Config::LoadKeyMappings() {
   }
 }
 
-std::wstring Config::LoadDirPath(const std::wstring& dir_type) {
+std::optional<std::wstring> Config::LoadDirPath(const std::wstring& dir_type) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dir_type);
   std::wstring dir_key = dir_type + L"_dir";
   std::wstring dir_buffer = GetIniString(L"general", dir_key, path);
 
   if (dir_buffer == L"none") {
-    return L"";
+    return std::nullopt;
   }
 
   if (dir_buffer.empty()) {
