@@ -10,7 +10,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-
+    permissions:
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
