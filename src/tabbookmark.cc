@@ -307,19 +307,19 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
   return false;
 }
 
-int HandleKeepTab(WPARAM wParam) {
+bool HandleKeepTab(WPARAM wParam) {
   if (!config.IsKeepLastTab()) {
-    return 0;
+    return false;
   }
 
   if (!(wParam == 'W' && IsKeyPressed(VK_CONTROL) && !IsKeyPressed(VK_SHIFT)) &&
       !(wParam == VK_F4 && IsKeyPressed(VK_CONTROL))) {
-    return 0;
+    return false;
   }
 
   HWND hwnd = GetFocus();
   if (GetChromeWidgetWin(hwnd) == nullptr) {
-    return 0;
+    return false;
   }
 
   if (IsFullScreen(hwnd)) {
@@ -335,18 +335,18 @@ int HandleKeepTab(WPARAM wParam) {
   // Use `GetTabCount` directly since we only need tab count here (no mouse pos)
   int tab_count = GetTabCount(top_container_view);
   if (!IsNeedKeep(tab_count)) {
-    return 0;
+    return false;
   }
 
   ExecuteCommand(IDC_NEW_TAB, hwnd);
   ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
-  return 1;
+  return true;
 }
 
-int HandleOpenUrlNewTab(WPARAM wParam) {
+bool HandleOpenUrlNewTab(WPARAM wParam) {
   int mode = config.GetOpenUrlNewTabMode();
   if (!(mode != 0 && wParam == VK_RETURN && !IsKeyPressed(VK_MENU))) {
-    return 0;
+    return false;
   }
 
   NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
@@ -356,9 +356,9 @@ int HandleOpenUrlNewTab(WPARAM wParam) {
     } else if (mode == 2) {
       SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
     }
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
 // Keyboard handler for tab and bookmark operations
@@ -368,11 +368,11 @@ bool TabBookmarkKeyboardHandler(WPARAM wParam, LPARAM lParam) {
     return false;
   }
 
-  if (HandleKeepTab(wParam) != 0) {
+  if (HandleKeepTab(wParam)) {
     return true;
   }
 
-  if (HandleOpenUrlNewTab(wParam) != 0) {
+  if (HandleOpenUrlNewTab(wParam)) {
     return true;
   }
 
