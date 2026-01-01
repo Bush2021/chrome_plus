@@ -11,25 +11,22 @@ namespace {
 
 POINT lbutton_down_point = {-1, -1};
 
-// Compared with `IsOnlyOneTab`, this function additionally implements tick
-// fault tolerance to prevent users from directly closing the window when
-// they click too fast.
-bool IsNeedKeep(const NodePtr& top_container_view) {
-  if (!config.IsKeepLastTab()) {
+// This implements tick fault tolerance to prevent users from directly closing
+// the window when they click too fast. Also uses pre-computed `tab_count` to
+// avoid redundant `FindPageTabPane` traversal.
+bool IsNeedKeep(int tab_count) {
+  // `tab_count` will be 0 if `config.IsKeepLastTab()` is false.
+  if (tab_count == 0) {
     return false;
   }
 
-  auto tab_count = GetTabCount(top_container_view);
   bool keep_tab = (tab_count == 1);
-
   static auto last_closing_tab_tick = GetTickCount64();
   auto tick = GetTickCount64() - last_closing_tab_tick;
   last_closing_tab_tick = GetTickCount64();
-
   if (tick > 50 && tick <= 250 && tab_count == 2) {
     keep_tab = true;
   }
-
   return keep_tab;
 }
 
@@ -104,17 +101,16 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
 
-  const NodePtr tab_under_mouse = GetTabUnderMouse(top_container_view, pt);
-  if (!tab_under_mouse) {
+  const auto [tab, tab_count] =
+      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
+  if (!tab) {
     return false;
   }
-
   // Avoid triggering on close button clicks.
-  if (IsOnCloseButton(tab_under_mouse, pt)) {
+  if (IsOnCloseButton(tab, pt)) {
     return false;
   }
-
-  if (IsOnlyOneTab(top_container_view)) {
+  if (IsNeedKeep(tab_count)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
@@ -136,18 +132,20 @@ bool HandleRightClick(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
 
-  if (IsOnOneTab(top_container_view, pt)) {
-    if (IsNeedKeep(top_container_view)) {
-      ExecuteCommand(IDC_NEW_TAB, hwnd);
-      ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
-    } else {
-      // Attempt new SendKey function which includes a `dwExtraInfo`
-      // value (GetMagicCode()).
-      SendKey(VK_MBUTTON);
-    }
-    return true;
+  const auto [tab, tab_count] =
+      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
+  if (!tab) {
+    return false;
   }
-  return false;
+  if (IsNeedKeep(tab_count)) {
+    ExecuteCommand(IDC_NEW_TAB, hwnd);
+    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  } else {
+    // Attempt new SendKey function which includes a `dwExtraInfo`
+    // value (GetMagicCode()).
+    SendKey(VK_MBUTTON);
+  }
+  return true;
 }
 
 // Preserve the last tab when the middle button is clicked on the tab.
@@ -159,15 +157,13 @@ bool HandleMiddleClick(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
 
-  const bool is_on_one_tab = IsOnOneTab(top_container_view, pt);
-  const bool keep_tab = IsNeedKeep(top_container_view);
-
-  if (is_on_one_tab && keep_tab) {
+  const auto [tab, tab_count] =
+      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
+  if (tab && IsNeedKeep(tab_count)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     return true;
   }
-
   return false;
 }
 
@@ -183,15 +179,15 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
 
+  const auto [tab, tab_count] =
+      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
   // Get the tab under mouse and check if close button is clicked within it.
   // This prevents false positives from other PUSHBUTTON elements like
-  // "New Tab" button.
-  const NodePtr tab_under_mouse = GetTabUnderMouse(top_container_view, pt);
-  if (!tab_under_mouse || !IsOnCloseButton(tab_under_mouse, pt)) {
+  // New Tab Button.
+  if (!tab || !IsOnCloseButton(tab, pt)) {
     return false;
   }
-
-  if (!IsNeedKeep(top_container_view)) {
+  if (!IsNeedKeep(tab_count)) {
     return false;
   }
   ExecuteCommand(IDC_NEW_TAB, hwnd);
@@ -221,12 +217,11 @@ bool HandleBookmark(const MOUSEHOOKSTRUCT* pmouse) {
 
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-
-  if (!IsOnBookmark(hwnd, pt)) {
+  const auto [on_bookmark, on_expanded_list] = CheckBookmarkState(hwnd, pt);
+  if (!on_bookmark) {
     return false;
   }
-
-  if (IsOnExpandedList(hwnd, pt)) {
+  if (on_expanded_list) {
     // This is only used to determine the expanded dropdown menu of the address
     // bar. When the mouse clicks on it, it may penetrate through to the
     // background, causing a misjudgment that it is on the bookmark. Related
@@ -329,7 +324,9 @@ int HandleKeepTab(WPARAM wParam) {
   ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, tmp_hwnd);
 
   NodePtr top_container_view = GetTopContainerView(hwnd);
-  if (!IsNeedKeep(top_container_view)) {
+  // Use `GetTabCount` directly since we only need tab count here (no mouse pos)
+  int tab_count = GetTabCount(top_container_view);
+  if (!IsNeedKeep(tab_count)) {
     return 0;
   }
 

@@ -445,40 +445,41 @@ int GetTabCount(const NodePtr& top) {
       }));
 }
 
-// Get the tab node that the mouse is currently on
-NodePtr GetTabUnderMouse(const NodePtr& top, POINT pt) {
+// Get tab info (`tab` and `tab_count`) in a single traversal, avoiding calling
+// `FindPageTabPane` twice when both values are needed.
+TabInfo GetTabInfo(const NodePtr& top, POINT pt, bool need_count) {
+  TabInfo info;
   NodePtr page_tab_pane = FindPageTabPane(top);
   if (!page_tab_pane) {
-    return nullptr;
+    return info;
   }
 
-  NodePtr tab_under_mouse = nullptr;
-  TraversalAccessible(
-      page_tab_pane, [&tab_under_mouse, &pt](const NodePtr& child) {
-        if (GetAccessibleRole(child) != ROLE_SYSTEM_PAGETAB) {
-          return false;
-        }
-        GetAccessibleSize(child, [&tab_under_mouse, &pt, &child](RECT rect) {
+  TraversalAccessible(page_tab_pane, [&info, &pt,
+                                      need_count](const NodePtr& child) {
+    auto role = GetAccessibleRole(child);
+    if (role == ROLE_SYSTEM_PAGETAB) {
+      if (need_count) {
+        ++info.tab_count;
+      }
+      // Only check mouse position if we haven't found the tab yet
+      if (!info.tab) {
+        GetAccessibleSize(child, [&info, &pt, &child](RECT rect) {
           if (PtInRect(&rect, pt)) {
-            tab_under_mouse = child;
+            info.tab = child;
           }
         });
-        return tab_under_mouse != nullptr;
-      });
-  return tab_under_mouse;
-}
-
-// Whether the mouse is on a tab
-bool IsOnOneTab(const NodePtr& top, POINT pt) {
-  return GetTabUnderMouse(top, pt) != nullptr;
-}
-
-bool IsOnlyOneTab(const NodePtr& top) {
-  if (!config.IsKeepLastTab()) {
-    return false;
-  }
-  auto tab_count = GetTabCount(top);
-  return tab_count <= 1;
+      }
+      if (!need_count && info.tab) {
+        return true;  // Stop traversal if we don't need count and tab is found
+      }
+    } else if (role == ROLE_SYSTEM_PAGETABLIST &&
+               (GetAccessibleState(child) & STATE_SYSTEM_COLLAPSED)) {
+      // Collapsed tab group counts as one tab
+      ++info.tab_count;
+    }
+    return false;  // Continue traversal to count all tabs
+  });
+  return info;
 }
 
 // Whether the mouse is on the tab bar
@@ -503,13 +504,27 @@ bool IsOnNewTab(const NodePtr& top) {
   return IsNameNewTab(top) || IsDocNewTab();
 }
 
-// Whether the mouse is on a bookmark.
-bool IsOnBookmark(HWND hwnd, POINT pt) {
-  bool flag = false;
-  auto find_bookmark = [&pt, &flag](this auto&& self,
-                                    const NodePtr& child) -> bool {
+// Check bookmark and expanded list state in a single traversal, avoiding
+// traversing `ChromeWidgetWin` tree twice when both checks are needed.
+BookmarkState CheckBookmarkState(HWND hwnd, POINT pt) {
+  BookmarkState state;
+  auto check_state = [&pt, &state](this auto&& self,
+                                   const NodePtr& child) -> bool {
     auto role = GetAccessibleRole(child);
-    if (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM) {
+
+    // Check for expanded list (address bar dropdown)
+    if (!state.on_expanded_list && role == ROLE_SYSTEM_LIST &&
+        (GetAccessibleState(child) & STATE_SYSTEM_EXPANDED)) {
+      GetAccessibleSize(child, [&state, &pt](RECT rect) {
+        if (PtInRect(&rect, pt)) {
+          state.on_expanded_list = true;
+        }
+      });
+    }
+
+    // Check for bookmark
+    if (!state.on_bookmark &&
+        (role == ROLE_SYSTEM_PUSHBUTTON || role == ROLE_SYSTEM_MENUITEM)) {
       bool is_in_rect = false;
       GetAccessibleSize(child, [&is_in_rect, &pt](RECT rect) {
         if (PtInRect(&rect, pt)) {
@@ -517,46 +532,26 @@ bool IsOnBookmark(HWND hwnd, POINT pt) {
         }
       });
       if (is_in_rect) {
-        GetAccessibleDescription(child, [&flag](BSTR bstr) {
+        GetAccessibleDescription(child, [&state](BSTR bstr) {
           std::wstring_view bstr_view(bstr);
-          flag = (bstr_view.find_first_of(L".:") != std::wstring_view::npos) &&
-                 (bstr_view.substr(0, 11) != L"javascript:");
+          state.on_bookmark =
+              (bstr_view.find_first_of(L".:") != std::wstring_view::npos) &&
+              (bstr_view.substr(0, 11) != L"javascript:");
         });
-        if (flag) {
-          return true;  // Stop traversing if found.
-        }
       }
     }
-    // traverse the child nodes.
-    TraversalAccessible(child, self);
-    return flag;
-  };
-  // Start traversing.
-  TraversalAccessible(GetChromeWidgetWin(hwnd), find_bookmark);
-  return flag;
-}
 
-// Expanded drop-down list in the address bar
-bool IsOnExpandedList(HWND hwnd, POINT pt) {
-  bool flag = false;
-  auto find_drop_down_list = [&pt, &flag](this auto&& self,
-                                          const NodePtr& child) -> bool {
-    if (GetAccessibleRole(child) == ROLE_SYSTEM_LIST &&
-        (GetAccessibleState(child) & STATE_SYSTEM_EXPANDED)) {
-      GetAccessibleSize(child, [&flag, &pt](RECT rect) {
-        if (PtInRect(&rect, pt)) {
-          flag = true;
-        }
-      });
-      if (flag) {
-        return true;
-      }
+    // Stop early if both states are found
+    if (state.on_bookmark && state.on_expanded_list) {
+      return true;
     }
+
+    // Continue traversing child nodes
     TraversalAccessible(child, self);
-    return flag;
+    return state.on_bookmark && state.on_expanded_list;
   };
-  TraversalAccessible(GetChromeWidgetWin(hwnd), find_drop_down_list);
-  return flag;
+  TraversalAccessible(GetChromeWidgetWin(hwnd), check_state);
+  return state;
 }
 
 bool IsOmniboxFocus(const NodePtr& top) {
