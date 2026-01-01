@@ -150,6 +150,10 @@ bool HandleRightClick(const MOUSEHOOKSTRUCT* pmouse) {
 
 // Preserve the last tab when the middle button is clicked on the tab.
 bool HandleMiddleClick(const MOUSEHOOKSTRUCT* pmouse) {
+  if (!config.IsKeepLastTab()) {
+    return false;
+  }
+
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
   const NodePtr top_container_view = HandleFindBar(hwnd, pt);
@@ -304,6 +308,10 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
 }
 
 int HandleKeepTab(WPARAM wParam) {
+  if (!config.IsKeepLastTab()) {
+    return 0;
+  }
+
   if (!(wParam == 'W' && IsKeyPressed(VK_CONTROL) && !IsKeyPressed(VK_SHIFT)) &&
       !(wParam == VK_F4 && IsKeyPressed(VK_CONTROL))) {
     return 0;
