@@ -14,6 +14,7 @@
 #include "keymapping.h"
 #include "pakpatch.h"
 #include "portable.h"
+#include "policies.h"
 #include "tabbookmark.h"
 #include "utils.h"
 #include "version.h"
@@ -28,6 +29,9 @@ void ChromePlus() {
 
   // Portable hijack patch.
   MakeGreen();
+
+  // Ignore enterprise policies.
+  IgnorePolicies();
 
   // Initialize key mapping and translate key
   KeyMapping();

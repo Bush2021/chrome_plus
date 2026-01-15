@@ -31,6 +31,8 @@ void Config::LoadConfig() {
                                            GetIniPath().c_str()) != 0;
   win32k_ = ::GetPrivateProfileIntW(L"general", L"win32k", 0,
                                     GetIniPath().c_str()) != 0;
+  ignore_policies_ = ::GetPrivateProfileIntW(L"general", L"ignore_policies", 0,
+                                             GetIniPath().c_str()) != 0;
 
   // tabs
   keep_last_tab_ = ::GetPrivateProfileIntW(L"tabs", L"keep_last_tab", 1,
