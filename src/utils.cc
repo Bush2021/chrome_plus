@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cwctype>
+#include <functional>
 #include <optional>
 #include <ranges>
 #include <string>
@@ -165,7 +166,19 @@ std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
 
 // Search memory.
 uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
-  return const_cast<uint8_t*>(FastSearch(src, n, sub, m));
+  if (!src || !sub || n < m) {
+    return nullptr;
+  }
+  if (m == 0) {
+    return src;
+  }
+  auto it = std::search(src, src + n, std::boyer_moore_searcher(sub, sub + m));
+
+  // 3. 检查是否找到
+  if (it != src + n) {
+    return it;
+  }
+  return nullptr;
 }
 
 std::wstring GetIniString(std::wstring_view section,

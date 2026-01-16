@@ -8,8 +8,6 @@
 #include <string_view>
 #include <vector>
 
-#include "fastsearch.h"
-
 // Global variable declaration
 extern HMODULE hInstance;
 
