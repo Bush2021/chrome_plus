@@ -64,6 +64,8 @@ jobs:
 
       - name: Setup Xmake
         uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: '3.0.5'
 
       - name: Configure Xmake
         run: xmake f -a ${{ matrix.arch }} --toolchain=clang-cl --bin="${{ env.CLANG_BIN }}" --yes
