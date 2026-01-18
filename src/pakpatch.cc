@@ -58,7 +58,7 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
 
         BYTE search_start[] = R"(</settings-about-page>)";
         uint8_t* pos =
-            memmem(begin, size, search_start, sizeof(search_start) - 1);
+            SearchMemory(begin, size, search_start, sizeof(search_start) - 1);
         if (pos) {
           // Compress the HTML for writing patch information.
           std::string html(reinterpret_cast<char*>(begin), size);

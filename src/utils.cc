@@ -165,7 +165,7 @@ std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
 }
 
 // Search memory.
-uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
+uint8_t* SearchMemory(uint8_t* src, int n, const uint8_t* sub, int m) {
   if (!src || !sub || n < m) {
     return nullptr;
   }
@@ -173,8 +173,6 @@ uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m) {
     return src;
   }
   auto it = std::search(src, src + n, std::boyer_moore_searcher(sub, sub + m));
-
-  // 3. 检查是否找到
   if (it != src + n) {
     return it;
   }

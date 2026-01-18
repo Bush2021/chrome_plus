@@ -67,7 +67,7 @@ std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
                             std::wstring_view delimiter);
 
 // Memory and module search functions
-uint8_t* memmem(uint8_t* src, int n, const uint8_t* sub, int m);
+uint8_t* SearchMemory(uint8_t* src, int n, const uint8_t* sub, int m);
 
 // Parse the INI file
 std::wstring GetIniString(std::wstring_view section,
