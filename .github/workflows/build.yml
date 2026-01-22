@@ -81,7 +81,7 @@ jobs:
 
   create_pr:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     if: github.event_name == 'workflow_dispatch'
 
     steps:
