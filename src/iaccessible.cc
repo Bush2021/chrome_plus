@@ -597,9 +597,18 @@ bool IsOnCloseButton(const NodePtr& node, POINT pt) {
   bool found = false;
   auto find_hit_button = [&](this auto&& self, const NodePtr& child) -> bool {
     if (GetAccessibleRole(child) == ROLE_SYSTEM_PUSHBUTTON) {
+      std::optional<std::wstring> acc_name;
+      GetAccessibleName(child, [&acc_name](BSTR bstr) {
+        if (bstr) {
+          acc_name = std::wstring(bstr);
+        }
+      });
       GetAccessibleSize(child, [&](RECT rect) {
         if (PtInRect(&rect, pt)) {
-          found = true;
+          if (!acc_name || acc_name->find(L"Close") != std::wstring::npos ||
+              acc_name->find(L"关闭") != std::wstring::npos) {
+            found = true;
+          }
         }
       });
       if (found) {
