@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "config.h"
+#include "uia.h"
 #include "utils.h"
 
 namespace {
@@ -590,6 +591,16 @@ bool IsOmniboxFocus(const NodePtr& top) {
 // Whether the mouse is on the close button of a tab.
 // Pass the specific tab node to search the close button within that tab only.
 bool IsOnCloseButton(const NodePtr& node, POINT pt) {
+  // Try UIA first for accurate detection via ClassName.
+  // UIA can identify TabCloseButton regardless of language.
+  if (auto uia_result = uia::IsOnCloseButton(pt); uia_result.has_value()) {
+    return uia_result.value();
+  }
+
+  // Fallback to IAccessible if UIA is not available.
+  // This path only checks for "Close" (English) and "关闭" (Chinese).
+  DebugLog(L"IsOnCloseButton: UIA unavailable, using IAccessible fallback");
+
   if (!node) {
     return false;
   }
