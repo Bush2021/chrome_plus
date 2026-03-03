@@ -58,19 +58,12 @@ std::unordered_map<std::wstring, bool> original_mute_states;
 #define MOD_NOREPEAT 0x4000
 
 BOOL CALLBACK SearchChromeWindow(HWND hwnd, LPARAM lparam) {
-  if (IsWindowVisible(hwnd)) {
-    wchar_t buff[256];
-    GetClassNameW(hwnd, buff, 255);
-    if (wcscmp(buff, L"Chrome_WidgetWin_1") ==
-        0)  // || wcscmp(buff, L"Chrome_WidgetWin_2")==0 || wcscmp(buff,
-            // L"SysShadow")==0 )
-    {
-      DWORD pid;
-      GetWindowThreadProcessId(hwnd, &pid);
-      if (pid == GetCurrentProcessId()) {
-        ShowWindow(hwnd, SW_HIDE);
-        hwnd_list.emplace_back(hwnd);
-      }
+  if (IsWindowVisible(hwnd) && IsChromeWindow(hwnd)) {
+    DWORD pid;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid == GetCurrentProcessId()) {
+      ShowWindow(hwnd, SW_HIDE);
+      hwnd_list.emplace_back(hwnd);
     }
   }
   return true;
