@@ -114,6 +114,7 @@ HWND GetTopWnd(HWND hwnd);
 void ExecuteCommand(int id, HWND hwnd = 0);
 void LaunchCommands(const std::wstring& get_commands);
 bool IsFullScreen(HWND hwnd);
+[[nodiscard]] bool IsChromeWindow(HWND hwnd);
 
 // Keyboard and mouse input functions
 // Template function for sending combined key operations - kept in header

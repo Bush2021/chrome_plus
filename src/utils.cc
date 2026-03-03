@@ -6,6 +6,7 @@
 #include <shlwapi.h>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
@@ -271,6 +272,20 @@ bool IsFullScreen(HWND hwnd) {
           (windowRect.left == 0 && windowRect.top == 0 &&
            windowRect.right == GetSystemMetrics(SM_CXSCREEN) &&
            windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
+}
+
+[[nodiscard]] bool IsChromeWindow(HWND hwnd) {
+  std::array<wchar_t, 256> class_name_buffer{};
+  const int length =
+      ::GetClassNameW(hwnd, class_name_buffer.data(),
+                      static_cast<int>(class_name_buffer.size()));
+  if (length == 0) {
+    return false;
+  }
+  const std::wstring_view class_name_view{class_name_buffer.data(),
+                                          static_cast<std::size_t>(length)};
+  constexpr std::wstring_view target_prefix = L"Chrome_WidgetWin_";
+  return class_name_view.starts_with(target_prefix);
 }
 
 namespace {
