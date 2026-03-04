@@ -9,6 +9,7 @@
 
 namespace {
 
+constexpr UINT kDefaultDpi = 96;
 POINT lbutton_down_point = {-1, -1};
 
 // This implements tick fault tolerance to prevent users from directly closing
@@ -219,17 +220,41 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
   return true;
 }
 
+// https://github.com/Bush2021/chrome_plus/issues/226
+UINT GetWindowDpiSafe(HWND hwnd) {
+  // `GetDpiForWindow` requires Windows 10, version 1607 or later.
+  const HMODULE user32 = GetModuleHandleW(L"user32.dll");
+  if (!user32) {
+    return kDefaultDpi;
+  }
+  using GetDpiForWindowFn = UINT(WINAPI*)(HWND);
+  const auto fn = reinterpret_cast<GetDpiForWindowFn>(
+      GetProcAddress(user32, "GetDpiForWindow"));
+  if (!fn) {
+    return kDefaultDpi;
+  }
+  const UINT dpi = fn(hwnd);
+  return dpi ? dpi : kDefaultDpi;
+}
+
 // Check if mouse movement is a drag operation.
 // Since `MouseProc` hook doesn't handle any drag-related events,
 // this detection can return early to avoid interference.
 bool HandleDrag(const MOUSEHOOKSTRUCT* pmouse) {
-  // Add drag detection logic for
-  // https://github.com/Bush2021/chrome_plus/issues/152
-  static const int kDragThresholdX = GetSystemMetrics(SM_CXDRAG);
-  static const int kDragThresholdY = GetSystemMetrics(SM_CYDRAG);
-  const int dx = pmouse->pt.x - lbutton_down_point.x;
-  const int dy = pmouse->pt.y - lbutton_down_point.y;
-  return (abs(dx) > kDragThresholdX || abs(dy) > kDragThresholdY);
+  // https://source.chromium.org/chromium/chromium/src/+/main:ui/views/view.cc;l=127;drc=f67ec84a19893049f899352c79fa990872da2ff7
+  constexpr UINT kDragThreshold = 8;
+  const UINT dx = std::abs(pmouse->pt.x - lbutton_down_point.x);
+  const UINT dy = std::abs(pmouse->pt.y - lbutton_down_point.y);
+  if (dx <= kDragThreshold && dy <= kDragThreshold) {
+    return false;
+  }
+
+  const UINT dpi = GetWindowDpiSafe(WindowFromPoint(pmouse->pt));
+  // We scale it manually since `GetSystemMetricsForDpi` does not work for some
+  // reason, see https://github.com/AvaloniaUI/Avalonia/issues/12112
+  const UINT threshold = MulDiv(kDragThreshold, dpi, kDefaultDpi);
+  const bool is_drag = (dx > threshold || dy > threshold);
+  return is_drag;
 }
 
 // Open bookmarks in a new tab.
