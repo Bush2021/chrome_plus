@@ -261,14 +261,6 @@ void LaunchCommands(const std::wstring& get_commands) {
   }
 }
 
-bool IsFullScreen(HWND hwnd) {
-  RECT windowRect;
-  return (GetWindowRect(hwnd, &windowRect) &&
-          (windowRect.left == 0 && windowRect.top == 0 &&
-           windowRect.right == GetSystemMetrics(SM_CXSCREEN) &&
-           windowRect.bottom == GetSystemMetrics(SM_CYSCREEN)));
-}
-
 [[nodiscard]] bool IsChromeWindow(HWND hwnd) {
   std::array<wchar_t, 256> class_name_buffer{};
   const int length =

@@ -115,7 +115,6 @@ inline void DebugLog(std::wstring_view, auto&&...) {}
 HWND GetTopWnd(HWND hwnd);
 void ExecuteCommand(int id, HWND hwnd = 0);
 void LaunchCommands(const std::wstring& get_commands);
-bool IsFullScreen(HWND hwnd);
 [[nodiscard]] bool IsChromeWindow(HWND hwnd);
 
 // Keyboard and mouse input functions

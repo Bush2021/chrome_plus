@@ -30,6 +30,26 @@ bool IsNeedKeep(int tab_count) {
   return keep_tab;
 }
 
+bool IsFullScreen(HWND hwnd) {
+  RECT window_rect;
+  if (!GetWindowRect(hwnd, &window_rect)) {
+    return false;
+  }
+  HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+  if (!monitor) {
+    return false;
+  }
+  MONITORINFO mi = {sizeof(mi)};
+  if (!GetMonitorInfoW(monitor, &mi)) {
+    return false;
+  }
+  const bool is_full_screen = (window_rect.left == mi.rcMonitor.left &&
+                               window_rect.top == mi.rcMonitor.top &&
+                               window_rect.right == mi.rcMonitor.right &&
+                               window_rect.bottom == mi.rcMonitor.bottom);
+  return is_full_screen;
+}
+
 // When `top_container_view` is not found, the find-in-page bar may be open
 // and focused. Use `IsOnFindBarPane` to check if the click occurred on the
 // bar. If so, return nullptr to avoid interfering with find operations
