@@ -128,8 +128,7 @@ void ProcessAudioSession(IAudioSessionControl* session,
     return;
   }
 
-  auto it = std::find(pids.begin(), pids.end(), session_pid);
-  if (it == pids.end()) {
+  if (!std::ranges::contains(pids, session_pid)) {
     return;
   }
 

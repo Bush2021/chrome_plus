@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -67,7 +68,8 @@ std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
                             std::wstring_view delimiter);
 
 // Memory and module search functions
-uint8_t* SearchMemory(uint8_t* src, int n, const uint8_t* sub, int m);
+std::span<uint8_t> SearchMemory(std::span<uint8_t> src,
+                                std::span<const uint8_t> sub);
 
 // Parse the INI file
 std::wstring GetIniString(std::wstring_view section,
@@ -102,7 +104,7 @@ void DebugLog(std::wformat_string<Args...> fmt, Args&&... args) {
 
   if (std::wofstream log_file(log_path, std::ios::app); log_file.is_open()) {
     log_file.imbue(std::locale(""));
-    log_file << log_content << std::endl;
+    log_file << log_content << L'\n';
   }
 }
 #else

@@ -15,6 +15,7 @@
 #include <functional>
 #include <optional>
 #include <ranges>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -46,7 +47,7 @@ std::vector<std::wstring> StringSplit(std::wstring_view str,
   std::vector<std::wstring> result;
   auto parts = std::views::split(str, delim);
   for (const auto& part : parts) {
-    std::wstring_view part_sv(part.begin(), part.end());
+    std::wstring_view part_sv(part);
     if (!enclosure.empty()) {
       if (!part_sv.empty() && part_sv.front() == enclosure.front()) {
         part_sv.remove_prefix(1);
@@ -66,7 +67,7 @@ std::vector<std::string> StringSplit(std::string_view str,
   std::vector<std::string> result;
   auto parts = std::views::split(str, delim);
   for (const auto& part : parts) {
-    std::string_view part_sv(part.begin(), part.end());
+    std::string_view part_sv(part);
     if (!enclosure.empty()) {
       if (!part_sv.empty() && part_sv.front() == enclosure.front()) {
         part_sv.remove_prefix(1);
@@ -136,8 +137,9 @@ bool ReplaceStringInPlace(std::wstring& subject,
 }
 
 std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
-  if (str.find(L' ') == std::wstring::npos)
+  if (str.contains(L' ')) {
     return str;
+  }
 
   std::wstring escaped(L"\"");
   for (auto c : str) {
@@ -152,32 +154,25 @@ std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
 
 std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
                             std::wstring_view delimiter) {
-  std::wstring text;
-  bool first = true;
-  for (auto& line : lines) {
-    if (!first) {
-      text += delimiter;
-    } else {
-      first = false;
-    }
-    text += QuoteSpaceIfNeeded(line);
+  if (lines.empty()) {
+    return L"";
   }
-  return text;
+  return lines | std::views::transform(QuoteSpaceIfNeeded) |
+         std::views::join_with(delimiter) | std::ranges::to<std::wstring>();
 }
 
 // Search memory.
-uint8_t* SearchMemory(uint8_t* src, int n, const uint8_t* sub, int m) {
-  if (!src || !sub || n < m) {
-    return nullptr;
+std::span<uint8_t> SearchMemory(std::span<uint8_t> src,
+                                std::span<const uint8_t> sub) {
+  if (src.empty() || sub.empty() || src.size() < sub.size()) {
+    return {};
   }
-  if (m == 0) {
-    return src;
+  auto it = std::search(src.begin(), src.end(),
+                        std::boyer_moore_searcher(sub.begin(), sub.end()));
+  if (it != src.end()) {
+    return src.subspan(std::distance(src.begin(), it));
   }
-  auto it = std::search(src, src + n, std::boyer_moore_searcher(sub, sub + m));
-  if (it != src + n) {
-    return it;
-  }
-  return nullptr;
+  return {};
 }
 
 std::wstring GetIniString(std::wstring_view section,

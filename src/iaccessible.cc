@@ -329,8 +329,7 @@ bool IsNameNewTab(const NodePtr& top) {
 
               std::wstring_view selected_tab_name(bstr);
               if (std_name.has_value() &&
-                  selected_tab_name.find(std_name.value()) !=
-                      std::wstring_view::npos) {
+                  selected_tab_name.contains(std_name.value())) {
                 is_new_tab = true;
                 return;
               }
@@ -339,8 +338,7 @@ bool IsNameNewTab(const NodePtr& top) {
                 if (name_from_config.empty()) {
                   continue;
                 }
-                if (selected_tab_name.find(name_from_config) !=
-                    std::wstring_view::npos) {
+                if (selected_tab_name.contains(name_from_config)) {
                   is_new_tab = true;
                   break;
                 }
@@ -383,8 +381,8 @@ bool IsDocNewTab() {
     // parameter manually.
     GetAccessibleValue(document, [&flag](BSTR bstr) {
       std::wstring_view bstr_view(bstr);
-      flag = bstr_view.find(L"://newtab") != std::wstring_view::npos ||
-             bstr_view.find(L"://new-tab-page") != std::wstring_view::npos;
+      flag = bstr_view.contains(L"://newtab") ||
+             bstr_view.contains(L"://new-tab-page");
     });
   }
   return flag;
@@ -602,8 +600,7 @@ bool IsOnCloseButton(const NodePtr& node, POINT pt) {
         if (bstr) {
           std::wstring_view name_view(bstr);
           is_close_name =
-              (name_view.find(L"Close") != std::wstring_view::npos) ||
-              (name_view.find(L"关闭") != std::wstring_view::npos);
+              (name_view.contains(L"Close")) || (name_view.contains(L"关闭"));
         }
       });
       GetAccessibleSize(child, [&](RECT rect) {

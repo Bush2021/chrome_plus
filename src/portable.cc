@@ -274,14 +274,11 @@ void Portable(LPWSTR param) {
 
   std::wstring args = GetCommand(param);
 
-  SHELLEXECUTEINFO sei = {0};
-  sei.cbSize = sizeof(SHELLEXECUTEINFO);
-  sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
-  sei.lpVerb = L"open";
-  sei.lpFile = path;
-  sei.nShow = SW_SHOWNORMAL;
-
-  sei.lpParameters = args.c_str();
+  SHELLEXECUTEINFO sei{.cbSize = sizeof(SHELLEXECUTEINFO),
+                       .fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI,
+                       .lpFile = path,
+                       .lpParameters = args.c_str(),
+                       .nShow = SW_SHOWNORMAL};
   if (ShellExecuteEx(&sei)) {
     ExitProcess(0);
   }
