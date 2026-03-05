@@ -15,6 +15,7 @@ POINT lbutton_down_point = {-1, -1};
 // This implements tick fault tolerance to prevent users from directly closing
 // the window when they click too fast. Also uses pre-computed `tab_count` to
 // avoid redundant `FindPageTabPane` traversal.
+// TODO: fix the static state contamination across mouse and keyboard handlers.
 bool IsNeedKeep(int tab_count) {
   // `tab_count` will be 0 if `config.IsKeepLastTab()` is false.
   if (tab_count == 0) {
@@ -131,7 +132,7 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
   if (IsOnCloseButton(tab, pt)) {
     return false;
   }
-  if (IsNeedKeep(tab_count)) {
+  if (tab_count == 1) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
