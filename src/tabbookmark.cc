@@ -131,7 +131,7 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
   if (IsOnCloseButton(tab, pt)) {
     return false;
   }
-  if (IsNeedKeep(tab_count)) {
+  if (tab_count == 1) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
