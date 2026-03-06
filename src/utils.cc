@@ -137,7 +137,7 @@ bool ReplaceStringInPlace(std::wstring& subject,
 }
 
 std::wstring QuoteSpaceIfNeeded(const std::wstring& str) {
-  if (str.contains(L' ')) {
+  if (!str.contains(L' ')) {
     return str;
   }
 
