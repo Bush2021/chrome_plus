@@ -12,20 +12,30 @@ namespace {
 constexpr UINT kDefaultDpi = 96;
 POINT lbutton_down_point = {-1, -1};
 
+enum class KeepTabTrigger {
+  kRightClick = 0,
+  kMiddleClick,
+  kCloseButton,
+  kKeyboardShortcut,
+  kCount,
+};
+
 // This implements tick fault tolerance to prevent users from directly closing
 // the window when they click too fast. Also uses pre-computed `tab_count` to
 // avoid redundant `FindPageTabPane` traversal.
-// TODO: fix the static state contamination across mouse and keyboard handlers.
-bool IsNeedKeep(int tab_count) {
+bool IsNeedKeep(int tab_count, KeepTabTrigger trigger) {
   // `tab_count` will be 0 if `config.IsKeepLastTab()` is false.
   if (tab_count == 0) {
     return false;
   }
 
   bool keep_tab = (tab_count == 1);
-  static auto last_closing_tab_tick = GetTickCount64();
-  auto tick = GetTickCount64() - last_closing_tab_tick;
-  last_closing_tab_tick = GetTickCount64();
+  static ULONGLONG
+      last_closing_tab_ticks[static_cast<int>(KeepTabTrigger::kCount)] = {};
+  const int trigger_index = static_cast<int>(trigger);
+  const ULONGLONG now = GetTickCount64();
+  const ULONGLONG tick = now - last_closing_tab_ticks[trigger_index];
+  last_closing_tab_ticks[trigger_index] = now;
   if (tick > 50 && tick <= 250 && tab_count == 2) {
     keep_tab = true;
   }
@@ -159,7 +169,7 @@ bool HandleRightClick(const MOUSEHOOKSTRUCT* pmouse) {
   if (!tab) {
     return false;
   }
-  if (IsNeedKeep(tab_count)) {
+  if (IsNeedKeep(tab_count, KeepTabTrigger::kRightClick)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
@@ -185,7 +195,7 @@ bool HandleMiddleClick(const MOUSEHOOKSTRUCT* pmouse) {
 
   const auto [tab, tab_count] =
       GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
-  if (tab && IsNeedKeep(tab_count)) {
+  if (tab && IsNeedKeep(tab_count, KeepTabTrigger::kMiddleClick)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     return true;
@@ -213,7 +223,7 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
   if (!tab || !IsOnCloseButton(tab, pt)) {
     return false;
   }
-  if (!IsNeedKeep(tab_count)) {
+  if (!IsNeedKeep(tab_count, KeepTabTrigger::kCloseButton)) {
     return false;
   }
   ExecuteCommand(IDC_NEW_TAB, hwnd);
@@ -380,7 +390,7 @@ bool HandleKeepTab(WPARAM wParam) {
   NodePtr top_container_view = GetTopContainerView(hwnd);
   // Use `GetTabCount` directly since we only need tab count here (no mouse pos)
   int tab_count = GetTabCount(top_container_view);
-  if (!IsNeedKeep(tab_count)) {
+  if (!IsNeedKeep(tab_count, KeepTabTrigger::kKeyboardShortcut)) {
     return false;
   }
 
