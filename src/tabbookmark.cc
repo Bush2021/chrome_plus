@@ -401,20 +401,26 @@ bool HandleKeepTab(WPARAM wParam) {
 
 bool HandleOpenUrlNewTab(WPARAM wParam) {
   int mode = config.GetOpenUrlNewTabMode();
-  if (!(mode != 0 && wParam == VK_RETURN && !IsKeyPressed(VK_MENU))) {
+  if (mode == 0 || wParam != VK_RETURN || IsKeyPressed(VK_MENU)) {
     return false;
   }
 
   NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
-  if (IsOmniboxFocus(top_container_view) && !IsOnNewTab(top_container_view)) {
-    if (mode == 1) {
-      SendKey(VK_MENU, VK_RETURN);
-    } else if (mode == 2) {
-      SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
-    }
-    return true;
+  if (IsOnNewTab(top_container_view)) {
+    return false;
   }
-  return false;
+
+  NodePtr chrome_widget = GetChromeWidgetWin(GetFocus());
+  if (!IsOmniboxDropdownSelected(chrome_widget)) {
+    return false;
+  }
+
+  if (mode == 1) {
+    SendKey(VK_MENU, VK_RETURN);
+  } else if (mode == 2) {
+    SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
+  }
+  return true;
 }
 
 // Keyboard handler for tab and bookmark operations
