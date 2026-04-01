@@ -552,7 +552,7 @@ BookmarkState CheckBookmarkState(HWND hwnd, POINT pt) {
   return state;
 }
 
-bool IsOmniboxFocus(const NodePtr& top) {
+[[maybe_unused]] bool IsOmniboxFocus(const NodePtr& top) {
   if (!top) {
     return false;
   }
@@ -583,6 +583,39 @@ bool IsOmniboxFocus(const NodePtr& top) {
   };
   TraversalAccessible(top, find_toolbar, false);
   return is_focused;
+}
+
+bool IsOmniboxDropdownSelected(const NodePtr& root) {
+  if (!root) {
+    return false;
+  }
+
+  bool found = false;
+  auto find_selected_suggestion = [&](this auto&& self,
+                                      const NodePtr& node) -> bool {
+    if ((GetAccessibleRole(node) == ROLE_SYSTEM_LISTITEM) &&
+        (GetAccessibleState(node) & STATE_SYSTEM_SELECTED)) {
+      // Mar 31, 2026 - Chrome 146.0.7680.165
+      //   root
+      //   └─ ...
+      //      └─ LIST (0x21, expanded)
+      //         └─ PANE (0x10)
+      //            └─ LISTITEM (0x22, selected)
+      NodePtr parent = GetParentElement(node);
+      while (parent) {
+        if ((GetAccessibleRole(parent) == ROLE_SYSTEM_LIST) &&
+            (GetAccessibleState(parent) & STATE_SYSTEM_EXPANDED)) {
+          found = true;
+          return true;
+        }
+        parent = GetParentElement(parent);
+      }
+    }
+    TraversalAccessible(node, self, false);
+    return found;
+  };
+  TraversalAccessible(root, find_selected_suggestion, false);
+  return found;
 }
 
 // Whether the mouse is on the close button of a tab.
