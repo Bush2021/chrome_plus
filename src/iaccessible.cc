@@ -552,7 +552,7 @@ BookmarkState CheckBookmarkState(HWND hwnd, POINT pt) {
   return state;
 }
 
-[[maybe_unused]] bool IsOmniboxFocus(const NodePtr& top) {
+bool IsOmniboxFocus(const NodePtr& top) {
   if (!top) {
     return false;
   }

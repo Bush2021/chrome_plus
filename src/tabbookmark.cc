@@ -411,7 +411,8 @@ bool HandleOpenUrlNewTab(WPARAM wParam) {
   }
 
   NodePtr chrome_widget = GetChromeWidgetWin(GetFocus());
-  if (!IsOmniboxDropdownSelected(chrome_widget)) {
+  if (!(IsOmniboxFocus(top_container_view) ||
+        IsOmniboxDropdownSelected(chrome_widget))) {
     return false;
   }
 
