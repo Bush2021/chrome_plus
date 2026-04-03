@@ -16,7 +16,7 @@ on:
     inputs:
       version:
         description: 'Release version (SemVer)'
-        required: true
+        required: false
       build_mode:
         description: 'Build mode'
         required: false
@@ -56,12 +56,23 @@ jobs:
             echo "VERSION=$VERSION" >> $GITHUB_ENV
             sed -i '/#define RELEASE_VER_STR/,/TOSTRING(RELEASE_VER_FIX)/c\#define RELEASE_VER_STR "'"$VERSION"'"' src/version.h
           elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-            sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
-            sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h 
-            sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            if [ -n "$INPUT_VERSION" ]; then
+              VERSION="$INPUT_VERSION"
+              if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo "::error::Invalid version '$VERSION'. Expected SemVer like 1.2.3" >&2
+                exit 1
+              fi
+              echo "VERSION=$VERSION" >> $GITHUB_ENV
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+              sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
+              sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
+              sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+            else
+              COMMIT_HASH=$(git rev-parse --short HEAD)
+              VERSION="manual-${COMMIT_HASH}"
+              echo "VERSION=$VERSION" >> $GITHUB_ENV
+            fi
           fi
 
       - name: Set Build Mode
@@ -107,7 +118,7 @@ jobs:
   create_pr:
     needs: build
     runs-on: ubuntu-slim
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''
 
     steps:
       - name: Checkout repository
@@ -122,6 +133,10 @@ jobs:
       - name: Update version.h
         run: |
           VERSION="${{ github.event.inputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version '$VERSION'. Expected SemVer like 1.2.3" >&2
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
