@@ -17,6 +17,14 @@ on:
       version:
         description: 'Release version (SemVer)'
         required: true
+      build_mode:
+        description: 'Build mode'
+        required: false
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
 
 jobs:
   build:
@@ -56,6 +64,17 @@ jobs:
             sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
           fi
 
+      - name: Set Build Mode
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.build_mode }}" ]; then
+            BUILD_MODE="${{ github.event.inputs.build_mode }}"
+          else
+            BUILD_MODE="release"
+          fi
+          echo "BUILD_MODE=$BUILD_MODE" >> $GITHUB_ENV
+          echo "Using BUILD_MODE=$BUILD_MODE"
+
       - name: Set CLANG_BIN
         shell: bash
         run: |
@@ -68,16 +87,22 @@ jobs:
           xmake-version: '3.0.5'
 
       - name: Configure Xmake
-        run: xmake f -a ${{ matrix.arch }} --toolchain=clang-cl --bin="${{ env.CLANG_BIN }}" --yes
+        run: xmake f -m ${{ env.BUILD_MODE }} -a ${{ matrix.arch }} --toolchain=clang-cl --bin="${{ env.CLANG_BIN }}" --yes
 
       - name: Build Chrome++
-        run: xmake
+        shell: bash
+        run: |
+          if [ "${{ env.BUILD_MODE }}" == "debug" ]; then
+            xmake -vD
+          else
+            xmake
+          fi
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: version-${{ matrix.arch }}-${{ env.VERSION }}
-          path: build/release/*
+          name: version-${{ matrix.arch }}${{ env.BUILD_MODE == 'debug' && '-debug' || '' }}-${{ env.VERSION }}
+          path: build/${{ env.BUILD_MODE }}/*
 
   create_pr:
     needs: build
