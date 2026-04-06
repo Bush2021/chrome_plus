@@ -2,4 +2,7 @@
 build/
 .vscode/
 .idea/
+.claude/
+AGENTS.md
 TODO.md
+cppguide.html

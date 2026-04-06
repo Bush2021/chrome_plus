@@ -3,8 +3,8 @@
 #include <windows.h>
 
 #include "config.h"
-#include "iaccessible.h"
 #include "inputhook.h"
+#include "uia.h"
 #include "utils.h"
 
 namespace {
@@ -42,49 +42,6 @@ bool IsNeedKeep(int tab_count, KeepTabTrigger trigger) {
   return keep_tab;
 }
 
-bool IsFullScreen(HWND hwnd) {
-  RECT window_rect;
-  if (!GetWindowRect(hwnd, &window_rect)) {
-    return false;
-  }
-  HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-  if (!monitor) {
-    return false;
-  }
-  MONITORINFO mi = {sizeof(mi)};
-  if (!GetMonitorInfoW(monitor, &mi)) {
-    return false;
-  }
-  const bool is_full_screen = (window_rect.left == mi.rcMonitor.left &&
-                               window_rect.top == mi.rcMonitor.top &&
-                               window_rect.right == mi.rcMonitor.right &&
-                               window_rect.bottom == mi.rcMonitor.bottom);
-  return is_full_screen;
-}
-
-// When `top_container_view` is not found, the find-in-page bar may be open
-// and focused. Use `IsOnFindBarPane` to check if the click occurred on the
-// bar. If so, return nullptr to avoid interfering with find operations
-// (#157). Otherwise, close the bar and retry finding `top_container_view`
-// to fix issues where double-click and right-click close actions fail when
-// the bar is open (#187). Closing the bar typically has no side effects,
-// except that clicks on other tabs or bookmarks will also dismiss the bar
-// when it is open.
-NodePtr HandleFindBar(HWND hwnd, POINT pt) {
-  NodePtr top_container_view = GetTopContainerView(hwnd);
-  if (!top_container_view) {
-    if (IsOnFindBarPane(pt)) {
-      return nullptr;
-    }
-    ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, hwnd);
-    top_container_view = GetTopContainerView(hwnd);
-    if (!top_container_view) {
-      return nullptr;
-    }
-  }
-  return top_container_view;
-}
-
 // Use the mouse wheel to switch tabs
 bool HandleMouseWheel(LPARAM lParam, const MOUSEHOOKSTRUCT* pmouse) {
   if (!config.IsWheelTab() && !config.IsWheelTabWhenPressRightButton()) {
@@ -92,8 +49,6 @@ bool HandleMouseWheel(LPARAM lParam, const MOUSEHOOKSTRUCT* pmouse) {
   }
 
   HWND hwnd = GetFocus();
-  const NodePtr top_container_view = GetTopContainerView(hwnd);
-
   const auto* pwheel = reinterpret_cast<const MOUSEHOOKSTRUCTEX*>(lParam);
   const int delta = GET_WHEEL_DELTA_WPARAM(pwheel->mouseData);
 
@@ -107,13 +62,13 @@ bool HandleMouseWheel(LPARAM lParam, const MOUSEHOOKSTRUCT* pmouse) {
     return true;
   };
 
-  // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
-  if (config.IsWheelTab() && IsOnTheTabBar(top_container_view, pmouse->pt)) {
+  // If it is used to switch tabs when the right button is held.
+  if (config.IsWheelTabWhenPressRightButton() && IsKeyPressed(VK_RBUTTON)) {
     return switch_tabs();
   }
 
-  // If it is used to switch tabs when the right button is held.
-  if (config.IsWheelTabWhenPressRightButton() && IsKeyPressed(VK_RBUTTON)) {
+  // If the mouse wheel is used to switch tabs when the mouse is on the tab bar.
+  if (config.IsWheelTab() && IsOnTabBar(pmouse->pt)) {
     return switch_tabs();
   }
 
@@ -128,21 +83,11 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
 
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
-  if (!top_container_view) {
+  const auto hit = FindTabHitResult(pt, config.IsKeepLastTab(), true);
+  if (!hit || hit->on_close_button) {
     return false;
   }
-
-  const auto [tab, tab_count] =
-      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
-  if (!tab) {
-    return false;
-  }
-  // Avoid triggering on close button clicks.
-  if (IsOnCloseButton(tab, pt)) {
-    return false;
-  }
-  if (tab_count == 1) {
+  if (hit->tab_count == 1) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
@@ -159,17 +104,11 @@ bool HandleRightClick(const MOUSEHOOKSTRUCT* pmouse) {
 
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
-  if (!top_container_view) {
+  const auto hit = FindTabHitResult(pt, config.IsKeepLastTab(), false);
+  if (!hit) {
     return false;
   }
-
-  const auto [tab, tab_count] =
-      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
-  if (!tab) {
-    return false;
-  }
-  if (IsNeedKeep(tab_count, KeepTabTrigger::kRightClick)) {
+  if (IsNeedKeep(hit->tab_count, KeepTabTrigger::kRightClick)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
   } else {
@@ -188,14 +127,12 @@ bool HandleMiddleClick(const MOUSEHOOKSTRUCT* pmouse) {
 
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
-  if (!top_container_view) {
+  const auto hit = FindTabHitResult(pt, config.IsKeepLastTab(), false);
+  if (!hit) {
     return false;
   }
 
-  const auto [tab, tab_count] =
-      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
-  if (tab && IsNeedKeep(tab_count, KeepTabTrigger::kMiddleClick)) {
+  if (IsNeedKeep(hit->tab_count, KeepTabTrigger::kMiddleClick)) {
     ExecuteCommand(IDC_NEW_TAB, hwnd);
     ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
     return true;
@@ -210,20 +147,11 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
 
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
-  const NodePtr top_container_view = HandleFindBar(hwnd, pt);
-  if (!top_container_view) {
+  const auto hit = FindTabHitResult(pt, config.IsKeepLastTab(), true);
+  if (!hit || !hit->on_close_button) {
     return false;
   }
-
-  const auto [tab, tab_count] =
-      GetTabInfo(top_container_view, pt, config.IsKeepLastTab());
-  // Get the tab under mouse and check if close button is clicked within it.
-  // This prevents false positives from other PUSHBUTTON elements like
-  // New Tab Button.
-  if (!tab || !IsOnCloseButton(tab, pt)) {
-    return false;
-  }
-  if (!IsNeedKeep(tab_count, KeepTabTrigger::kCloseButton)) {
+  if (!IsNeedKeep(hit->tab_count, KeepTabTrigger::kCloseButton)) {
     return false;
   }
   ExecuteCommand(IDC_NEW_TAB, hwnd);
@@ -276,27 +204,12 @@ bool HandleBookmark(const MOUSEHOOKSTRUCT* pmouse) {
   }
 
   const POINT pt = pmouse->pt;
-  HWND hwnd = WindowFromPoint(pt);
-  const auto [on_bookmark, on_expanded_list] = CheckBookmarkState(hwnd, pt);
-  if (!on_bookmark) {
-    return false;
-  }
-  if (on_expanded_list) {
-    // This is only used to determine the expanded dropdown menu of the address
-    // bar. When the mouse clicks on it, it may penetrate through to the
-    // background, causing a misjudgment that it is on the bookmark. Related
-    // issue: https://github.com/Bush2021/chrome_plus/issues/162
+  if (!IsOnBookmark(pt)) {
     return false;
   }
 
-  NodePtr top_container_view = GetTopContainerView(
-      GetFocus());  // Must use `GetFocus()`, otherwise when opening bookmarks
-                    // in a bookmark folder (and similar expanded menus),
-                    // `top_container_view` cannot be obtained, making it
-                    // impossible to correctly determine `is_on_new_tab`. See
-                    // #98.
-
-  if (!IsOnNewTab(top_container_view)) {
+  if (!config.IsNewTabDisable() ||
+      !IsOnNewTab(GetForegroundWindow(), config.GetDisableTabNames())) {
     if (mode == 1) {
       SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (mode == 2) {
@@ -312,22 +225,42 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
   PMOUSEHOOKSTRUCT pmouse = reinterpret_cast<PMOUSEHOOKSTRUCT>(lParam);
 
   static bool wheel_tab_ing_with_rbutton = false;
+  // Set when a tab-closing handler succeeds. While active, subsequent messages
+  // in the same click sequence are swallowed to prevent Windows' consecutive
+  // DBLCLK messages from closing extra tabs or crashing vertical tabs.
+  static bool closing_tab_by_dblclk = false;
+  static bool closing_tab_by_middle = false;
+  static bool closing_tab_by_right = false;
 
   switch (wParam) {
     case WM_LBUTTONDOWN:
       // Simply record the position of `LBUTTONDOWN` for drag detection
+      closing_tab_by_dblclk = false;
       lbutton_down_point = pmouse->pt;
       return false;
+    case WM_MBUTTONDOWN:
+      closing_tab_by_middle = false;
+      return false;
+    case WM_RBUTTONDOWN:
+      closing_tab_by_right = false;
+      return false;
     case WM_LBUTTONUP:
+      if (closing_tab_by_dblclk) {
+        return true;
+      }
       if (HandleDrag(pmouse)) {
         return false;
       } else if (HandleBookmark(pmouse)) {
         return true;
       } else if (HandleCloseButton(pmouse)) {
+        closing_tab_by_dblclk = true;
         return true;
       }
       return false;
     case WM_RBUTTONUP:
+      if (closing_tab_by_right) {
+        return true;
+      }
       if (wheel_tab_ing_with_rbutton) {
         // Swallow the first RBUTTONUP that follows a wheel-based tab switch to
         // suppress Chrome's context menu; the RBUTTONUP arrives after
@@ -335,6 +268,7 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
         wheel_tab_ing_with_rbutton = false;
         return true;
       } else if (HandleRightClick(pmouse)) {
+        closing_tab_by_right = true;
         return true;
       }
       return false;
@@ -348,17 +282,35 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
       }
       return false;
     case WM_LBUTTONDBLCLK:
-      if (HandleDoubleClick(pmouse)) {
-        // Do not return true. Returning true could cause the keep_tab to fail
-        // or trigger double-click operations consecutively when the user
-        // double-clicks on the tab page rapidly and repeatedly.
+      if (closing_tab_by_dblclk) {
+        // Windows generates consecutive WM_LBUTTONDBLCLK for rapid clicks
+        // at the same position (no WM_LBUTTONDOWN in between). Swallow
+        // them to ensure one double-click gesture closes exactly one tab.
+        return true;
       }
-      return false;
-    case WM_MBUTTONUP:
-      if (HandleMiddleClick(pmouse)) {
+      if (HandleDoubleClick(pmouse)) {
+        // Swallow the double-click so Chrome does not process it on the
+        // now-destroyed tab (prevents crash on vertical tabs, issue #220).
+        // Also keep the flag active to suppress the following WM_LBUTTONUP
+        // (orphan UP in the DOWN-UP-DBLCLK-UP sequence) and any further
+        // consecutive DBLCLK messages from rapid clicking.
+        closing_tab_by_dblclk = true;
         return true;
       }
       return false;
+    case WM_MBUTTONUP:
+      if (closing_tab_by_middle) {
+        return true;
+      }
+      if (HandleMiddleClick(pmouse)) {
+        closing_tab_by_middle = true;
+        return true;
+      }
+      return false;
+    case WM_MBUTTONDBLCLK:
+      return closing_tab_by_middle;
+    case WM_RBUTTONDBLCLK:
+      return closing_tab_by_right;
   }
   return false;
 }
@@ -373,24 +325,22 @@ bool HandleKeepTab(WPARAM wParam) {
     return false;
   }
 
-  HWND hwnd = GetFocus();
-  if (GetChromeWidgetWin(hwnd) == nullptr) {
+  HWND foreground = GetForegroundWindow();
+  HWND root_owner = GetAncestor(foreground, GA_ROOTOWNER);
+  HWND hwnd = root_owner ? root_owner : foreground;
+
+  const auto tab_count = FindTabCount(hwnd);
+
+  // Unknown tab count means this may be a popup or extension window without
+  // visible tab UI. Do not apply keep-last-tab; let Chrome handle the close
+  // normally.
+  if (!tab_count.has_value()) {
     return false;
   }
 
-  if (IsFullScreen(hwnd)) {
-    // Have to exit full screen to find the tab.
-    ExecuteCommand(IDC_FULLSCREEN, hwnd);
-  }
-
-  HWND tmp_hwnd = hwnd;
-  hwnd = GetAncestor(tmp_hwnd, GA_ROOTOWNER);
-  ExecuteCommand(IDC_CLOSE_FIND_OR_STOP, tmp_hwnd);
-
-  NodePtr top_container_view = GetTopContainerView(hwnd);
-  // Use `GetTabCount` directly since we only need tab count here (no mouse pos)
-  int tab_count = GetTabCount(top_container_view);
-  if (!IsNeedKeep(tab_count, KeepTabTrigger::kKeyboardShortcut)) {
+  const bool need_keep =
+      IsNeedKeep(tab_count.value(), KeepTabTrigger::kKeyboardShortcut);
+  if (!need_keep) {
     return false;
   }
 
@@ -405,14 +355,12 @@ bool HandleOpenUrlNewTab(WPARAM wParam) {
     return false;
   }
 
-  NodePtr top_container_view = GetTopContainerView(GetForegroundWindow());
-  if (IsOnNewTab(top_container_view)) {
+  if (config.IsNewTabDisable() &&
+      IsOnNewTab(GetForegroundWindow(), config.GetDisableTabNames())) {
     return false;
   }
 
-  NodePtr chrome_widget = GetChromeWidgetWin(GetFocus());
-  if (!(IsOmniboxFocus(top_container_view) ||
-        IsOmniboxDropdownSelected(chrome_widget))) {
+  if (!IsOmniboxFocused()) {
     return false;
   }
 
