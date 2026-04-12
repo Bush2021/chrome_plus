@@ -59,15 +59,19 @@ jobs:
             INPUT_VERSION="${{ github.event.inputs.version }}"
             if [ -n "$INPUT_VERSION" ]; then
               VERSION="$INPUT_VERSION"
-              if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-                echo "::error::Invalid version '$VERSION'. Expected SemVer like 1.2.3" >&2
+              if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+                echo "::error::Invalid version '$VERSION'. Expected SemVer like 1.2.3 or 1.2.3-alpha.1" >&2
                 exit 1
               fi
               echo "VERSION=$VERSION" >> $GITHUB_ENV
-              IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+              CORE="${VERSION%%-*}"
+              PRE="${VERSION#*-}"
+              if [ "$PRE" = "$VERSION" ]; then PRE_SUFFIX=""; else PRE_SUFFIX="-$PRE"; fi
+              IFS='.' read -r MAJOR MINOR PATCH <<< "$CORE"
               sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
               sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
               sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+              sed -i 's|#define RELEASE_VER_PRE_SUFFIX .*|#define RELEASE_VER_PRE_SUFFIX "'"$PRE_SUFFIX"'"|' src/version.h
             else
               COMMIT_HASH=$(git rev-parse --short HEAD)
               VERSION="manual-${COMMIT_HASH}"
@@ -133,15 +137,19 @@ jobs:
       - name: Update version.h
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid version '$VERSION'. Expected SemVer like 1.2.3" >&2
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Invalid version '$VERSION'. Expected SemVer like 1.2.3 or 1.2.3-alpha.1" >&2
             exit 1
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          CORE="${VERSION%%-*}"
+          PRE="${VERSION#*-}"
+          if [ "$PRE" = "$VERSION" ]; then PRE_SUFFIX=""; else PRE_SUFFIX="-$PRE"; fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CORE"
           sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
           sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
           sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
+          sed -i 's|#define RELEASE_VER_PRE_SUFFIX .*|#define RELEASE_VER_PRE_SUFFIX "'"$PRE_SUFFIX"'"|' src/version.h
           git add src/version.h
           git commit -m "build(release): bump version to $VERSION"
           git push origin release --force
