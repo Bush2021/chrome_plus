@@ -125,14 +125,14 @@ MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
   return true;
 }
 
-DWORD WINAPI MyLogonUserW(LPCWSTR lpszUsername,
-                          LPCWSTR lpszDomain,
-                          LPCWSTR lpszPassword,
-                          DWORD dwLogonType,
-                          DWORD dwLogonProvider,
-                          PHANDLE phToken) {
-  DWORD ret = RawLogonUserW(lpszUsername, lpszDomain, lpszPassword, dwLogonType,
-                            dwLogonProvider, phToken);
+BOOL WINAPI MyLogonUserW(LPCWSTR lpszUsername,
+                         LPCWSTR lpszDomain,
+                         LPCWSTR lpszPassword,
+                         DWORD dwLogonType,
+                         DWORD dwLogonProvider,
+                         PHANDLE phToken) {
+  BOOL ret = RawLogonUserW(lpszUsername, lpszDomain, lpszPassword, dwLogonType,
+                           dwLogonProvider, phToken);
 
   SetLastError(ERROR_ACCOUNT_RESTRICTION);
   return ret;
