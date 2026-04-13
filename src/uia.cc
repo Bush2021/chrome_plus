@@ -842,9 +842,9 @@ bool IsOnTabBar(POINT pt) {
   }
 
   if (HasAnyClassName(
-          pointed,
-          {L"HorizontalTabStripRegionView", L"TabStrip::TabDragContextImpl",
-           L"TabStripControlButton", L"FrameGrabHandle"})) {
+          pointed, {L"HorizontalTabStripRegionView",
+                    L"TabStrip::TabDragContextImpl", L"TabStripControlButton",
+                    L"FrameGrabHandle", L"VerticalTabStripBottomContainer"})) {
     return true;
   }
 
