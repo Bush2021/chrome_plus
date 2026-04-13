@@ -20,7 +20,6 @@ std::vector<HandlerEntry<MouseHandler>> mouse_handlers;
 
 HHOOK keyboard_hook = nullptr;
 HHOOK mouse_hook = nullptr;
-POINT lbutton_down_point = {-1, -1};
 
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode == HC_ACTION) {
@@ -46,10 +45,6 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
   if (pmouse->dwExtraInfo == GetMagicCode()) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
-  }
-
-  if (wParam == WM_LBUTTONDOWN) {
-    lbutton_down_point = pmouse->pt;
   }
 
   for (const auto& entry : mouse_handlers) {
