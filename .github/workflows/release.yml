@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - 'src/version.h'
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build workflow run ID (for re-running a failed release)'
+        required: true
 
 jobs:
   release:
@@ -49,25 +54,26 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
+          git tag -f -a "${{ env.VERSION }}" -m "${{ env.VERSION }}"
 
       - name: Generate Release Notes
         run: |
           chmod +x .github/workflows/genReleaseNote.sh
           .github/workflows/genReleaseNote.sh -v ${{ env.LAST_TAG }}...${{ env.VERSION }}
 
-      - name: Get Latest Workflow Run
+      - name: Get Build Run ID
         id: workflow
         run: |
-          RUN_ID=$(gh api repos/${{ github.repository }}/actions/workflows/build.yml/runs \
-            --jq '.workflow_runs[] | select(.event == "push" and .head_branch == "main" and .conclusion == "success") | .id' | head -n 1)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RUN_ID="${{ github.event.inputs.run_id }}"
+          else
+            RUN_ID=$(git log -1 --pretty=format:%b | grep -oP '(?<=Build-Run-Id: )\d+')
+          fi
           if [ -z "$RUN_ID" ]; then
-            echo "No successful push build run found for main branch." >&2
+            echo "Could not determine build run ID." >&2
             exit 1
           fi
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get SetDll Latest Release
         id: setdll
