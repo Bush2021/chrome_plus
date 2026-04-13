@@ -848,8 +848,12 @@ bool IsOnTabBar(POINT pt) {
     return true;
   }
 
-  return FindAncestorByClass(*session, pointed,
-                             L"HorizontalTabStripRegionView") != nullptr;
+  if (FindAncestorByClass(*session, pointed, L"HorizontalTabStripRegionView") !=
+      nullptr) {
+    return true;
+  }
+
+  return FindVerticalTabContainerAtPoint(*session, pointed).has_value();
 }
 
 bool IsOnBookmark(POINT pt) {
