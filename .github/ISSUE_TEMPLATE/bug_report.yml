@@ -42,4 +42,4 @@ body:
       description: |
         Please upload relevant screenshots, videos, or other files here to help illustrate the problem.
     validations:
-      required: false
+      required: true

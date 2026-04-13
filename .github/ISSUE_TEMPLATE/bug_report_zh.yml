@@ -42,4 +42,4 @@ body:
       description: |
         请在此处上传相关的截图、视频或其他文件来帮助说明问题。
     validations:
-      required: false
+      required: true
