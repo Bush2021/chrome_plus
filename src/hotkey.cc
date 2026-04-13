@@ -19,6 +19,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "com_initializer.h"
 #include "config.h"
 #include "utils.h"
 
@@ -26,29 +27,6 @@ namespace {
 
 using Microsoft::WRL::ComPtr;
 using HotkeyAction = void (*)();
-
-class ComInitializer {
- public:
-  ComInitializer() {
-    hr_ = CoInitialize(nullptr);
-    initialized_ = SUCCEEDED(hr_) || hr_ == RPC_E_CHANGED_MODE;
-    should_uninit_ = (hr_ == S_OK || hr_ == S_FALSE);
-  }
-  ~ComInitializer() {
-    if (should_uninit_) {
-      CoUninitialize();
-    }
-  }
-  ComInitializer(const ComInitializer&) = delete;
-  ComInitializer& operator=(const ComInitializer&) = delete;
-
-  [[nodiscard]] bool IsInitialized() const { return initialized_; }
-
- private:
-  HRESULT hr_ = E_FAIL;
-  bool initialized_ = false;
-  bool should_uninit_ = false;
-};
 
 // Static variables for internal use
 bool is_hide = false;
