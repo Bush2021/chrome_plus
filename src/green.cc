@@ -81,7 +81,7 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     *policy_value_1 &= ~static_cast<DWORD64>(
         ProcessCreationMitigationPolicy::BlockNonMicrosoftBinariesAlwaysOn);
     if (config.IsWin32K()) {
-      *policy_value_1 &= static_cast<DWORD64>(
+      *policy_value_1 &= ~static_cast<DWORD64>(
           ProcessCreationMitigationPolicy::Win32kSystemCallDisableAlwaysOn);
     }
   }
