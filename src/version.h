@@ -2,9 +2,9 @@
 #define CHROME_PLUS_SRC_VERSION_H_
 
 #define RELEASE_VER_MAIN 1
-#define RELEASE_VER_SUB 15
-#define RELEASE_VER_FIX 2
-#define RELEASE_VER_PRE_SUFFIX ""  // e.g. "-alpha.1", "-rc.2", or "" for stable
+#define RELEASE_VER_SUB 16
+#define RELEASE_VER_FIX 0
+#define RELEASE_VER_PRE_SUFFIX "-alpha.1"
 
 #define TOSTRING2(arg) #arg
 #define TOSTRING(arg) TOSTRING2(arg)
