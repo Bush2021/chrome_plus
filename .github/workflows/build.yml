@@ -54,7 +54,7 @@ jobs:
             COMMIT_HASH=$(git rev-parse --short HEAD)
             VERSION="alpha-${COMMIT_HASH}"
             echo "VERSION=$VERSION" >> $GITHUB_ENV
-            sed -i '/#define RELEASE_VER_STR/,/TOSTRING(RELEASE_VER_FIX)/c\#define RELEASE_VER_STR "'"$VERSION"'"' src/version.h
+            sed -i '/#define RELEASE_VER_STR/,/RELEASE_VER_PRE_SUFFIX/c\#define RELEASE_VER_STR "'"$VERSION"'"' src/version.h
           elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             INPUT_VERSION="${{ github.event.inputs.version }}"
             if [ -n "$INPUT_VERSION" ]; then
