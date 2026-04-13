@@ -21,11 +21,6 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Get Last Tag
-        run: |
-          LAST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1) || echo "0.0.0")
-          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
-
       - name: Get Version from version.h
         run: |
           MAJOR=$(grep '#define RELEASE_VER_MAIN' src/version.h | awk '{print $3}')
@@ -39,6 +34,16 @@ jobs:
           else
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
           fi
+
+      - name: Get Last Tag
+        run: |
+          if [ "${{ env.IS_PRERELEASE }}" = "true" ]; then
+            LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
+          else
+            LAST_TAG=$(git tag --sort=-version:refname | grep -v -- '-' | head -n 1)
+          fi
+          if [ -z "$LAST_TAG" ]; then LAST_TAG="0.0.0"; fi
+          echo "LAST_TAG=$LAST_TAG" >> $GITHUB_ENV
 
       - name: Create Tag
         run: |
