@@ -791,8 +791,14 @@ std::optional<TabHitResult> FindTabHitResult(POINT pt,
   }
 
   int tab_count = 0;
-  if (need_count && FAILED(tab_elements->get_Length(&tab_count))) {
-    return std::nullopt;
+  if (need_count) {
+    const auto raw_count =
+        CountDescendantsByClassRaw(*session, tab_container->element,
+                                   GetTabElementClassName(tab_container->kind));
+    if (!raw_count) {
+      return std::nullopt;
+    }
+    tab_count = *raw_count;
   }
 
   TabHitResult hit_result;
@@ -814,20 +820,13 @@ std::optional<int> FindTabCount(HWND hwnd) {
     return std::nullopt;
   }
 
-  if (const auto tab_elements = FindTabElements(*session, *tab_container);
-      tab_elements) {
-    int count = 0;
-    if (SUCCEEDED(tab_elements->get_Length(&count)) && count > 0) {
-      return count;
-    }
-  }
-
-  // Once a credible tab container is found, a raw traversal scoped to that
-  // container is safe and much narrower than searching the whole Chrome window.
-  const auto raw_count =
-      CountDescendantsByClassRaw(*session, tab_container->element,
-                                 GetTabElementClassName(tab_container->kind));
-  return raw_count;
+  // Raw view is required: tabs inside a collapsed tab group are hidden from
+  // control view but still present in the raw tree, and they must be counted so
+  // `keep_tab` does not mistake the last visible tab for the last tab overall.
+  // Scoping the raw traversal to a credible tab container keeps it cheap.
+  return CountDescendantsByClassRaw(
+      *session, tab_container->element,
+      GetTabElementClassName(tab_container->kind));
 }
 
 bool IsOnTabBar(POINT pt) {
