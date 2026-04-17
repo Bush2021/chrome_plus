@@ -4,7 +4,7 @@
 #define RELEASE_VER_MAIN 1
 #define RELEASE_VER_SUB 16
 #define RELEASE_VER_FIX 0
-#define RELEASE_VER_PRE_SUFFIX "-alpha.3"
+#define RELEASE_VER_PRE_SUFFIX "-alpha.4"
 
 #define TOSTRING2(arg) #arg
 #define TOSTRING(arg) TOSTRING2(arg)
