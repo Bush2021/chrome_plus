@@ -1,24 +1,38 @@
 name: Feature Request
-description: Suggest improvements for this project
+description: "Feature requests only. Questions, support requests, and configuration help posts are out of scope."
 title: "[Feature] "
 body:
   - type: checkboxes
     id: ensure
     attributes:
       label: Verification Steps
-      description: Before submitting, please check the following applicable options to prove that you have read and understood the following requirements, otherwise the issue will be closed.
+      description: Requests that ignore these rules may be closed without further discussion.
       options:
-        - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and understand the function of each configuration item.
+        - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and checked whether an existing option already covers my use case.
           required: true
-        - label: I have not searched for the feature request I want to propose in the [Issue Tracker](https://github.com/Bush2021/chrome_plus/issues) and did not find it.
+        - label: I searched [GitHub Issues](https://github.com/Bush2021/chrome_plus/issues) and did not find the same request.
+          required: true
+        - label: This is not a question, support request, configuration help request, or "how do I do this" post.
+          required: true
+        - label: I describe a concrete use case and expected behavior instead of a vague idea.
+          required: true
+        - label: This request is not better served by a browser extension or dedicated external software.
+          required: true
+        - label: I am willing to implement the feature and submit a pull request.
           required: false
-        - label: I am willing to create a pull request to implement the feature I proposed, otherwise I understand that the issue is likely to be closed.
+        - label: I understand that feature requests without implementation interest are likely to be closed.
           required: true
         - label: I make sure to describe the feature in English.
           required: true
   - type: textarea
+    id: description
     attributes:
       label: Description
-      description: Please provide a detailed description of the feature, rather than vague statements.
+      description: |
+        Use the following format:
+        1. Use case
+        2. Expected behavior
+        3. Why existing options are insufficient
+        4. Why an extension or external tool is not a better solution
     validations:
       required: true

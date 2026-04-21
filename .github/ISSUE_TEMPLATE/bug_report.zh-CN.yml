@@ -1,0 +1,74 @@
+name: 错误反馈
+description: "仅受理最新版稳定版 Google Chrome 的错误反馈。提问、求助和其它 Chromium 分支问题不受理。"
+title: "[Bug] "
+body:
+  - type: checkboxes
+    id: ensure
+    attributes:
+      label: 验证步骤
+      description: 不满足以下要求的 issue 会被直接关闭。
+      options:
+        - label: 我仔细阅读了 [INI 配置文件](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) 并理解相关配置项。
+          required: true
+        - label: 我确认问题发生在最新版稳定版 Google Chrome。
+          required: true
+        - label: 我使用的是当前最新的 Chrome++ release。
+          required: true
+        - label: 我提供了仍可复现该问题的最简配置。
+          required: true
+        - label: 我已经在干净环境中复现该问题，并已禁用扩展，排除了无关工具、注入器、覆盖层、启动器和界面修改工具的干扰。
+          required: true
+        - label: 我至少测试过一个更早的 Chrome++ 版本，并会提供最后一个正常版本；如果它从未正常工作，我也会明确写出。
+          required: true
+        - label: 我理解不受支持的 Chromium 分支、提问/求助类内容，以及缺少必要信息的报告都可能被直接关闭。
+          required: true
+        - label: 我确保使用中文清楚描述问题。
+          required: true
+  - type: textarea
+    id: version_info
+    attributes:
+      label: 版本信息
+      description: 请提供 `chrome://version/` 的截图，并补充 Windows 版本和 Chrome++ 版本。
+    validations:
+      required: true
+  - type: textarea
+    id: regression_check
+    attributes:
+      label: 回归检查
+      description: 请写明哪个更早的 Chrome++ 版本是正常的。如果你测试了旧版本但从未正常工作，也请明确写出。
+      placeholder: |
+        最后一个正常的 Chrome++ 版本：1.xx.x
+        第一个异常的 Chrome++ 版本：1.yy.y 或 latest
+        备注：从未正常工作 / 无法测试旧版本，原因是 ...
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      render: yaml
+      label: 最简配置文件
+      description: 请粘贴仍可复现问题的最简 `chrome++.ini` 内容，不要粘贴整份默认配置文件；请删除无关项和注释，只保留仍能复现问题的最小内容。
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 描述
+      description: |
+        请按以下格式填写：
+        1. 复现步骤
+        2. 预期行为
+        3. 实际行为
+        4. 已排除的干扰项
+    validations:
+      required: true
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 附件
+      description: |
+        请上传能让问题可验证的附件。
+        - UI、手势、标签页、交互类问题必须附录屏。
+        - 启动失败或崩溃问题必须附日志、Crashpad dump 或同等诊断信息。
+    validations:
+      required: true

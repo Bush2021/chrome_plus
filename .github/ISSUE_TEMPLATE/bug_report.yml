@@ -1,45 +1,74 @@
 name: Bug Report
-description: "Report Chrome++ Bug"
+description: "Latest stable Google Chrome only. Questions, support requests, and unsupported Chromium forks are out of scope."
 title: "[Bug] "
 body:
   - type: checkboxes
     id: ensure
     attributes:
-      label: Verify steps
-      description: Before submitting, please check the following applicable options to prove that you have read and understood the following requirements, otherwise the issue will be closed.
+      label: Verification Steps
+      description: Reports that do not satisfy these requirements may be closed without further discussion.
       options:
-        - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and understand the function of each configuration item.
+        - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and understand the relevant options.
           required: true
-        - label: I have not searched for the problem I want to raise in the [Issues Tracker](https://github.com/Bush2021/chrome_plus/issues).
-          required: false
-        - label: I have provided the simplest configuration that can be used to reproduce the error I reported.
+        - label: I confirmed the problem happens on the latest stable Google Chrome.
+          required: true
+        - label: I am using the latest Chrome++ release.
+          required: true
+        - label: I reproduced the problem with the simplest configuration that still triggers it.
+          required: true
+        - label: I reproduced the problem in a clean environment, with extensions disabled and unrelated tools, injectors, overlays, launchers, and UI modifiers ruled out.
+          required: true
+        - label: I tested at least one older Chrome++ release and will provide the last known good version, or clearly state that the problem never worked for me.
+          required: true
+        - label: I understand unsupported Chromium forks, questions, support requests, and reports missing required information may be closed.
           required: true
         - label: I make sure to describe the problem in English.
           required: true
-
   - type: textarea
+    id: version_info
     attributes:
       label: Version Information
-      description: Please provide a screenshot of `chrome://version/`.
+      description: Provide a screenshot of `chrome://version/`, and include your Windows version and the Chrome++ version.
     validations:
       required: true
   - type: textarea
+    id: regression_check
+    attributes:
+      label: Regression Check
+      description: State which older Chrome++ release still worked for you. If you tested older releases and the problem never worked, say that explicitly.
+      placeholder: |
+        Last known good Chrome++ version: 1.xx.x
+        First bad Chrome++ version: 1.yy.y or latest
+        Notes: never worked for me / could not test older releases because ...
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
     attributes:
       render: yaml
-      label: Configuration File
-      description: Please paste the simplest `chrome++.ini` content used to reproduce the problem.
+      label: Minimal Configuration File
+      description: Paste the simplest `chrome++.ini` content that still reproduces the problem. Remove unrelated options and comments instead of pasting the full default file.
     validations:
       required: true
   - type: textarea
+    id: description
     attributes:
       label: Description
-      description: Please provide a detailed description of the error and the steps to reproduce the error.
+      description: |
+        Use the following format:
+        1. Steps to reproduce
+        2. Expected behavior
+        3. Actual behavior
+        4. What I already ruled out
     validations:
       required: true
   - type: textarea
+    id: attachments
     attributes:
       label: Attachments
       description: |
-        Please upload relevant screenshots, videos, or other files here to help illustrate the problem.
+        Attach files that make the report verifiable.
+        - UI, gesture, tab, and interaction bugs must include a screen recording.
+        - Startup failures and crashes must include logs, Crashpad dumps, or comparable diagnostics.
     validations:
       required: true
