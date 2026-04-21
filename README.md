@@ -1,43 +1,66 @@
 # Chrome++ Next
-[![LICENSE](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main)  [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
+[![LICENSE](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg?style=for-the-badge&logo=github "LICENSE")](https://github.com/Bush2021/chrome_plus/blob/main/LICENSE) [![LAST COMMIT](https://img.shields.io/github/last-commit/Bush2021/chrome_plus?color=blue&logo=github&style=for-the-badge "LAST COMMIT")](https://github.com/Bush2021/chrome_plus/commits/main) [![STARS](https://img.shields.io/github/stars/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "STARS")](https://github.com/Bush2021/chrome_plus/stargazers) ![SIZES](https://img.shields.io/github/languages/code-size/Bush2021/chrome_plus?color=brightgreen&logo=github&style=for-the-badge "SIZES")
 
-English | [简体中文](README_CN.md)
+English | [简体中文](README.zh-CN.md)
 
-## Features
-* Double-click to close tab.
-* Right-click to close tab (hold Shift to show the original menu).
-* Preserve the last tab (prevent the browser from closing when the last tab is closed).
-* Use the mouse wheel to switch tabs when hovering over the tab bar.
-* Use the mouse wheel to switch tabs when holding the right mouse button.
-* Create new tab to opens the contents entered in address bar (can be configured to open in foreground or background).
-* Create new tab to opens bookmarks (can be configured to open in foreground or background).
-* Disable the above two features when the current tab is a new tab.
-* Customize hotkeys to quickly hide the browser window (boss key).
-* Customize hotkeys to translate web page.
-* Key mapping: Remap keyboard shortcuts to other keys or Chrome commands.
-* Portable design (incompatible with the original data; you can reinstall the system or change computers without losing data).
-* Allow custom Chromium command line switches.
-* For more features, see [INI configuration file](src/chrome++.ini).
+Chrome++ Next is a `version.dll` injection project for Google Chrome. It is loaded alongside `chrome.exe` and augments browser behavior at startup with tab, hotkey, portable, command-line, and policy-related features.
+
+## Overview
+- Targets Google Chrome on Windows.
+- Works by placing `version.dll` next to `chrome.exe`.
+- Focuses on practical browser behavior changes instead of UI wrappers or extensions.
+- Prioritizes capabilities that browser extensions cannot implement well, or that external tools do not solve cleanly.
+
+## Support Policy
+- Bug reports are accepted only for the latest stable Google Chrome.
+- Other Chromium-based browsers may work, but they are not supported targets.
+- Reporting requirements are enforced in the GitHub Issues templates.
 
 ## Download
-Built and released automatically using GitHub Actions. Download link: https://github.com/Bush2021/chrome_plus/releases/.
+- [Latest releases](https://github.com/Bush2021/chrome_plus/releases)
 
 ## Installation
-Please make sure to put `version.dll` in the same directory as `chrome.exe`. It's recommended to download the [Chrome offline installer package](https://github.com/Bush2021/chrome_installer), extract it twice to get the Chrome program files, and then place them in the [App](https://github.com/Bush2021/chrome_plus/releases/latest) folder.
+- Put `version.dll` in the same directory as `chrome.exe`.
+- The recommended installation method is to use the [Chrome offline installer package](https://github.com/Bush2021/chrome_installer), extract it twice, and use the unpacked Chrome program files directly.
+- The project is intended for portable Chrome deployments. If you keep updater components or other Chrome remnants on the system, you are responsible for the resulting environment-specific behavior.
+- If `version.dll` is not loaded correctly, you can try [setdll](https://github.com/Bush2021/setdll/).
 
-## Compatibility
-* All browsers based on the latest stable branches of Chromium are theoretically supported.
-* Only the latest stable version of Chrome is tested, and maintenance is not guaranteed.
-* If the DLL is not properly loaded, try to [set DLL](https://github.com/Bush2021/setdll/).
+## Capability Overview
+### Tab and bookmark behavior
+- Double-click to close tabs.
+- Right-click to close tabs, with `Shift` preserving the original menu.
+- Keep the last tab from closing the browser window.
+- Switch tabs with the mouse wheel over the tab strip.
+- Switch tabs with the mouse wheel while holding the right mouse button.
+- Open omnibox input or bookmarks in a new tab.
+- Control new-tab detection through `new_tab_disable` and `new_tab_disable_name`.
+
+### Hotkeys and input remapping
+- Configure a boss key to hide and restore Chrome windows, and mute or restore audio along with those actions.
+- Configure a translate hotkey.
+- Remap hotkeys to other key combinations or Chrome command IDs through `keymapping`.
+
+### Portable deployment and startup behavior
+- Override `data_dir` and `cache_dir` for portable use.
+- Append Chromium switches through `command_line`.
+- Run commands or programs with `launch_on_startup` and `launch_on_exit`.
+
+### Browser environment controls
+- Ignore enterprise policies with `ignore_policies`.
+- Enable the `win32k` fallback only when Chrome++ itself causes startup crashes.
+- Additional public options such as `show_password` remain documented in [`src/chrome++.ini`](src/chrome++.ini).
+
+## Configuration Reference
+- See [`src/chrome++.ini`](src/chrome++.ini) for the full public configuration surface.
 
 ## License
-* Versions 1.5.4 and earlier are licensed under MIT license, with all rights reserved by [Shuax](https://github.com/shuax/).
-* Version 1.5.5 - 1.5.9 are licensed under MIT license, with modifications made by contributors to this repository based on Shuax's version.
-* Versions 1.6.0 and later are licensed under [GPL-3.0 license](LICENSE).
+- Versions 1.5.4 and earlier are licensed under MIT, with all rights reserved by [Shuax](https://github.com/shuax/).
+- Versions 1.5.5 through 1.5.9 are licensed under MIT, with modifications by contributors in this repository based on Shuax's version.
+- Versions 1.6.0 and later are licensed under [GPL-3.0](LICENSE).
 
 ## Thanks
-* All [contributors](https://github.com/Bush2021/chrome_plus/graphs/contributors)
-* Original Author [Shuax](https://github.com/shuax/)
-* Revision code [provider](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1) for version 1.5.5
-* [面向大海](https://github.com/mxdh/)
-* [Ho Cheung](https://github.com/gz83/)
+- All [contributors](https://github.com/Bush2021/chrome_plus/graphs/contributors)
+- Original author [Shuax](https://github.com/shuax/)
+- Revision code [provider](https://forum.ru-board.com/topic.cgi?forum=5&topic=51073&start=620&limit=1&m=1#1) for version 1.5.5
+- [面向大海](https://github.com/mxdh/)
+- [Ho Cheung](https://github.com/gz83/)
