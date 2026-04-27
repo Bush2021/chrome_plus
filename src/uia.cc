@@ -616,43 +616,6 @@ std::optional<TabContainer> FindVerticalTabContainerAtPoint(
   return std::nullopt;
 }
 
-std::optional<TabContainer> FindHorizontalTabContainerAtPoint(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& pointed) {
-  if (!pointed) {
-    return std::nullopt;
-  }
-
-  if (const auto container =
-          FindAncestorOrSelfByClass(session, pointed, L"TabContainerImpl")) {
-    return TabContainer{container, TabContainerKind::kHorizontal};
-  }
-
-  if (const auto tab_strip = FindAncestorOrSelfByClass(
-          session, pointed, L"TabStrip::TabDragContextImpl")) {
-    if (const auto container =
-            FindSiblingByClass(session, tab_strip, L"TabContainerImpl")) {
-      return TabContainer{container, TabContainerKind::kHorizontal};
-    }
-  }
-
-  return std::nullopt;
-}
-
-std::optional<TabContainer> FindTabContainerAtPoint(const UiaSession& session,
-                                                    POINT pt) {
-  const auto pointed = GetElementAtPoint(session, pt);
-  if (!pointed) {
-    return std::nullopt;
-  }
-
-  if (const auto vertical = FindVerticalTabContainerAtPoint(session, pointed)) {
-    return vertical;
-  }
-
-  return FindHorizontalTabContainerAtPoint(session, pointed);
-}
-
 ComPtr<IUIAutomationElementArray> FindTabElements(
     const UiaSession& session,
     const TabContainer& tab_container) {
@@ -758,12 +721,11 @@ ComPtr<IUIAutomationElement> FindSelectedTabElement(
   return nullptr;
 }
 
-std::optional<TabHitResult> BuildTabHitResult(
-    const UiaSession& session,
-    const TabContainer& tab_container,
-    POINT pt,
-    bool need_count,
-    bool need_close_button) {
+std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
+                                              const TabContainer& tab_container,
+                                              POINT pt,
+                                              bool need_count,
+                                              bool need_close_button) {
   const auto tab_elements = FindTabElements(session, tab_container);
   if (!tab_elements) {
     return std::nullopt;
@@ -791,18 +753,6 @@ std::optional<TabHitResult> BuildTabHitResult(
   hit_result.on_close_button =
       need_close_button && IsOnTabCloseButton(session, tab_element, pt);
   return hit_result;
-}
-
-std::optional<TabContainer> FindTabContainerFromPointWindow(
-    const UiaSession& session,
-    POINT pt) {
-  HWND hwnd = WindowFromPoint(pt);
-  HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
-  if (!root || !IsChromeWindow(root)) {
-    return std::nullopt;
-  }
-
-  return FindTabContainerForWindow(session, root);
 }
 
 std::optional<std::wstring> GetNewTabButtonName(
@@ -879,22 +829,19 @@ std::optional<TabHitResult> FindTabHitResult(POINT pt,
     return std::nullopt;
   }
 
-  const auto tab_container = FindTabContainerAtPoint(*session, pt);
-  if (tab_container) {
-    if (const auto hit = BuildTabHitResult(
-        *session, *tab_container, pt, need_count, need_close_button)) {
-      return hit;
-    }
-  }
-
-  const auto fallback_container = FindTabContainerFromPointWindow(*session, pt);
-  if (!fallback_container) {
+  const HWND hwnd = WindowFromPoint(pt);
+  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  if (!root || !IsChromeWindow(root)) {
     return std::nullopt;
   }
 
-  const auto fallback_hit = BuildTabHitResult(
-      *session, *fallback_container, pt, need_count, need_close_button);
-  return fallback_hit;
+  const auto tab_container = FindTabContainerForWindow(*session, root);
+  if (!tab_container) {
+    return std::nullopt;
+  }
+
+  return BuildTabHitResult(*session, *tab_container, pt, need_count,
+                           need_close_button);
 }
 
 std::optional<int> FindTabCount(HWND hwnd) {
