@@ -34,6 +34,8 @@ class ScopedVariant {
 
 struct CachedClassConditions {
   ComPtr<IUIAutomationCondition> horizontal_tab_strip_region_view;
+  ComPtr<IUIAutomationCondition> vertical_tab_strip_region_view;
+  ComPtr<IUIAutomationCondition> vertical_tab_strip_bottom_container;
   ComPtr<IUIAutomationCondition> tab_strip_drag_context;
   ComPtr<IUIAutomationCondition> tab_container_impl;
   ComPtr<IUIAutomationCondition> vertical_unpinned_tab_container_view;
@@ -95,6 +97,12 @@ bool InitializeClassConditions(UiaSession* session) {
   return CreateClassCondition(session->automation,
                               L"HorizontalTabStripRegionView",
                               &conditions.horizontal_tab_strip_region_view) &&
+         CreateClassCondition(session->automation,
+                              L"VerticalTabStripRegionView",
+                              &conditions.vertical_tab_strip_region_view) &&
+         CreateClassCondition(
+             session->automation, L"VerticalTabStripBottomContainer",
+             &conditions.vertical_tab_strip_bottom_container) &&
          CreateClassCondition(session->automation,
                               L"TabStrip::TabDragContextImpl",
                               &conditions.tab_strip_drag_context) &&
@@ -410,13 +418,6 @@ ComPtr<IUIAutomationElement> FindAncestorByClass(
   return FindAncestorByClassImpl(session, element, class_name, false);
 }
 
-ComPtr<IUIAutomationElement> FindAncestorOrSelfByClass(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& element,
-    std::wstring_view class_name) {
-  return FindAncestorByClassImpl(session, element, class_name, true);
-}
-
 ComPtr<IUIAutomationElement> FindSiblingByClass(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& element,
@@ -589,70 +590,6 @@ std::optional<TabContainer> FindTabContainerForWindow(const UiaSession& session,
   return FindFullscreenTabContainerFallback(session, window_element, hwnd);
 }
 
-std::optional<TabContainer> FindVerticalTabContainerAtPoint(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& pointed) {
-  if (!pointed) {
-    return std::nullopt;
-  }
-
-  if (const auto container = FindAncestorOrSelfByClass(
-          session, pointed, L"VerticalUnpinnedTabContainerView")) {
-    return TabContainer{container, TabContainerKind::kVertical};
-  }
-
-  // Vertical tabs can be wrapped in an intermediate ScrollView. Restrict the
-  // extra subtree search to that wrapper instead of treating all ScrollView
-  // hits as tab UI.
-  if (const auto scroll_view =
-          FindAncestorOrSelfByClass(session, pointed, L"ScrollView")) {
-    if (const auto container = FindFirstDescendantByClass(
-            scroll_view,
-            session.class_conditions.vertical_unpinned_tab_container_view)) {
-      return TabContainer{container, TabContainerKind::kVertical};
-    }
-  }
-
-  return std::nullopt;
-}
-
-std::optional<TabContainer> FindHorizontalTabContainerAtPoint(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& pointed) {
-  if (!pointed) {
-    return std::nullopt;
-  }
-
-  if (const auto container =
-          FindAncestorOrSelfByClass(session, pointed, L"TabContainerImpl")) {
-    return TabContainer{container, TabContainerKind::kHorizontal};
-  }
-
-  if (const auto tab_strip = FindAncestorOrSelfByClass(
-          session, pointed, L"TabStrip::TabDragContextImpl")) {
-    if (const auto container =
-            FindSiblingByClass(session, tab_strip, L"TabContainerImpl")) {
-      return TabContainer{container, TabContainerKind::kHorizontal};
-    }
-  }
-
-  return std::nullopt;
-}
-
-std::optional<TabContainer> FindTabContainerAtPoint(const UiaSession& session,
-                                                    POINT pt) {
-  const auto pointed = GetElementAtPoint(session, pt);
-  if (!pointed) {
-    return std::nullopt;
-  }
-
-  if (const auto vertical = FindVerticalTabContainerAtPoint(session, pointed)) {
-    return vertical;
-  }
-
-  return FindHorizontalTabContainerAtPoint(session, pointed);
-}
-
 ComPtr<IUIAutomationElementArray> FindTabElements(
     const UiaSession& session,
     const TabContainer& tab_container) {
@@ -758,6 +695,40 @@ ComPtr<IUIAutomationElement> FindSelectedTabElement(
   return nullptr;
 }
 
+std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
+                                              const TabContainer& tab_container,
+                                              POINT pt,
+                                              bool need_count,
+                                              bool need_close_button) {
+  const auto tab_elements = FindTabElements(session, tab_container);
+  if (!tab_elements) {
+    return std::nullopt;
+  }
+
+  const auto tab_element = FindTabElementAtPoint(tab_elements, pt);
+  if (!tab_element) {
+    return std::nullopt;
+  }
+
+  int tab_count = 0;
+  if (need_count) {
+    const auto raw_count =
+        CountDescendantsByClassRaw(session, tab_container.element,
+                                   GetTabElementClassName(tab_container.kind));
+    if (!raw_count) {
+      return std::nullopt;
+    }
+    tab_count = *raw_count;
+  }
+
+  TabHitResult hit_result;
+  hit_result.tab = tab_element;
+  hit_result.tab_count = need_count ? tab_count : 0;
+  hit_result.on_close_button =
+      need_close_button && IsOnTabCloseButton(session, tab_element, pt);
+  return hit_result;
+}
+
 std::optional<std::wstring> GetNewTabButtonName(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& window_element) {
@@ -824,6 +795,30 @@ ComPtr<IUIAutomationElement> FindBookmarkCoveringPoint(
 
 }  // namespace
 
+// Resolve tabs through the root window's UIA tree instead of via
+// `IUIAutomation::ElementFromPoint`. UIA's documented contract for point
+// lookup is mouse-input-equivalence: the provider returned must
+// "correspond to the element that would receive mouse input at the
+// specified point" (`IRawElementProviderFragmentRoot::ElementProviderFrom-
+// Point` on Microsoft Learn). UIAutomationCore therefore routes through
+// Win32 hit-testing — `WindowFromPoint`/`ChildWindowFromPointEx` first,
+// then the resulting HWND's fragment-root provider — so a child HWND with
+// its own provider unconditionally shadows its parent for any point inside
+// the child's rect.
+
+// Chromium's `LegacyRenderWidgetHostHWND` (class
+// `Chrome_RenderWidgetHostHWND`, see content/browser/renderer_host/
+// legacy_render_widget_host_win.h) is a child HWND "the same size as the
+// content area" kept for screen-reader and legacy-trackpad-driver compat.
+// It covers the tab strip y-range and stays parented under
+// `Chrome_WidgetWin_1` even when DevTools is undocked, so
+// `ElementFromPoint` over a tab returns a node from its fragment tree
+// instead of the `Tab`. Chromium would have to implement
+// `IRawElementProviderHwndOverride` upstream to fix this in UIA itself.
+
+// Querying the tab container from the root window via `ElementFromHandle`
+// sidesteps HWND routing; the per-tab `PtInRect` inside `BuildTabHitResult`
+// still rejects clicks that miss every tab.
 std::optional<TabHitResult> FindTabHitResult(POINT pt,
                                              bool need_count,
                                              bool need_close_button) {
@@ -832,38 +827,19 @@ std::optional<TabHitResult> FindTabHitResult(POINT pt,
     return std::nullopt;
   }
 
-  const auto tab_container = FindTabContainerAtPoint(*session, pt);
+  const HWND hwnd = WindowFromPoint(pt);
+  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  if (!root || !IsChromeWindow(root)) {
+    return std::nullopt;
+  }
+
+  const auto tab_container = FindTabContainerForWindow(*session, root);
   if (!tab_container) {
     return std::nullopt;
   }
 
-  const auto tab_elements = FindTabElements(*session, *tab_container);
-  if (!tab_elements) {
-    return std::nullopt;
-  }
-
-  const auto tab_element = FindTabElementAtPoint(tab_elements, pt);
-  if (!tab_element) {
-    return std::nullopt;
-  }
-
-  int tab_count = 0;
-  if (need_count) {
-    const auto raw_count =
-        CountDescendantsByClassRaw(*session, tab_container->element,
-                                   GetTabElementClassName(tab_container->kind));
-    if (!raw_count) {
-      return std::nullopt;
-    }
-    tab_count = *raw_count;
-  }
-
-  TabHitResult hit_result;
-  hit_result.tab = tab_element;
-  hit_result.tab_count = need_count ? tab_count : 0;
-  hit_result.on_close_button =
-      need_close_button && IsOnTabCloseButton(*session, tab_element, pt);
-  return hit_result;
+  return BuildTabHitResult(*session, *tab_container, pt, need_count,
+                           need_close_button);
 }
 
 std::optional<int> FindTabCount(HWND hwnd) {
@@ -892,24 +868,35 @@ bool IsOnTabBar(POINT pt) {
     return false;
   }
 
-  const auto pointed = GetElementAtPoint(*session, pt);
-  if (!pointed) {
+  const HWND hwnd = WindowFromPoint(pt);
+  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  if (!root || !IsChromeWindow(root)) {
     return false;
   }
 
-  if (HasAnyClassName(
-          pointed, {L"HorizontalTabStripRegionView",
-                    L"TabStrip::TabDragContextImpl", L"TabStripControlButton",
-                    L"FrameGrabHandle", L"VerticalTabStripBottomContainer"})) {
-    return true;
+  const auto window_element = GetElementFromWindow(*session, root);
+  if (!window_element) {
+    return false;
   }
 
-  if (FindAncestorByClass(*session, pointed, L"HorizontalTabStripRegionView") !=
-      nullptr) {
-    return true;
+  for (const auto& condition :
+       {session->class_conditions.horizontal_tab_strip_region_view,
+        session->class_conditions.vertical_tab_strip_region_view,
+        session->class_conditions.vertical_tab_strip_bottom_container}) {
+    const auto region = FindFirstDescendantByClass(window_element, condition);
+    if (!region) {
+      continue;
+    }
+    RECT rect;
+    if (FAILED(region->get_CurrentBoundingRectangle(&rect))) {
+      continue;
+    }
+    if (PtInRect(&rect, pt)) {
+      return true;
+    }
   }
 
-  return FindVerticalTabContainerAtPoint(*session, pointed).has_value();
+  return false;
 }
 
 bool IsOnBookmark(POINT pt) {
