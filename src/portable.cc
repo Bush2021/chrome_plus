@@ -273,13 +273,36 @@ void Portable(LPWSTR param) {
   ::GetModuleFileName(nullptr, path, MAX_PATH);
 
   std::wstring args = GetCommand(param);
+  std::wstring command_line = QuoteSpaceIfNeeded(path);
+  if (!args.empty()) {
+    command_line.push_back(L' ');
+    command_line.append(args);
+  }
+  std::vector<wchar_t> command_line_buffer(command_line.begin(),
+                                           command_line.end());
+  command_line_buffer.emplace_back(L'\0');
 
-  SHELLEXECUTEINFO sei{.cbSize = sizeof(SHELLEXECUTEINFO),
-                       .fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI,
-                       .lpFile = path,
-                       .lpParameters = args.c_str(),
-                       .nShow = SW_SHOWNORMAL};
-  if (ShellExecuteEx(&sei)) {
+  STARTUPINFO startup_info{.cb = sizeof(STARTUPINFO),
+                           .dwFlags = STARTF_USESHOWWINDOW,
+                           .wShowWindow = SW_SHOWNORMAL};
+  PROCESS_INFORMATION process_info{};
+  const std::wstring& current_directory = GetAppDir();
+  // Keep this pre-entry relaunch on `CreateProcessW` instead of
+  // `ShellExecuteExW`. This code runs before Chromium's entry point, and the
+  // crash in #252 was captured while `ShellExecuteExW` had loaded
+  // shell32/Windows.Storage into that partially initialized injected chrome.exe
+  // process. Chromium's normal Windows launch path also uses `CreateProcessW`
+  // directly, after setting the browser process CWD to the executable
+  // directory. See:
+  // https://chromium.googlesource.com/chromium/src/+/HEAD/base/process/launch_win.cc#388
+  // https://chromium.googlesource.com/chromium/src/+/HEAD/chrome/app/chrome_exe_main_win.cc#61
+  // https://github.com/Bush2021/chrome_plus/issues/252
+  if (::CreateProcessW(path, command_line_buffer.data(), nullptr, nullptr,
+                       FALSE, 0, nullptr, current_directory.c_str(),
+                       &startup_info, &process_info)) {
+    ::CloseHandle(process_info.hThread);
+    ::CloseHandle(process_info.hProcess);
     ExitProcess(0);
   }
+  DebugLog(L"Create portable process failed: {}", GetLastError());
 }
