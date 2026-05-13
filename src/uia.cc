@@ -34,8 +34,6 @@ class ScopedVariant {
 
 struct CachedClassConditions {
   ComPtr<IUIAutomationCondition> horizontal_tab_strip_region_view;
-  ComPtr<IUIAutomationCondition> vertical_tab_strip_region_view;
-  ComPtr<IUIAutomationCondition> vertical_tab_strip_bottom_container;
   ComPtr<IUIAutomationCondition> tab_strip_drag_context;
   ComPtr<IUIAutomationCondition> tab_container_impl;
   ComPtr<IUIAutomationCondition> vertical_unpinned_tab_container_view;
@@ -97,12 +95,6 @@ bool InitializeClassConditions(UiaSession* session) {
   return CreateClassCondition(session->automation,
                               L"HorizontalTabStripRegionView",
                               &conditions.horizontal_tab_strip_region_view) &&
-         CreateClassCondition(session->automation,
-                              L"VerticalTabStripRegionView",
-                              &conditions.vertical_tab_strip_region_view) &&
-         CreateClassCondition(
-             session->automation, L"VerticalTabStripBottomContainer",
-             &conditions.vertical_tab_strip_bottom_container) &&
          CreateClassCondition(session->automation,
                               L"TabStrip::TabDragContextImpl",
                               &conditions.tab_strip_drag_context) &&
@@ -418,6 +410,13 @@ ComPtr<IUIAutomationElement> FindAncestorByClass(
   return FindAncestorByClassImpl(session, element, class_name, false);
 }
 
+ComPtr<IUIAutomationElement> FindAncestorOrSelfByClass(
+    const UiaSession& session,
+    const ComPtr<IUIAutomationElement>& element,
+    std::wstring_view class_name) {
+  return FindAncestorByClassImpl(session, element, class_name, true);
+}
+
 ComPtr<IUIAutomationElement> FindSiblingByClass(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& element,
@@ -588,6 +587,87 @@ std::optional<TabContainer> FindTabContainerForWindow(const UiaSession& session,
     return vertical;
   }
   return FindFullscreenTabContainerFallback(session, window_element, hwnd);
+}
+
+bool IsOnTabBarElement(const UiaSession& session,
+                       const ComPtr<IUIAutomationElement>& element) {
+  if (!element || !session.control_view_walker) {
+    return false;
+  }
+
+  ComPtr<IUIAutomationElement> current = element;
+  while (current) {
+    ScopedBstr class_name;
+    if (FAILED(current->get_CurrentClassName(class_name.Receive())) ||
+        !class_name) {
+      return false;
+    }
+
+    const std::wstring_view class_name_view(class_name.Get(),
+                                            class_name.Length());
+    if (std::ranges::contains(
+            std::initializer_list<std::wstring_view>{
+                L"HorizontalTabStripRegionView",
+                L"TabStrip::TabDragContextImpl", L"TabStripControlButton",
+                L"FrameGrabHandle", L"VerticalTabStripRegionView",
+                L"VerticalTabStripBottomContainer",
+                L"VerticalUnpinnedTabContainerView"},
+            class_name_view)) {
+      return true;
+    }
+
+    if (class_name_view == L"ScrollView" &&
+        FindFirstDescendantByClass(
+            current,
+            session.class_conditions.vertical_unpinned_tab_container_view)) {
+      return true;
+    }
+
+    ComPtr<IUIAutomationElement> parent;
+    if (FAILED(session.control_view_walker->GetParentElement(
+            current.Get(), parent.ReleaseAndGetAddressOf()))) {
+      return false;
+    }
+    current = std::move(parent);
+  }
+
+  return false;
+}
+
+std::optional<TabContainer> FindVerticalTabContainerAtPoint(
+    const UiaSession& session,
+    const ComPtr<IUIAutomationElement>& pointed) {
+  if (!pointed) {
+    return std::nullopt;
+  }
+
+  if (const auto container = FindAncestorOrSelfByClass(
+          session, pointed, L"VerticalUnpinnedTabContainerView")) {
+    return TabContainer{container, TabContainerKind::kVertical};
+  }
+
+  // Vertical tabs can be wrapped in an intermediate ScrollView. Restrict the
+  // extra subtree search to that wrapper instead of treating all ScrollView
+  // hits as tab UI.
+  if (const auto scroll_view =
+          FindAncestorOrSelfByClass(session, pointed, L"ScrollView")) {
+    if (const auto container = FindFirstDescendantByClass(
+            scroll_view,
+            session.class_conditions.vertical_unpinned_tab_container_view)) {
+      return TabContainer{container, TabContainerKind::kVertical};
+    }
+  }
+
+  if (const auto tab_strip_region = FindAncestorOrSelfByClass(
+          session, pointed, L"VerticalTabStripRegionView")) {
+    if (const auto container = FindFirstDescendantByClass(
+            tab_strip_region,
+            session.class_conditions.vertical_unpinned_tab_container_view)) {
+      return TabContainer{container, TabContainerKind::kVertical};
+    }
+  }
+
+  return std::nullopt;
 }
 
 ComPtr<IUIAutomationElementArray> FindTabElements(
@@ -868,35 +948,12 @@ bool IsOnTabBar(POINT pt) {
     return false;
   }
 
-  const HWND hwnd = WindowFromPoint(pt);
-  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
-  if (!root || !IsChromeWindow(root)) {
+  const auto pointed = GetElementAtPoint(*session, pt);
+  if (!pointed) {
     return false;
   }
 
-  const auto window_element = GetElementFromWindow(*session, root);
-  if (!window_element) {
-    return false;
-  }
-
-  for (const auto& condition :
-       {session->class_conditions.horizontal_tab_strip_region_view,
-        session->class_conditions.vertical_tab_strip_region_view,
-        session->class_conditions.vertical_tab_strip_bottom_container}) {
-    const auto region = FindFirstDescendantByClass(window_element, condition);
-    if (!region) {
-      continue;
-    }
-    RECT rect;
-    if (FAILED(region->get_CurrentBoundingRectangle(&rect))) {
-      continue;
-    }
-    if (PtInRect(&rect, pt)) {
-      return true;
-    }
-  }
-
-  return false;
+  return IsOnTabBarElement(*session, pointed);
 }
 
 bool IsOnBookmark(POINT pt) {
