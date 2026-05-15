@@ -410,13 +410,6 @@ ComPtr<IUIAutomationElement> FindAncestorByClass(
   return FindAncestorByClassImpl(session, element, class_name, false);
 }
 
-ComPtr<IUIAutomationElement> FindAncestorOrSelfByClass(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& element,
-    std::wstring_view class_name) {
-  return FindAncestorByClassImpl(session, element, class_name, true);
-}
-
 ComPtr<IUIAutomationElement> FindSiblingByClass(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& element,
@@ -632,42 +625,6 @@ bool IsOnTabBarElement(const UiaSession& session,
   }
 
   return false;
-}
-
-std::optional<TabContainer> FindVerticalTabContainerAtPoint(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& pointed) {
-  if (!pointed) {
-    return std::nullopt;
-  }
-
-  if (const auto container = FindAncestorOrSelfByClass(
-          session, pointed, L"VerticalUnpinnedTabContainerView")) {
-    return TabContainer{container, TabContainerKind::kVertical};
-  }
-
-  // Vertical tabs can be wrapped in an intermediate ScrollView. Restrict the
-  // extra subtree search to that wrapper instead of treating all ScrollView
-  // hits as tab UI.
-  if (const auto scroll_view =
-          FindAncestorOrSelfByClass(session, pointed, L"ScrollView")) {
-    if (const auto container = FindFirstDescendantByClass(
-            scroll_view,
-            session.class_conditions.vertical_unpinned_tab_container_view)) {
-      return TabContainer{container, TabContainerKind::kVertical};
-    }
-  }
-
-  if (const auto tab_strip_region = FindAncestorOrSelfByClass(
-          session, pointed, L"VerticalTabStripRegionView")) {
-    if (const auto container = FindFirstDescendantByClass(
-            tab_strip_region,
-            session.class_conditions.vertical_unpinned_tab_container_view)) {
-      return TabContainer{container, TabContainerKind::kVertical};
-    }
-  }
-
-  return std::nullopt;
 }
 
 ComPtr<IUIAutomationElementArray> FindTabElements(
