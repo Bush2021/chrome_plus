@@ -1,9 +1,12 @@
 .xmake/
 build/
 .vscode/
+.zed/
 .idea/
 .claude/
 AGENTS.md
 CLAUDE.md
 TODO.md
 cppguide.html
+compile_commands.json
+.cache/
