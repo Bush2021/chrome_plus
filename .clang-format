@@ -2,4 +2,4 @@
 
 Language: Cpp
 BasedOnStyle: Chromium
-Standard: c++23
+Standard: Latest
