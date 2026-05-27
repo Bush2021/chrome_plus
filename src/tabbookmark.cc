@@ -210,6 +210,13 @@ bool HandleBookmark(const MOUSEHOOKSTRUCT* pmouse) {
 
   if (!config.IsNewTabDisable() ||
       !IsOnNewTab(GetForegroundWindow(), config.GetDisableTabNames())) {
+    // The middle-click below carries no coordinates, so Windows fires it at the
+    // live cursor. The cursor can drift off `pt` between the mouse-up and this
+    // injection when the hand keeps moving after release, which in a vertical
+    // bookmark menu lands the click on the adjacent item. Re-anchor to the
+    // validated point so the click opens the bookmark that was actually under
+    // the cursor on release.
+    SetCursorPos(pt.x, pt.y);
     if (mode == 1) {
       SendKey(VK_MBUTTON, VK_SHIFT);
     } else if (mode == 2) {
