@@ -43,6 +43,7 @@ struct CachedClassConditions {
   ComPtr<IUIAutomationCondition> tab_close_button;
   ComPtr<IUIAutomationCondition> bookmark_button;
   ComPtr<IUIAutomationCondition> menu_item_view;
+  ComPtr<IUIAutomationCondition> top_container_view;
   ComPtr<IUIAutomationCondition> omnibox_view_views;
   ComPtr<IUIAutomationCondition> omnibox_result_view;
   ComPtr<IUIAutomationCondition> tab_strip_control_button;
@@ -59,6 +60,7 @@ struct UiaSession {
   ComPtr<IUIAutomationTreeWalker> control_view_walker;
   ComPtr<IUIAutomationTreeWalker> raw_view_walker;
   CachedClassConditions class_conditions;
+  ComPtr<IUIAutomationCacheRequest> bookmark_cache_request;
 };
 
 UiaSession& GetThreadLocalUiaSession() {
@@ -114,6 +116,8 @@ bool InitializeClassConditions(UiaSession* session) {
                               &conditions.bookmark_button) &&
          CreateClassCondition(session->automation, L"MenuItemView",
                               &conditions.menu_item_view) &&
+         CreateClassCondition(session->automation, L"TopContainerView",
+                              &conditions.top_container_view) &&
          CreateClassCondition(session->automation, L"OmniboxViewViews",
                               &conditions.omnibox_view_views) &&
          CreateClassCondition(session->automation, L"OmniboxResultView",
@@ -158,6 +162,15 @@ UiaSession* GetUiaSession() {
 
   if (!InitializeClassConditions(&session)) {
     DebugLog(L"UIA: failed to cache class conditions");
+    return nullptr;
+  }
+
+  if (FAILED(session.automation->CreateCacheRequest(
+          session.bookmark_cache_request.ReleaseAndGetAddressOf())) ||
+      !session.bookmark_cache_request ||
+      FAILED(session.bookmark_cache_request->AddProperty(
+          UIA_BoundingRectanglePropertyId))) {
+    DebugLog(L"UIA: failed to build bookmark cache request");
     return nullptr;
   }
 
@@ -373,41 +386,6 @@ std::optional<int> CountDescendantsByClassRaw(
     return false;
   });
   return count;
-}
-
-ComPtr<IUIAutomationElement> FindAncestorByClassImpl(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& element,
-    std::wstring_view class_name,
-    bool include_self) {
-  if (!element || !session.control_view_walker) {
-    return nullptr;
-  }
-
-  ComPtr<IUIAutomationElement> current = element;
-  if (include_self && HasClassName(current, class_name)) {
-    return current;
-  }
-
-  while (true) {
-    ComPtr<IUIAutomationElement> parent;
-    if (FAILED(session.control_view_walker->GetParentElement(
-            current.Get(), parent.ReleaseAndGetAddressOf())) ||
-        !parent) {
-      return nullptr;
-    }
-    if (HasClassName(parent, class_name)) {
-      return parent;
-    }
-    current = std::move(parent);
-  }
-}
-
-ComPtr<IUIAutomationElement> FindAncestorByClass(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& element,
-    std::wstring_view class_name) {
-  return FindAncestorByClassImpl(session, element, class_name, false);
 }
 
 ComPtr<IUIAutomationElement> FindSiblingByClass(
@@ -787,47 +765,74 @@ std::optional<std::wstring> GetNewTabButtonName(
   return cached_name;
 }
 
-ComPtr<IUIAutomationElement> FindBookmarkCoveringPoint(
-    const UiaSession& session,
+ComPtr<IUIAutomationElement> FindBookmarkInAnchor(
+    const ComPtr<IUIAutomationElement>& anchor,
+    const ComPtr<IUIAutomationCondition>& item_condition,
+    const ComPtr<IUIAutomationCacheRequest>& cache_request,
     POINT pt) {
-  const HWND window = GetAncestor(WindowFromPoint(pt), GA_ROOT);
-  if (!window || !IsChromeWindow(window)) {
+  // Batch every candidate's `BoundingRectangle` into the single
+  // `FindAllBuildCache` round-trip; the rect scan below then reads from the
+  // cache in-process.
+  ComPtr<IUIAutomationElementArray> elements;
+  if (FAILED(anchor->FindAllBuildCache(TreeScope_Subtree, item_condition.Get(),
+                                       cache_request.Get(),
+                                       elements.ReleaseAndGetAddressOf())) ||
+      !elements) {
     return nullptr;
   }
+  int length = 0;
+  if (FAILED(elements->get_Length(&length))) {
+    return nullptr;
+  }
+  for (int i = 0; i < length; ++i) {
+    ComPtr<IUIAutomationElement> element;
+    if (FAILED(elements->GetElement(i, element.ReleaseAndGetAddressOf())) ||
+        !element) {
+      continue;
+    }
+    RECT rect;
+    if (FAILED(element->get_CachedBoundingRectangle(&rect))) {
+      continue;
+    }
+    if (PtInRect(&rect, pt) && IsValidBookmark(element)) {
+      return element;
+    }
+  }
+  return nullptr;
+}
+
+// Resolve a bookmark under `pt` without `ElementFromPoint`, mirroring the tab
+// hit-testing approach (see the comment block above `FindTabHitResult`). The
+// scan is anchored to a subtree that has no web-content branch, so `FindFirst`
+// can never run off the browser chrome and descend into the renderer
+// accessibility tree.
+ComPtr<IUIAutomationElement>
+FindBookmarkCoveringPoint(const UiaSession& session, HWND window, POINT pt) {
   const auto window_element = GetElementFromWindow(session, window);
   if (!window_element) {
     return nullptr;
   }
 
-  for (const auto& condition : {session.class_conditions.bookmark_button,
-                                session.class_conditions.menu_item_view}) {
-    ComPtr<IUIAutomationElementArray> elements;
-    if (FAILED(window_element->FindAll(TreeScope_Subtree, condition.Get(),
-                                       elements.ReleaseAndGetAddressOf())) ||
-        !elements) {
-      continue;
-    }
-    int length = 0;
-    if (FAILED(elements->get_Length(&length))) {
-      continue;
-    }
-    for (int i = 0; i < length; ++i) {
-      ComPtr<IUIAutomationElement> element;
-      if (FAILED(elements->GetElement(i, element.ReleaseAndGetAddressOf())) ||
-          !element) {
-        continue;
-      }
-      RECT rect;
-      if (FAILED(element->get_CurrentBoundingRectangle(&rect))) {
-        continue;
-      }
-      if (PtInRect(&rect, pt) && IsValidBookmark(element)) {
-        return element;
-      }
-    }
+  // Main browser window: anchor the scan to `TopContainerView`, the content-
+  // free sibling of the page branch. `BookmarkButton` only ever lives in the
+  // bookmark bar beneath it, and the omnibox results popup is mirrored under a
+  // different `BrowserRootView` branch (outside `TopContainerView`), so a
+  // covered `BookmarkButton` is unambiguous -- no narrowing to
+  // `BookmarkBarView` and no former #238 z-order workaround needed.
+  if (const auto top_container = FindFirstDescendantByClass(
+          window_element, session.class_conditions.top_container_view)) {
+    return FindBookmarkInAnchor(top_container,
+                                session.class_conditions.bookmark_button,
+                                session.bookmark_cache_request, pt);
   }
 
-  return nullptr;
+  // Bookmark folder menu: its own top-level popup window, whose entire tree is
+  // content-free, so the window root is already a safe anchor. Items are
+  // `MenuItemView` (separators share the class but `IsValidBookmark` rejects
+  // them).
+  return FindBookmarkInAnchor(window_element,
+                              session.class_conditions.menu_item_view,
+                              session.bookmark_cache_request, pt);
 }
 
 }  // namespace
@@ -919,27 +924,22 @@ bool IsOnBookmark(POINT pt) {
     return false;
   }
 
-  const auto pointed = GetElementAtPoint(*session, pt);
-  if (!pointed) {
+  // Climb to the top-level window with `GA_ROOT` before gating and anchoring is
+  // needed. On secondary windows/monitors `WindowFromPoint` over a bookmark can
+  // return a child window -- the content area's `Chrome_RenderWidgetHostHWND`,
+  // or a child whose class is `Chrome_WidgetWin_1` as well. Gating on the bare
+  // handle then either rejects the click outright (render-widget host) or
+  // anchors the search to the content subtree and misses the bookmark bar on
+  // the top-level tree -- the #238 regression from dropping `GA_ROOT`. Web
+  // content is still screened out downstream since the search anchors
+  // `TopContainerView`, so a real page click lands in no `BookmarkButton` rect.
+  const HWND hwnd = WindowFromPoint(pt);
+  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  if (!root || !IsChromeWindow(root)) {
     return false;
   }
 
-  if (IsValidBookmark(pointed)) {
-    return true;
-  }
-
-  // UIA sometimes returns an `Omnibox Popup` descendant as the top-of-Z-order
-  // element on secondary windows (or monitors), even when a `BookmarkButton`
-  // rect also covers `pt`. Detect that case and re-scan the Chrome window for a
-  // bookmark whose rect contains `pt`. See #238.
-  const bool in_omnibox_popup =
-      FindAncestorByClass(*session, pointed, L"context-menu-container") ||
-      FindAncestorByClass(*session, pointed, L"RoundedOmniboxResultsFrame");
-  if (!in_omnibox_popup) {
-    return false;
-  }
-
-  return FindBookmarkCoveringPoint(*session, pt) != nullptr;
+  return FindBookmarkCoveringPoint(*session, root, pt) != nullptr;
 }
 
 bool IsOmniboxFocused() {
