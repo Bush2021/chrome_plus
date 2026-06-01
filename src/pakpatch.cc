@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <string>
+#include <string_view>
 
 #include "detours.h"
 
@@ -19,11 +20,8 @@ namespace {
 #define BUILD_ARCH " (32-bit)"
 #endif
 
-static DWORD resources_pak_size = 0;
 static HANDLE resources_pak_map = nullptr;
-static HANDLE resources_pak_file = nullptr;
 
-static auto RawCreateFile = CreateFileW;
 static auto RawCreateFileMapping = CreateFileMappingW;
 static auto RawMapViewOfFile = MapViewOfFile;
 
@@ -102,20 +100,47 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
                           dwFileOffsetLow, dwNumberOfBytesToMap);
 }
 
+// Identify `resources.pak` where it is mapped, by querying the handle, rather
+// than where it is opened. Chrome maps the pak with
+// `CreateFileMapping`/`MapViewOfFile` (`base::MemoryMappedFile`), so this hook
+// catches it directly in every process that loads it -- including the renderer,
+// which opens the pak by path itself (`AddDataPackFromPath` in
+// `ChromeMainDelegate::PreSandboxStartup`, before sandbox lockdown). The
+// previous `CreateFile` hook existed only to record that handle so this hook
+// could match it later; querying the handle here drops that second hook.
+// `GetFileInformationByHandleEx(FileNameInfo)` reads the path of a handle the
+// process already holds, which the sandbox permits -- it brokers new opens
+// (`NtCreateFile`/`NtOpenFile`), not operations on existing handles.
+// https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md
+bool IsResourcesPak(HANDLE hFile) {
+  if (hFile == nullptr || hFile == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+  alignas(FILE_NAME_INFO)
+      BYTE buffer[sizeof(FILE_NAME_INFO) + MAX_PATH * 2 * sizeof(wchar_t)];
+  auto* info = reinterpret_cast<FILE_NAME_INFO*>(buffer);
+  if (!GetFileInformationByHandleEx(hFile, FileNameInfo, info,
+                                    sizeof(buffer))) {
+    return false;
+  }
+  std::wstring_view name(info->FileName,
+                         info->FileNameLength / sizeof(wchar_t));
+  return name.ends_with(L"resources.pak");
+}
+
 HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                                   _In_opt_ LPSECURITY_ATTRIBUTES lpAttributes,
                                   _In_ DWORD flProtect,
                                   _In_ DWORD dwMaximumSizeHigh,
                                   _In_ DWORD dwMaximumSizeLow,
                                   _In_opt_ LPCTSTR lpName) {
-  if (hFile == resources_pak_file) {
-    // Modify it to be modifiable.
+  if (IsResourcesPak(hFile)) {
+    // Force copy-on-write so the mapped view can be patched in memory.
     resources_pak_map =
         RawCreateFileMapping(hFile, lpAttributes, PAGE_WRITECOPY,
                              dwMaximumSizeHigh, dwMaximumSizeLow, lpName);
 
     // No more hook needed.
-    resources_pak_file = nullptr;
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
     DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
@@ -140,63 +165,15 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                               dwMaximumSizeLow, lpName);
 }
 
-HANDLE WINAPI MyCreateFile(_In_ LPCTSTR lpFileName,
-                           _In_ DWORD dwDesiredAccess,
-                           _In_ DWORD dwShareMode,
-                           _In_opt_ LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-                           _In_ DWORD dwCreationDisposition,
-                           _In_ DWORD dwFlagsAndAttributes,
-                           _In_opt_ HANDLE hTemplateFile) {
-  HANDLE file = RawCreateFile(lpFileName, dwDesiredAccess, dwShareMode,
-                              lpSecurityAttributes, dwCreationDisposition,
-                              dwFlagsAndAttributes, hTemplateFile);
-
-  if (std::wstring(lpFileName).ends_with(L"resources.pak")) {
-    resources_pak_file = file;
-    resources_pak_size = GetFileSize(resources_pak_file, nullptr);
-
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
-                 reinterpret_cast<void*>(MyCreateFileMapping));
-    auto status = DetourTransactionCommit();
-    if (status != NO_ERROR) {
-      DebugLog(L"Hook RawCreateFileMapping failed {}", status);
-    }
-
-    // No more hook needed.
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
-    DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFile),
-                 reinterpret_cast<void*>(MyCreateFile));
-    status = DetourTransactionCommit();
-    if (status != NO_ERROR) {
-      DebugLog(L"Unhook RawCreateFile failed {}", status);
-    }
-  }
-
-  return file;
-}
-
 }  // namespace
 
 void PakPatch() {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFile),
-               reinterpret_cast<void*>(MyCreateFile));
+  DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
+               reinterpret_cast<void*>(MyCreateFileMapping));
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
-    DebugLog(L"Hook RawCreateFile failed {}", status);
+    DebugLog(L"Hook RawCreateFileMapping failed {}", status);
   }
 }
-
-// TODO: If Chrome forces `WebUIInProcessResourceLoading`, we may try two ways.
-// 1. Instead of modifying view, we create a page file with modified content,
-// and return its handle.
-// 2. In crbugs.com/362511750, there is a exception saying that "Dynamic
-// Resources (out of scope): resources not included in the ui::ResourceBundle
-// ... will still require IPCs". So if we can make the html a dynamic resource,
-// or modify the index of ResourceBundle (e.g., point it to empty) to trigger
-// fallback, it may work. We need to research more on
-// ResourceBundle::GetRawDataResource().

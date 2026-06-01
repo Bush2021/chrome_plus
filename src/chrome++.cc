@@ -13,8 +13,8 @@
 #include "inputhook.h"
 #include "keymapping.h"
 #include "pakpatch.h"
-#include "portable.h"
 #include "policies.h"
+#include "portable.h"
 #include "tabbookmark.h"
 #include "utils.h"
 #include "version.h"
@@ -65,6 +65,18 @@ int Loader() {
   // DebugLog(L"param {}", param);
   if (!wcsstr(param, L"-type=")) {
     ChromePlusCommand(param);
+  } else if (wcsstr(param, L"--type=renderer")) {
+    // With in-process WebUI resource loading on (V1, crrev.com/c/5868139,
+    // crbug.com/362511750), the browser fills `LocalResourceLoaderConfig`
+    // (content/browser/webui/web_ui_impl.cc) and the renderer materializes
+    // WebUI from its own inherited-handle `resources.pak`
+    // (ui/base/resource/data_pack.cc), not over IPC. So the renderer must
+    // patch that mapping itself to keep the injection from #172. We stopped
+    // forcing V1 off because the field trial enabling
+    // `InitialWebUISyncNavStartToCommit` (crrev.com/c/7778247) then made the
+    // renderer CHECK that config (content/renderer/render_frame_impl.cc) and
+    // crash (#263). Other sub-process types never serve WebUI, so skip them.
+    PakPatch();
   }
 
   // Return to the main function.

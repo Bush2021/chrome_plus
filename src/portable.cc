@@ -12,27 +12,6 @@
 #include "utils.h"
 
 namespace {
-// Note: As of Chromium M140, it seems that the `ScriptStreamingForNonHTTP`
-// feature flag no longer works. We switch to using the
-// `--disable-features=WebUIInProcessResourceLoading` flag instead.
-
-// The `--disable-features=WebUIInProcessResourceLoading` flag is added to
-// address https://github.com/Bush2021/chrome_plus/issues/172. Google Chrome
-// receives field trial configurations from the variations server, which can be
-// inspected via `chrome://version/?show-variations-cmd`. This mechanism causes
-// certain features (`base::Feature`) to be enabled or disabled dynamically,
-// leading to behavioral differences that may not be reproducible across all
-// environments. Adding `--enable-benchmarking` can force all features to a
-// fixed state, disabling randomization and making it easier to diagnose whether
-// an observed issue is caused by a non-default `base::Feature` configuration.
-//
-// In this case, it was found that disabling `WebUIInProcessResourceLoading`
-// restores normal behavior. This affects how Chrome WebUI pages (such as
-// `about:` or `chrome://`) load resources. See
-// https://issues.chromium.org/issues/362511750 and
-// https://chromium-review.googlesource.com/c/chromium/src/+/5868139 for
-// details. If this workaround becomes ineffective in the future, more in-depth
-// modifications may be required.
 
 bool IsWhitespace(wchar_t ch) {
   switch (ch) {
@@ -195,9 +174,12 @@ ProcessedArgs ProcessAndMergeArgs(const std::vector<std::wstring>& args) {
   if (!combined_features.empty()) {
     combined_features.append(L",");
   }
-  // See the comment at the start of the namespace for details on these.
-  combined_features.append(
-      L"WinSboxNoFakeGdiInit,WebUIInProcessResourceLoading");
+  // `WinSboxNoFakeGdiInit` is force-disabled so the injected `version.dll` can
+  // load inside sandboxed Chrome sub-processes: with the feature enabled, a
+  // win32k-lockdown process fails to load gdi32/user32 rather than getting a
+  // fake init, which breaks the injected DLL's dependencies (Chromium
+  // `sandbox/policy/features.cc`).
+  combined_features.append(L"WinSboxNoFakeGdiInit");
   result.final_args.emplace_back(disable_features_prefix + combined_features);
 
   return result;
