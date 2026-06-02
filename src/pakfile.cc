@@ -180,6 +180,11 @@ void TraversalGZIPFile(uint8_t* buffer,
           std::ranges::copy(src_span.subspan(10),
                             entry_data.begin() + 12 + extra_length);
         }
+        // Only one resource is the patch target; once the callback has handled
+        // it there is nothing left to find, so stop scanning the rest of the
+        // pak to avoid decompressing every remaining entry in each renderer
+        // process.
+        break;
       }
     }
     pak_entry = next_entry;
