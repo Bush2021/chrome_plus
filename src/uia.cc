@@ -60,7 +60,6 @@ struct UiaSession {
   ComPtr<IUIAutomationTreeWalker> control_view_walker;
   ComPtr<IUIAutomationTreeWalker> raw_view_walker;
   CachedClassConditions class_conditions;
-  ComPtr<IUIAutomationCacheRequest> bookmark_cache_request;
 };
 
 UiaSession& GetThreadLocalUiaSession() {
@@ -162,15 +161,6 @@ UiaSession* GetUiaSession() {
 
   if (!InitializeClassConditions(&session)) {
     DebugLog(L"UIA: failed to cache class conditions");
-    return nullptr;
-  }
-
-  if (FAILED(session.automation->CreateCacheRequest(
-          session.bookmark_cache_request.ReleaseAndGetAddressOf())) ||
-      !session.bookmark_cache_request ||
-      FAILED(session.bookmark_cache_request->AddProperty(
-          UIA_BoundingRectanglePropertyId))) {
-    DebugLog(L"UIA: failed to build bookmark cache request");
     return nullptr;
   }
 
@@ -768,15 +758,10 @@ std::optional<std::wstring> GetNewTabButtonName(
 ComPtr<IUIAutomationElement> FindBookmarkInAnchor(
     const ComPtr<IUIAutomationElement>& anchor,
     const ComPtr<IUIAutomationCondition>& item_condition,
-    const ComPtr<IUIAutomationCacheRequest>& cache_request,
     POINT pt) {
-  // Batch every candidate's `BoundingRectangle` into the single
-  // `FindAllBuildCache` round-trip; the rect scan below then reads from the
-  // cache in-process.
   ComPtr<IUIAutomationElementArray> elements;
-  if (FAILED(anchor->FindAllBuildCache(TreeScope_Subtree, item_condition.Get(),
-                                       cache_request.Get(),
-                                       elements.ReleaseAndGetAddressOf())) ||
+  if (FAILED(anchor->FindAll(TreeScope_Subtree, item_condition.Get(),
+                             elements.ReleaseAndGetAddressOf())) ||
       !elements) {
     return nullptr;
   }
@@ -791,7 +776,7 @@ ComPtr<IUIAutomationElement> FindBookmarkInAnchor(
       continue;
     }
     RECT rect;
-    if (FAILED(element->get_CachedBoundingRectangle(&rect))) {
+    if (FAILED(element->get_CurrentBoundingRectangle(&rect))) {
       continue;
     }
     if (PtInRect(&rect, pt) && IsValidBookmark(element)) {
@@ -822,8 +807,7 @@ FindBookmarkCoveringPoint(const UiaSession& session, HWND window, POINT pt) {
   if (const auto top_container = FindFirstDescendantByClass(
           window_element, session.class_conditions.top_container_view)) {
     return FindBookmarkInAnchor(top_container,
-                                session.class_conditions.bookmark_button,
-                                session.bookmark_cache_request, pt);
+                                session.class_conditions.bookmark_button, pt);
   }
 
   // Bookmark folder menu: its own top-level popup window, whose entire tree is
@@ -831,8 +815,7 @@ FindBookmarkCoveringPoint(const UiaSession& session, HWND window, POINT pt) {
   // `MenuItemView` (separators share the class but `IsValidBookmark` rejects
   // them).
   return FindBookmarkInAnchor(window_element,
-                              session.class_conditions.menu_item_view,
-                              session.bookmark_cache_request, pt);
+                              session.class_conditions.menu_item_view, pt);
 }
 
 }  // namespace
