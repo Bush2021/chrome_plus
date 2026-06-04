@@ -48,6 +48,7 @@ Chrome++ Next is a `version.dll` injection project for Google Chrome. It is load
 ### Browser environment controls
 - Ignore enterprise policies with `ignore_policies`.
 - Enable the `win32k` fallback only when Chrome++ itself causes startup crashes.
+- Suppress Chrome's false "out of date" upgrade notification on portable installs with `suppress_false_upgrade_notification`.
 - Additional public options such as `show_password` remain documented in [`src/chrome++.ini`](src/chrome++.ini).
 
 ## Configuration Reference

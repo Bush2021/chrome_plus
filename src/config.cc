@@ -33,6 +33,10 @@ void Config::LoadConfig() {
                                     GetIniPath().c_str()) != 0;
   ignore_policies_ = ::GetPrivateProfileIntW(L"general", L"ignore_policies", 0,
                                              GetIniPath().c_str()) != 0;
+  suppress_false_upgrade_notification_ =
+      ::GetPrivateProfileIntW(L"general",
+                              L"suppress_false_upgrade_notification", 0,
+                              GetIniPath().c_str()) != 0;
 
   // tabs
   keep_last_tab_ = ::GetPrivateProfileIntW(L"tabs", L"keep_last_tab", 1,

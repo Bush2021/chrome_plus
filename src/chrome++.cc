@@ -16,6 +16,7 @@
 #include "policies.h"
 #include "portable.h"
 #include "tabbookmark.h"
+#include "upgradenotification.h"
 #include "utils.h"
 #include "version.h"
 
@@ -44,6 +45,9 @@ void ChromePlus() {
 
   // Patch the pak file.
   PakPatch();
+
+  // Suppress Chrome's false "out of date" upgrade notification.
+  SuppressFalseUpgradeNotification();
 
   // Process the hotkey.
   GetHotkey();

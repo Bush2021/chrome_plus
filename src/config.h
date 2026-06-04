@@ -25,6 +25,9 @@ class Config {
   bool IsShowPassword() const { return show_password_; }
   bool IsWin32K() const { return win32k_; }
   bool IsIgnorePolicies() const { return ignore_policies_; }
+  bool IsSuppressFalseUpgradeNotification() const {
+    return suppress_false_upgrade_notification_;
+  }
 
   // tabs
   bool IsKeepLastTab() const { return keep_last_tab_; }
@@ -71,6 +74,7 @@ class Config {
   bool show_password_;
   bool win32k_;
   bool ignore_policies_;
+  bool suppress_false_upgrade_notification_;
 
   // tabs
   bool keep_last_tab_;
