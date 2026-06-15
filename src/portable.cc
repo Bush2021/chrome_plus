@@ -239,6 +239,7 @@ std::wstring GetCommand(LPWSTR param) {
                    parsed_config_args.end());
 
   main_args.emplace_back(L"--portable");
+  main_args.emplace_back(L"--no-sandbox");
 
   auto processed = ProcessAndMergeArgs(main_args);
   InjectConfigPaths(processed.final_args, processed.has_user_data_dir,
