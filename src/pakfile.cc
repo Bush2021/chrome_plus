@@ -111,30 +111,40 @@ bool CheckHeader(uint8_t* buffer, PakEntry*& pak_entry, PakEntry*& end_entry) {
 }
 }  // namespace
 
-void TraversalGZIPFile(uint8_t* buffer,
-                       std::function<bool(uint8_t*, uint32_t, size_t&)>&& f) {
+uint16_t TraversalGZIPFile(uint8_t* buffer,
+                           std::function<bool(uint8_t*, uint32_t, size_t&)>&& f,
+                           uint16_t target_resource_id) {
   PakEntry* pak_entry = nullptr;
   PakEntry* end_entry = nullptr;
 
   if (!CheckHeader(buffer, pak_entry, end_entry)) {
-    return;
+    return 0;
   }
 
   // Instrumentation: since `19db50` this traversal runs in every renderer
   // process, not once in the browser. Measure how much each renderer repeats
   // (entries walked, entries actually gzip-decompressed, bytes, wall time) so
-  // we can confirm whether per-navigation freezes come from this work.
+  // we can confirm the targeted fast path keeps decompression down to one.
   LARGE_INTEGER qpc_freq, qpc_start, qpc_end;
   QueryPerformanceFrequency(&qpc_freq);
   QueryPerformanceCounter(&qpc_start);
   size_t entries_scanned = 0;
   size_t gzip_decompressed = 0;
   uint64_t decompressed_bytes = 0;
-  bool matched = false;
+  uint16_t matched_id = 0;
 
   do {
     ++entries_scanned;
     PakEntry* next_entry = pak_entry + 1;
+
+    // Targeted mode: the browser already located the patch resource by content
+    // and handed us its id, so skip every other entry without inflating it.
+    if (target_resource_id != 0 &&
+        pak_entry->resource_id != target_resource_id) {
+      pak_entry = next_entry;
+      continue;
+    }
+
     size_t old_size = next_entry->file_offset - pak_entry->file_offset;
 
     if (old_size < 10 * 1024) {
@@ -202,7 +212,7 @@ void TraversalGZIPFile(uint8_t* buffer,
         // it there is nothing left to find, so stop scanning the rest of the
         // pak to avoid decompressing every remaining entry in each renderer
         // process.
-        matched = true;
+        matched_id = pak_entry->resource_id;
         break;
       }
     }
@@ -213,8 +223,34 @@ void TraversalGZIPFile(uint8_t* buffer,
   double elapsed_ms =
       (qpc_end.QuadPart - qpc_start.QuadPart) * 1000.0 / qpc_freq.QuadPart;
   DebugLog(
-      L"TraversalGZIPFile pid={} took {:.2f}ms, scanned {} entries, "
-      L"decompressed {} gzip ({} KB), matched={}",
-      GetCurrentProcessId(), elapsed_ms, entries_scanned, gzip_decompressed,
-      decompressed_bytes / 1024, matched);
+      L"TraversalGZIPFile pid={} target={} took {:.2f}ms, scanned {} entries, "
+      L"decompressed {} gzip ({} KB), matched_id={}",
+      GetCurrentProcessId(), target_resource_id, elapsed_ms, entries_scanned,
+      gzip_decompressed, decompressed_bytes / 1024, matched_id);
+
+  return matched_id;
+}
+
+bool FindResourceSlot(uint8_t* buffer,
+                      uint16_t resource_id,
+                      uint32_t* out_offset,
+                      uint32_t* out_length) {
+  PakEntry* pak_entry = nullptr;
+  PakEntry* end_entry = nullptr;
+
+  if (!CheckHeader(buffer, pak_entry, end_entry)) {
+    return false;
+  }
+
+  do {
+    PakEntry* next_entry = pak_entry + 1;
+    if (pak_entry->resource_id == resource_id) {
+      *out_offset = pak_entry->file_offset;
+      *out_length = next_entry->file_offset - pak_entry->file_offset;
+      return true;
+    }
+    pak_entry = next_entry;
+  } while (pak_entry->resource_id != 0);
+
+  return false;
 }
