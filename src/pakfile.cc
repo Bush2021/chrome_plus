@@ -10,6 +10,8 @@
 #include <span>
 #include <vector>
 
+#include "utils.h"
+
 #pragma warning(disable : 4334)
 #pragma warning(disable : 4267)
 #pragma warning(disable : 4838)
@@ -118,7 +120,20 @@ void TraversalGZIPFile(uint8_t* buffer,
     return;
   }
 
+  // Instrumentation: since `19db50` this traversal runs in every renderer
+  // process, not once in the browser. Measure how much each renderer repeats
+  // (entries walked, entries actually gzip-decompressed, bytes, wall time) so
+  // we can confirm whether per-navigation freezes come from this work.
+  LARGE_INTEGER qpc_freq, qpc_start, qpc_end;
+  QueryPerformanceFrequency(&qpc_freq);
+  QueryPerformanceCounter(&qpc_start);
+  size_t entries_scanned = 0;
+  size_t gzip_decompressed = 0;
+  uint64_t decompressed_bytes = 0;
+  bool matched = false;
+
   do {
+    ++entries_scanned;
     PakEntry* next_entry = pak_entry + 1;
     size_t old_size = next_entry->file_offset - pak_entry->file_offset;
 
@@ -147,6 +162,9 @@ void TraversalGZIPFile(uint8_t* buffer,
       pak_entry = next_entry;
       continue;
     }
+
+    ++gzip_decompressed;
+    decompressed_bytes += original_size;
 
     struct mini_gzip gz;
     mini_gz_start(&gz, buffer + pak_entry->file_offset, old_size);
@@ -184,9 +202,19 @@ void TraversalGZIPFile(uint8_t* buffer,
         // it there is nothing left to find, so stop scanning the rest of the
         // pak to avoid decompressing every remaining entry in each renderer
         // process.
+        matched = true;
         break;
       }
     }
     pak_entry = next_entry;
   } while (pak_entry->resource_id != 0);
+
+  QueryPerformanceCounter(&qpc_end);
+  double elapsed_ms =
+      (qpc_end.QuadPart - qpc_start.QuadPart) * 1000.0 / qpc_freq.QuadPart;
+  DebugLog(
+      L"TraversalGZIPFile pid={} took {:.2f}ms, scanned {} entries, "
+      L"decompressed {} gzip ({} KB), matched={}",
+      GetCurrentProcessId(), elapsed_ms, entries_scanned, gzip_decompressed,
+      decompressed_bytes / 1024, matched);
 }

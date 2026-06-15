@@ -134,7 +134,13 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
                                   _In_ DWORD dwMaximumSizeHigh,
                                   _In_ DWORD dwMaximumSizeLow,
                                   _In_opt_ LPCTSTR lpName) {
+  static unsigned int create_mapping_calls = 0;
+  ++create_mapping_calls;
   if (IsResourcesPak(hFile)) {
+    DebugLog(
+        L"PakPatch: resources.pak matched in pid={} after {} "
+        L"CreateFileMapping call(s)",
+        GetCurrentProcessId(), create_mapping_calls);
     // Force copy-on-write so the mapped view can be patched in memory.
     resources_pak_map =
         RawCreateFileMapping(hFile, lpAttributes, PAGE_WRITECOPY,
