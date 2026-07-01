@@ -4,6 +4,7 @@
 #include <wrl/client.h>
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <optional>
 #include <string_view>
@@ -50,6 +51,33 @@ struct CachedClassConditions {
   ComPtr<IUIAutomationCondition> frame_grab_handle;
 };
 
+enum class TabContainerKind {
+  kHorizontal,
+  kVertical,
+};
+
+struct TabContainer {
+  ComPtr<IUIAutomationElement> element;
+  TabContainerKind kind = TabContainerKind::kHorizontal;
+};
+
+// Tab UI resolved for one top-level window, kept until an element dies or the
+// window/fullscreen state changes. UIA elements are live references, so
+// property reads on cached elements (bounding rectangles in particular) track
+// resizes without re-resolving; a re-created tab strip fails the read instead,
+// which invalidates the entry.
+struct TabUiCache {
+  HWND window = nullptr;
+  bool fullscreen = false;
+  // Windows without tab UI (popups, app windows) would re-run the resolve on
+  // every click; remember the failure and retry at most once a second.
+  ULONGLONG retry_after_ticks = 0;
+  // Null when the container came from the fullscreen raw-view fallback (the
+  // control view hides the tab strip region there).
+  ComPtr<IUIAutomationElement> region;
+  TabContainer container;
+};
+
 // TODO: Evaluate `IUIAutomationCacheRequest` and `BuildCache` for tab
 // enumeration if tab scans become a measurable hot path.
 struct UiaSession {
@@ -60,6 +88,7 @@ struct UiaSession {
   ComPtr<IUIAutomationTreeWalker> control_view_walker;
   ComPtr<IUIAutomationTreeWalker> raw_view_walker;
   CachedClassConditions class_conditions;
+  TabUiCache tab_ui_cache;
 };
 
 UiaSession& GetThreadLocalUiaSession() {
@@ -214,17 +243,6 @@ ComPtr<IUIAutomationElement> GetElementFromWindow(const UiaSession& session,
   return element;
 }
 
-ComPtr<IUIAutomationElement> GetElementAtPoint(const UiaSession& session,
-                                               POINT pt) {
-  ComPtr<IUIAutomationElement> element;
-  if (FAILED(session.automation->ElementFromPoint(
-          pt, element.ReleaseAndGetAddressOf())) ||
-      !element) {
-    return nullptr;
-  }
-  return element;
-}
-
 std::optional<std::wstring> GetStringProperty(
     const ComPtr<IUIAutomationElement>& element,
     PROPERTYID property_id) {
@@ -345,21 +363,6 @@ ComPtr<IUIAutomationElement> FindFirstDescendantByClass(
   return hit;
 }
 
-ComPtr<IUIAutomationElement> FindFirstDescendantByClassRaw(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& root,
-    std::wstring_view class_name) {
-  ComPtr<IUIAutomationElement> hit;
-  TraverseDescendantsRaw(session, root, [&](const auto& node) {
-    if (HasClassName(node, class_name)) {
-      hit = node;
-      return true;
-    }
-    return false;
-  });
-  return hit;
-}
-
 std::optional<int> CountDescendantsByClassRaw(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& root,
@@ -410,15 +413,115 @@ ComPtr<IUIAutomationElement> FindSiblingByClass(
   return nullptr;
 }
 
-enum class TabContainerKind {
-  kHorizontal,
-  kVertical,
-};
+// True when the element roots a hosted-HWND subtree (its native window
+// handle is set). Views elements are virtual children of the top-level
+// window and report no handle of their own.
+bool HasNativeWindowHandle(const ComPtr<IUIAutomationElement>& element) {
+  if (!element) {
+    return false;
+  }
 
-struct TabContainer {
-  ComPtr<IUIAutomationElement> element;
-  TabContainerKind kind = TabContainerKind::kHorizontal;
-};
+  UIA_HWND native_window = nullptr;
+  if (FAILED(element->get_CurrentNativeWindowHandle(&native_window))) {
+    return false;
+  }
+  return native_window != nullptr;
+}
+
+// Breadth-first search for the first descendant whose class name is in
+// `target_class_names`, restricted to the browser chrome.
+
+// `FindFirst(TreeScope_Subtree)` from the window root is pre-order, and the
+// web-content branch precedes the tab strip there (`BrowserView` children in
+// order: `TopContainerView`, the content `View ▸ MultiContentsView ▸
+// Document`, and only then `HorizontalTabStripRegionView`. Every such search
+// walked the entire renderer accessibility tree, and the first touch of web
+// content makes Chromium turn on `AXMode::kWebContents` for the rest of the
+// session, after which the renderer maintains a full accessibility tree for
+// every page (ui/accessibility/platform/ax_platform.h,
+// `OnPropertiesUsedInWebContent`). That combination was the DOM-heavy-page
+// click/resize/scroll lag of issue #270.
+
+// BFS reaches the tab strip region at its shallow depth after a couple dozen
+// class reads without entering sibling subtrees, and web content stays
+// structurally unreachable: the walk never descends into an element hosting
+// its own HWND (`Intermediate D3D Window`, the WebContents host
+// `Chrome_WidgetWin_1`, `Chrome_RenderWidgetHostHWND`) nor into the known
+// content-branch views, and `max_visited`/depth budgets bound the walk even
+// if a future Chrome reshuffles the tree.
+ComPtr<IUIAutomationElement> FindShallowDescendantByClasses(
+    IUIAutomationTreeWalker* walker,
+    const ComPtr<IUIAutomationElement>& anchor,
+    std::initializer_list<std::wstring_view> target_class_names,
+    int max_visited) {
+  if (!walker || !anchor) {
+    return nullptr;
+  }
+
+  constexpr int kMaxDepth = 12;
+
+  struct QueuedElement {
+    ComPtr<IUIAutomationElement> element;
+    int depth;
+  };
+  std::vector<QueuedElement> queue;
+  size_t next_index = 0;
+
+  auto enqueue_children = [&](const ComPtr<IUIAutomationElement>& parent,
+                              int depth) {
+    ComPtr<IUIAutomationElement> child;
+    if (FAILED(walker->GetFirstChildElement(parent.Get(),
+                                            child.ReleaseAndGetAddressOf()))) {
+      return;
+    }
+    while (child) {
+      queue.push_back({child, depth});
+      ComPtr<IUIAutomationElement> sibling;
+      if (FAILED(walker->GetNextSiblingElement(
+              child.Get(), sibling.ReleaseAndGetAddressOf()))) {
+        break;
+      }
+      child = std::move(sibling);
+    }
+  };
+
+  enqueue_children(anchor, 1);
+
+  int visited = 0;
+  while (next_index < queue.size()) {
+    const QueuedElement current = queue[next_index];
+    ++next_index;
+    if (++visited > max_visited) {
+      DebugLog(L"UIA: chrome-only BFS exhausted its element budget");
+      return nullptr;
+    }
+
+    ScopedBstr class_name;
+    if (FAILED(current.element->get_CurrentClassName(class_name.Receive()))) {
+      continue;
+    }
+    const std::wstring_view class_name_view =
+        class_name ? std::wstring_view(class_name.Get(), class_name.Length())
+                   : std::wstring_view();
+    if (std::ranges::contains(target_class_names, class_name_view)) {
+      return current.element;
+    }
+
+    if (current.depth >= kMaxDepth) {
+      continue;
+    }
+    if (std::ranges::contains(
+            std::initializer_list<std::wstring_view>{
+                L"MultiContentsView", L"WebView", L"ContentsWebView"},
+            class_name_view) ||
+        HasNativeWindowHandle(current.element)) {
+      continue;
+    }
+    enqueue_children(current.element, current.depth + 1);
+  }
+
+  return nullptr;
+}
 
 TreeScope GetTabElementScope(TabContainerKind kind) {
   // Horizontal tabs are direct children of the trusted container. Vertical
@@ -462,137 +565,116 @@ bool IsWindowFullScreen(HWND hwnd) {
          window_rect.bottom == monitor_info.rcMonitor.bottom;
 }
 
-std::optional<TabContainer> FindHorizontalTabContainerForWindow(
+// Resolves the tab container inside an already validated tab strip region.
+// The region subtree is content-free, so scoped `FindFirst` is safe here. Trust
+// is anchored on the region itself: popup windows expose no
+// `HorizontalTabStripRegionView`/`VerticalTabStripRegionView`, so tab-like
+// nodes elsewhere can never be misclassified as a tab strip.
+std::optional<TabContainer> FindTabContainerInRegion(
     const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& window_element) {
-  if (!window_element) {
+    const ComPtr<IUIAutomationElement>& region,
+    bool vertical) {
+  if (vertical) {
+    if (const auto container = FindFirstDescendantByClass(
+            region,
+            session.class_conditions.vertical_unpinned_tab_container_view)) {
+      return TabContainer{container, TabContainerKind::kVertical};
+    }
     return std::nullopt;
   }
 
-  // Trust horizontal tab containers only when they are anchored to visible tab
-  // strip UI. Popup windows may still expose internal tab-like nodes in raw
-  // UIA, but users do not see a real tab strip there.
   if (const auto tab_strip = FindFirstDescendantByClass(
-          window_element, session.class_conditions.tab_strip_drag_context)) {
+          region, session.class_conditions.tab_strip_drag_context)) {
     if (const auto container =
             FindSiblingByClass(session, tab_strip, L"TabContainerImpl")) {
       return TabContainer{container, TabContainerKind::kHorizontal};
     }
   }
 
-  if (const auto tab_strip_region = FindFirstDescendantByClass(
-          window_element,
-          session.class_conditions.horizontal_tab_strip_region_view)) {
-    if (const auto container = FindFirstDescendantByClass(
-            tab_strip_region, session.class_conditions.tab_container_impl)) {
-      return TabContainer{container, TabContainerKind::kHorizontal};
-    }
-  }
-  return std::nullopt;
-}
-
-std::optional<TabContainer> FindVerticalTabContainerForWindow(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& window_element) {
-  if (!window_element) {
-    return std::nullopt;
-  }
-
   if (const auto container = FindFirstDescendantByClass(
-          window_element,
-          session.class_conditions.vertical_unpinned_tab_container_view)) {
-    return TabContainer{container, TabContainerKind::kVertical};
-  }
-
-  return std::nullopt;
-}
-
-std::optional<TabContainer> FindFullscreenTabContainerFallback(
-    const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& window_element,
-    HWND hwnd) {
-  if (!window_element || !IsWindowFullScreen(hwnd)) {
-    return std::nullopt;
-  }
-
-  // In fullscreen Chrome hides the visible tab strip from control view, so the
-  // raw-view fallback is limited to this mode to avoid misclassifying popups as
-  // tabbed browser windows.
-  if (const auto container = FindFirstDescendantByClassRaw(
-          session, window_element, L"TabContainerImpl")) {
+          region, session.class_conditions.tab_container_impl)) {
     return TabContainer{container, TabContainerKind::kHorizontal};
   }
-
-  if (const auto container = FindFirstDescendantByClassRaw(
-          session, window_element, L"VerticalUnpinnedTabContainerView")) {
-    return TabContainer{container, TabContainerKind::kVertical};
-  }
-
   return std::nullopt;
 }
 
-std::optional<TabContainer> FindTabContainerForWindow(const UiaSession& session,
-                                                      HWND hwnd) {
-  const auto window_element = GetElementFromWindow(session, hwnd);
+TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
+  TabUiCache& cache = session->tab_ui_cache;
+  const bool fullscreen = IsWindowFullScreen(hwnd);
+  if (cache.window == hwnd && cache.fullscreen == fullscreen) {
+    if (cache.container.element) {
+      return &cache;
+    }
+    if (GetTickCount64() < cache.retry_after_ticks) {
+      return nullptr;
+    }
+  }
+
+  cache = TabUiCache();
+  cache.window = hwnd;
+  cache.fullscreen = fullscreen;
+  cache.retry_after_ticks = GetTickCount64() + 1000;
+
+  const auto window_element = GetElementFromWindow(*session, hwnd);
   if (!window_element) {
-    return std::nullopt;
+    return nullptr;
   }
 
-  if (const auto horizontal =
-          FindHorizontalTabContainerForWindow(session, window_element)) {
-    return horizontal;
+  if (const auto region = FindShallowDescendantByClasses(
+          session->control_view_walker.Get(), window_element,
+          {L"HorizontalTabStripRegionView", L"VerticalTabStripRegionView"},
+          /*max_visited=*/256)) {
+    const bool vertical = HasClassName(region, L"VerticalTabStripRegionView");
+    if (auto container = FindTabContainerInRegion(*session, region, vertical)) {
+      cache.region = region;
+      cache.container = std::move(*container);
+      return &cache;
+    }
+    return nullptr;
   }
 
-  if (const auto vertical =
-          FindVerticalTabContainerForWindow(session, window_element)) {
-    return vertical;
+  if (fullscreen) {
+    // In fullscreen Chrome hides the tab strip from the control view, so fall
+    // back to the raw view -- still the chrome-only walk, with a larger
+    // budget because the raw view exposes more nodes per level. Limiting the
+    // fallback to fullscreen keeps popups from being misclassified as tabbed
+    // browser windows.
+    if (const auto container = FindShallowDescendantByClasses(
+            session->raw_view_walker.Get(), window_element,
+            {L"TabContainerImpl", L"VerticalUnpinnedTabContainerView"},
+            /*max_visited=*/512)) {
+      const bool vertical =
+          HasClassName(container, L"VerticalUnpinnedTabContainerView");
+      cache.container =
+          TabContainer{container, vertical ? TabContainerKind::kVertical
+                                           : TabContainerKind::kHorizontal};
+      return &cache;
+    }
   }
-  return FindFullscreenTabContainerFallback(session, window_element, hwnd);
+
+  return nullptr;
 }
 
-bool IsOnTabBarElement(const UiaSession& session,
-                       const ComPtr<IUIAutomationElement>& element) {
-  if (!element || !session.control_view_walker) {
-    return false;
+// Returns the cached tab UI for `hwnd` with liveness proven by a bounding-
+// rectangle read on the gate element, retrying once with a fresh resolve when
+// the cached element has died (tab strip re-created, window layout changed).
+// `gate_rect` receives the live rectangle of the tab strip region (or of the
+// container in the fullscreen fallback) for point gating.
+TabUiCache* GetValidatedTabUi(UiaSession* session, HWND hwnd, RECT* gate_rect) {
+  for (int attempt = 0; attempt < 2; ++attempt) {
+    TabUiCache* ui = ResolveTabUi(session, hwnd);
+    if (!ui) {
+      return nullptr;
+    }
+
+    const ComPtr<IUIAutomationElement>& gate =
+        ui->region ? ui->region : ui->container.element;
+    if (SUCCEEDED(gate->get_CurrentBoundingRectangle(gate_rect))) {
+      return ui;
+    }
+    session->tab_ui_cache = TabUiCache();
   }
-
-  ComPtr<IUIAutomationElement> current = element;
-  while (current) {
-    ScopedBstr class_name;
-    if (FAILED(current->get_CurrentClassName(class_name.Receive())) ||
-        !class_name) {
-      return false;
-    }
-
-    const std::wstring_view class_name_view(class_name.Get(),
-                                            class_name.Length());
-    if (std::ranges::contains(
-            std::initializer_list<std::wstring_view>{
-                L"HorizontalTabStripRegionView",
-                L"TabStrip::TabDragContextImpl", L"TabStripControlButton",
-                L"FrameGrabHandle", L"VerticalTabStripRegionView",
-                L"VerticalTabStripBottomContainer",
-                L"VerticalUnpinnedTabContainerView"},
-            class_name_view)) {
-      return true;
-    }
-
-    if (class_name_view == L"ScrollView" &&
-        FindFirstDescendantByClass(
-            current,
-            session.class_conditions.vertical_unpinned_tab_container_view)) {
-      return true;
-    }
-
-    ComPtr<IUIAutomationElement> parent;
-    if (FAILED(session.control_view_walker->GetParentElement(
-            current.Get(), parent.ReleaseAndGetAddressOf()))) {
-      return false;
-    }
-    current = std::move(parent);
-  }
-
-  return false;
+  return nullptr;
 }
 
 ComPtr<IUIAutomationElementArray> FindTabElements(
@@ -734,16 +816,21 @@ std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
   return hit_result;
 }
 
+// `region` is the tab strip region: the New Tab `TabStripControlButton` sits
+// beside the tab container inside it, and anchoring there keeps the search
+// out of the content branch (a window-root search would cross it, issue
+// #270). A null region (fullscreen raw fallback) skips straight to the
+// user-configured names in the caller.
 std::optional<std::wstring> GetNewTabButtonName(
     const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& window_element) {
+    const ComPtr<IUIAutomationElement>& region) {
   static std::optional<std::wstring> cached_name;
   if (cached_name.has_value()) {
     return cached_name;
   }
 
   const auto button = FindFirstDescendantByClass(
-      window_element, session.class_conditions.tab_strip_control_button);
+      region, session.class_conditions.tab_strip_control_button);
   if (!button) {
     return std::nullopt;
   }
@@ -847,7 +934,7 @@ FindBookmarkCoveringPoint(const UiaSession& session, HWND window, POINT pt) {
 std::optional<TabHitResult> FindTabHitResult(POINT pt,
                                              bool need_count,
                                              bool need_close_button) {
-  const UiaSession* session = GetUiaSession();
+  UiaSession* session = GetUiaSession();
   if (!session) {
     return std::nullopt;
   }
@@ -858,23 +945,34 @@ std::optional<TabHitResult> FindTabHitResult(POINT pt,
     return std::nullopt;
   }
 
-  const auto tab_container = FindTabContainerForWindow(*session, root);
-  if (!tab_container) {
+  RECT region_rect;
+  TabUiCache* ui = GetValidatedTabUi(session, root, &region_rect);
+  if (!ui) {
     return std::nullopt;
   }
 
-  return BuildTabHitResult(*session, *tab_container, pt, need_count,
+  // Points outside the tab strip region -- page clicks are the overwhelming
+  // majority -- return before any tree search.
+  if (!PtInRect(&region_rect, pt)) {
+    return std::nullopt;
+  }
+
+  return BuildTabHitResult(*session, ui->container, pt, need_count,
                            need_close_button);
 }
 
 std::optional<int> FindTabCount(HWND hwnd) {
-  const UiaSession* session = GetUiaSession();
+  UiaSession* session = GetUiaSession();
   if (!session) {
     return std::nullopt;
   }
 
-  const auto tab_container = FindTabContainerForWindow(*session, hwnd);
-  if (!tab_container) {
+  // The rectangle is unused here; the validated resolve proves the cached
+  // container is still alive so the raw count below cannot silently return 0
+  // over a dead element.
+  RECT region_rect;
+  TabUiCache* ui = GetValidatedTabUi(session, hwnd, &region_rect);
+  if (!ui) {
     return std::nullopt;
   }
 
@@ -882,23 +980,36 @@ std::optional<int> FindTabCount(HWND hwnd) {
   // control view but still present in the raw tree, and they must be counted so
   // `keep_tab` does not mistake the last visible tab for the last tab overall.
   // Scoping the raw traversal to a credible tab container keeps it cheap.
-  return CountDescendantsByClassRaw(
-      *session, tab_container->element,
-      GetTabElementClassName(tab_container->kind));
+  return CountDescendantsByClassRaw(*session, ui->container.element,
+                                    GetTabElementClassName(ui->container.kind));
 }
 
+// The wheel path used `IUIAutomation::ElementFromPoint`, whose HWND routing
+// descends into the renderer accessibility tree whenever the pointer is over
+// the page (the same mechanism the bookmark path dropped for issue #270's
+// sibling fix in `IsOnBookmark`). With `wheel_tab` on -- the default -- every
+// scroll tick over web content paid that walk and switched web-contents
+// accessibility on. A rectangle test against the cached tab strip region
+// covers the same UI (tabs, new-tab button, grab handle, vertical strip) with
+// no per-tick tree access at all.
 bool IsOnTabBar(POINT pt) {
-  const UiaSession* session = GetUiaSession();
+  UiaSession* session = GetUiaSession();
   if (!session) {
     return false;
   }
 
-  const auto pointed = GetElementAtPoint(*session, pt);
-  if (!pointed) {
+  const HWND hwnd = WindowFromPoint(pt);
+  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  if (!root || !IsChromeWindow(root)) {
     return false;
   }
 
-  return IsOnTabBarElement(*session, pointed);
+  RECT region_rect;
+  if (!GetValidatedTabUi(session, root, &region_rect)) {
+    return false;
+  }
+
+  return PtInRect(&region_rect, pt) != FALSE;
 }
 
 bool IsOnBookmark(POINT pt) {
@@ -926,6 +1037,20 @@ bool IsOnBookmark(POINT pt) {
 }
 
 bool IsOmniboxFocused() {
+  // When focus sits in web content the focused HWND is the renderer's
+  // `Chrome_RenderWidgetHostHWND` child, and resolving UIA focus there reads
+  // renderer nodes -- enough for Chromium to enable web-contents accessibility.
+  // The omnibox is a views control on the top-level window, so a Win32 class
+  // check screens the typing-in-page case out before any UIA call.
+  const HWND focus = GetFocus();
+  std::array<wchar_t, 64> focus_class{};
+  if (!focus ||
+      !GetClassNameW(focus, focus_class.data(),
+                     static_cast<int>(focus_class.size())) ||
+      std::wstring_view(focus_class.data()) == L"Chrome_RenderWidgetHostHWND") {
+    return false;
+  }
+
   const UiaSession* session = GetUiaSession();
   if (!session) {
     return false;
@@ -940,17 +1065,18 @@ bool IsOmniboxFocused() {
 }
 
 bool IsOnNewTab(HWND hwnd, const std::vector<std::wstring>& extra_tab_names) {
-  const UiaSession* session = GetUiaSession();
+  UiaSession* session = GetUiaSession();
   if (!session) {
     return false;
   }
 
-  const auto tab_container = FindTabContainerForWindow(*session, hwnd);
-  if (!tab_container) {
+  RECT region_rect;
+  TabUiCache* ui = GetValidatedTabUi(session, hwnd, &region_rect);
+  if (!ui) {
     return false;
   }
 
-  const auto selected_tab = FindSelectedTabElement(*session, *tab_container);
+  const auto selected_tab = FindSelectedTabElement(*session, ui->container);
   if (!selected_tab) {
     return false;
   }
@@ -961,8 +1087,7 @@ bool IsOnNewTab(HWND hwnd, const std::vector<std::wstring>& extra_tab_names) {
     return false;
   }
 
-  const auto window_element = GetElementFromWindow(*session, hwnd);
-  const auto std_name = GetNewTabButtonName(*session, window_element);
+  const auto std_name = GetNewTabButtonName(*session, ui->region);
   if (std_name && selected_name->contains(*std_name)) {
     return true;
   }
