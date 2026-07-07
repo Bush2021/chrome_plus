@@ -10,7 +10,15 @@
 namespace {
 
 constexpr UINT kDefaultDpi = 96;
+constexpr UINT_PTR kHoverActivateTabTimerId = 0x1603ABDA;
 POINT lbutton_down_point = {-1, -1};
+
+struct HoverActivateTabState {
+  HWND hwnd = nullptr;
+  RECT tab_rect = {};
+};
+
+HoverActivateTabState hover_activate_tab_state;
 
 enum class KeepTabTrigger {
   kRightClick = 0,
@@ -40,6 +48,111 @@ bool IsNeedKeep(int tab_count, KeepTabTrigger trigger) {
     keep_tab = true;
   }
   return keep_tab;
+}
+
+bool IsAnyMouseButtonPressed() {
+  return IsKeyPressed(VK_LBUTTON) || IsKeyPressed(VK_RBUTTON) ||
+         IsKeyPressed(VK_MBUTTON);
+}
+
+HWND GetChromeRootAtPoint(POINT pt) {
+  const HWND hwnd = WindowFromPoint(pt);
+  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
+  if (!root || !IsChromeWindow(root)) {
+    return nullptr;
+  }
+  return root;
+}
+
+bool IsSameHoverTarget(HWND hwnd, const RECT& tab_rect) {
+  return hover_activate_tab_state.hwnd == hwnd &&
+         EqualRect(&hover_activate_tab_state.tab_rect, &tab_rect);
+}
+
+void CancelHoverActivateTabTimer() {
+  if (hover_activate_tab_state.hwnd) {
+    KillTimer(hover_activate_tab_state.hwnd, kHoverActivateTabTimerId);
+  }
+  hover_activate_tab_state = {};
+}
+
+void ActivateHoveredTabIfStable(HWND hwnd) {
+  if (!hover_activate_tab_state.hwnd ||
+      hover_activate_tab_state.hwnd != hwnd) {
+    CancelHoverActivateTabTimer();
+    return;
+  }
+
+  POINT pt = {};
+  if (IsAnyMouseButtonPressed() || !GetCursorPos(&pt) ||
+      GetChromeRootAtPoint(pt) != hwnd ||
+      !PtInRect(&hover_activate_tab_state.tab_rect, pt)) {
+    CancelHoverActivateTabTimer();
+    return;
+  }
+
+  const auto hit = FindTabHitResult(pt, false, true);
+  if (!hit || hit->on_close_button ||
+      !EqualRect(&hit->tab_rect, &hover_activate_tab_state.tab_rect)) {
+    CancelHoverActivateTabTimer();
+    return;
+  }
+
+  SelectTab(*hit);
+  CancelHoverActivateTabTimer();
+}
+
+void CALLBACK HoverActivateTabTimerProc(HWND hwnd,
+                                        UINT,
+                                        UINT_PTR event_id,
+                                        DWORD) {
+  if (event_id != kHoverActivateTabTimerId) {
+    return;
+  }
+  ActivateHoveredTabIfStable(hwnd);
+}
+
+void ArmHoverActivateTabTimer(HWND hwnd, const RECT& tab_rect) {
+  if (IsSameHoverTarget(hwnd, tab_rect)) {
+    return;
+  }
+
+  CancelHoverActivateTabTimer();
+  hover_activate_tab_state.hwnd = hwnd;
+  hover_activate_tab_state.tab_rect = tab_rect;
+
+  const UINT delay = config.GetHoverActivateTabDelay();
+  if (delay == 0) {
+    ActivateHoveredTabIfStable(hwnd);
+    return;
+  }
+
+  if (!SetTimer(hwnd, kHoverActivateTabTimerId, delay,
+                HoverActivateTabTimerProc)) {
+    hover_activate_tab_state = {};
+  }
+}
+
+void HandleHoverActivateTab(const MOUSEHOOKSTRUCT* pmouse) {
+  if (!config.IsHoverActivateTab() || IsAnyMouseButtonPressed()) {
+    CancelHoverActivateTabTimer();
+    return;
+  }
+
+  const POINT pt = pmouse->pt;
+  const HWND root = GetChromeRootAtPoint(pt);
+  if (!root) {
+    CancelHoverActivateTabTimer();
+    return;
+  }
+
+  const auto hit = FindTabHitResult(pt, false, true);
+  if (!hit || hit->on_close_button) {
+    CancelHoverActivateTabTimer();
+    return;
+  }
+
+  ArmHoverActivateTabTimer(root, hit->tab_rect);
 }
 
 // Use the mouse wheel to switch tabs
@@ -240,15 +353,21 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
   static bool closing_tab_by_right = false;
 
   switch (wParam) {
+    case WM_MOUSEMOVE:
+      HandleHoverActivateTab(pmouse);
+      return false;
     case WM_LBUTTONDOWN:
+      CancelHoverActivateTabTimer();
       // Simply record the position of `LBUTTONDOWN` for drag detection
       closing_tab_by_dblclk = false;
       lbutton_down_point = pmouse->pt;
       return false;
     case WM_MBUTTONDOWN:
+      CancelHoverActivateTabTimer();
       closing_tab_by_middle = false;
       return false;
     case WM_RBUTTONDOWN:
+      CancelHoverActivateTabTimer();
       closing_tab_by_right = false;
       return false;
     case WM_LBUTTONUP:

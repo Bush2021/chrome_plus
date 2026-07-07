@@ -616,6 +616,7 @@ ComPtr<IUIAutomationElementArray> FindTabElements(
 
 ComPtr<IUIAutomationElement> FindTabElementAtPoint(
     const ComPtr<IUIAutomationElementArray>& tab_elements,
+    RECT* tab_rect,
     POINT pt) {
   if (!tab_elements) {
     return nullptr;
@@ -639,6 +640,9 @@ ComPtr<IUIAutomationElement> FindTabElementAtPoint(
       continue;
     }
     if (PtInRect(&rect, pt)) {
+      if (tab_rect) {
+        *tab_rect = rect;
+      }
       return tab_element;
     }
   }
@@ -710,7 +714,8 @@ std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
     return std::nullopt;
   }
 
-  const auto tab_element = FindTabElementAtPoint(tab_elements, pt);
+  RECT tab_rect = {};
+  const auto tab_element = FindTabElementAtPoint(tab_elements, &tab_rect, pt);
   if (!tab_element) {
     return std::nullopt;
   }
@@ -728,6 +733,7 @@ std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
 
   TabHitResult hit_result;
   hit_result.tab = tab_element;
+  hit_result.tab_rect = tab_rect;
   hit_result.tab_count = need_count ? tab_count : 0;
   hit_result.on_close_button =
       need_close_button && IsOnTabCloseButton(session, tab_element, pt);
@@ -865,6 +871,35 @@ std::optional<TabHitResult> FindTabHitResult(POINT pt,
 
   return BuildTabHitResult(*session, *tab_container, pt, need_count,
                            need_close_button);
+}
+
+bool SelectTab(const TabHitResult& hit_result) {
+  if (!hit_result.tab) {
+    return false;
+  }
+
+  ComPtr<IUnknown> pattern;
+  HRESULT hr = hit_result.tab->GetCurrentPattern(
+      UIA_SelectionItemPatternId, pattern.ReleaseAndGetAddressOf());
+  if (FAILED(hr) || !pattern) {
+    DebugLog(L"UIA: tab selection item pattern unavailable");
+    return false;
+  }
+
+  ComPtr<IUIAutomationSelectionItemPattern> selection_item;
+  hr = pattern->QueryInterface(
+      IID_PPV_ARGS(selection_item.ReleaseAndGetAddressOf()));
+  if (FAILED(hr) || !selection_item) {
+    DebugLog(L"UIA: tab selection item QueryInterface failed");
+    return false;
+  }
+
+  hr = selection_item->Select();
+  if (FAILED(hr)) {
+    DebugLog(L"UIA: tab Select failed");
+    return false;
+  }
+  return true;
 }
 
 std::optional<int> FindTabCount(HWND hwnd) {

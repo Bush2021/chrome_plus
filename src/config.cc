@@ -50,6 +50,10 @@ void Config::LoadConfig() {
   wheel_tab_when_press_rbutton_ =
       ::GetPrivateProfileIntW(L"tabs", L"wheel_tab_when_press_rbutton", 1,
                               GetIniPath().c_str()) != 0;
+  hover_activate_tab_ =
+      ::GetPrivateProfileIntW(L"tabs", L"hover_activate_tab", 0,
+                              GetIniPath().c_str()) != 0;
+  hover_activate_tab_delay_ = LoadHoverActivateTabDelay();
   open_url_new_tab_ = LoadOpenUrlNewTabMode();
   bookmark_new_tab_ = LoadBookmarkNewTabMode();
   new_tab_disable_ = ::GetPrivateProfileIntW(L"tabs", L"new_tab_disable", 1,
@@ -123,6 +127,19 @@ int Config::LoadOpenUrlNewTabMode() {
 int Config::LoadBookmarkNewTabMode() {
   return ::GetPrivateProfileIntW(L"tabs", L"open_bookmark_new_tab", 0,
                                  GetIniPath().c_str());
+}
+
+unsigned int Config::LoadHoverActivateTabDelay() {
+  constexpr int kDefaultDelayMs = 200;
+  constexpr int kMaxDelayMs = 5000;
+  const int delay = ::GetPrivateProfileIntW(L"tabs",
+                                            L"hover_activate_tab_delay",
+                                            kDefaultDelayMs,
+                                            GetIniPath().c_str());
+  if (delay < 0 || delay > kMaxDelayMs) {
+    return kDefaultDelayMs;
+  }
+  return static_cast<unsigned int>(delay);
 }
 
 const Config& config = Config::Instance();

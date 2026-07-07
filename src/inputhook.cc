@@ -37,7 +37,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
   }
 
-  if (wParam == WM_MOUSEMOVE || wParam == WM_NCMOUSEMOVE) {
+  if (wParam == WM_NCMOUSEMOVE) {
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
   }
 

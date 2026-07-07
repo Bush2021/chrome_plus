@@ -37,6 +37,10 @@ class Config {
   bool IsWheelTabWhenPressRightButton() const {
     return wheel_tab_when_press_rbutton_;
   }
+  bool IsHoverActivateTab() const { return hover_activate_tab_; }
+  unsigned int GetHoverActivateTabDelay() const {
+    return hover_activate_tab_delay_;
+  }
   int GetOpenUrlNewTabMode() const { return open_url_new_tab_; }
   int GetBookmarkNewTabMode() const { return bookmark_new_tab_; }
   bool IsNewTabDisable() const { return new_tab_disable_; }
@@ -61,6 +65,7 @@ class Config {
   std::optional<std::wstring> LoadDirPath(const std::wstring& dir_type);
   int LoadOpenUrlNewTabMode();
   int LoadBookmarkNewTabMode();
+  unsigned int LoadHoverActivateTabDelay();
 
  private:
   // general
@@ -82,6 +87,8 @@ class Config {
   bool right_click_close_;
   bool wheel_tab_;
   bool wheel_tab_when_press_rbutton_;
+  bool hover_activate_tab_;
+  unsigned int hover_activate_tab_delay_;
   int open_url_new_tab_;
   int bookmark_new_tab_;
   bool new_tab_disable_;
