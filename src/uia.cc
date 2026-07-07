@@ -35,20 +35,15 @@ class ScopedVariant {
 };
 
 struct CachedClassConditions {
-  ComPtr<IUIAutomationCondition> horizontal_tab_strip_region_view;
   ComPtr<IUIAutomationCondition> tab_strip_drag_context;
   ComPtr<IUIAutomationCondition> tab_container_impl;
   ComPtr<IUIAutomationCondition> vertical_unpinned_tab_container_view;
-  ComPtr<IUIAutomationCondition> scroll_view;
   ComPtr<IUIAutomationCondition> tab;
   ComPtr<IUIAutomationCondition> vertical_tab_view;
   ComPtr<IUIAutomationCondition> tab_close_button;
   ComPtr<IUIAutomationCondition> bookmark_button;
   ComPtr<IUIAutomationCondition> menu_item_view;
-  ComPtr<IUIAutomationCondition> omnibox_view_views;
-  ComPtr<IUIAutomationCondition> omnibox_result_view;
   ComPtr<IUIAutomationCondition> tab_strip_control_button;
-  ComPtr<IUIAutomationCondition> frame_grab_handle;
 };
 
 enum class TabContainerKind {
@@ -123,9 +118,6 @@ bool InitializeClassConditions(UiaSession* session) {
 
   auto& conditions = session->class_conditions;
   return CreateClassCondition(session->automation,
-                              L"HorizontalTabStripRegionView",
-                              &conditions.horizontal_tab_strip_region_view) &&
-         CreateClassCondition(session->automation,
                               L"TabStrip::TabDragContextImpl",
                               &conditions.tab_strip_drag_context) &&
          CreateClassCondition(session->automation, L"TabContainerImpl",
@@ -133,8 +125,6 @@ bool InitializeClassConditions(UiaSession* session) {
          CreateClassCondition(
              session->automation, L"VerticalUnpinnedTabContainerView",
              &conditions.vertical_unpinned_tab_container_view) &&
-         CreateClassCondition(session->automation, L"ScrollView",
-                              &conditions.scroll_view) &&
          CreateClassCondition(session->automation, L"Tab", &conditions.tab) &&
          CreateClassCondition(session->automation, L"VerticalTabView",
                               &conditions.vertical_tab_view) &&
@@ -144,14 +134,8 @@ bool InitializeClassConditions(UiaSession* session) {
                               &conditions.bookmark_button) &&
          CreateClassCondition(session->automation, L"MenuItemView",
                               &conditions.menu_item_view) &&
-         CreateClassCondition(session->automation, L"OmniboxViewViews",
-                              &conditions.omnibox_view_views) &&
-         CreateClassCondition(session->automation, L"OmniboxResultView",
-                              &conditions.omnibox_result_view) &&
          CreateClassCondition(session->automation, L"TabStripControlButton",
-                              &conditions.tab_strip_control_button) &&
-         CreateClassCondition(session->automation, L"FrameGrabHandle",
-                              &conditions.frame_grab_handle);
+                              &conditions.tab_strip_control_button);
 }
 
 UiaSession* GetUiaSession() {

@@ -85,28 +85,6 @@ bool CheckHeader(uint8_t* buffer, PakEntry*& pak_entry, PakEntry*& end_entry) {
   return true;
 }
 
-[[maybe_unused]] void PakFind(uint8_t* buffer,
-                              uint8_t* pos,
-                              std::function<void(uint8_t*, uint32_t)> f) {
-  PakEntry* pak_entry = nullptr;
-  PakEntry* end_entry = nullptr;
-
-  if (!CheckHeader(buffer, pak_entry, end_entry)) {
-    return;
-  }
-
-  do {
-    PakEntry* next_entry = pak_entry + 1;
-    if (pos >= buffer + pak_entry->file_offset &&
-        pos <= buffer + next_entry->file_offset) {
-      f(buffer + pak_entry->file_offset,
-        next_entry->file_offset - pak_entry->file_offset);
-      break;
-    }
-
-    pak_entry = next_entry;
-  } while (pak_entry->resource_id != 0);
-}
 }  // namespace
 
 uint16_t TraversalGZIPFile(uint8_t* buffer,
