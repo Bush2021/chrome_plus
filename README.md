@@ -32,6 +32,7 @@ Chrome++ Next is a `version.dll` injection project for Google Chrome. It is load
 - Keep the last tab from closing the browser window.
 - Switch tabs with the mouse wheel over the tab strip.
 - Switch tabs with the mouse wheel while holding the right mouse button.
+- Activate a tab by resting the cursor on it.
 - Open omnibox input or bookmarks in a new tab.
 - Control new-tab detection through `new_tab_disable` and `new_tab_disable_name`.
 

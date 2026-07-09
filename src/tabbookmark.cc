@@ -12,6 +12,10 @@ namespace {
 constexpr UINT kDefaultDpi = 96;
 POINT lbutton_down_point = {-1, -1};
 
+constexpr UINT_PTR kHoverTabTimerId = 0x68764254;  // 'hvBT'
+// Non-null while a dwell timer is armed on that top-level window.
+HWND hover_tab_root = nullptr;
+
 enum class KeepTabTrigger {
   kRightClick = 0,
   kMiddleClick,
@@ -40,6 +44,101 @@ bool IsNeedKeep(int tab_count, KeepTabTrigger trigger) {
     keep_tab = true;
   }
   return keep_tab;
+}
+
+bool IsAnyMouseButtonPressed() {
+  return IsKeyPressed(VK_LBUTTON) || IsKeyPressed(VK_RBUTTON) ||
+         IsKeyPressed(VK_MBUTTON);
+}
+
+void CancelHoverTabTimer() {
+  if (!hover_tab_root) {
+    return;
+  }
+  KillTimer(hover_tab_root, kHoverTabTimerId);
+  hover_tab_root = nullptr;
+}
+
+void CALLBACK HoverTabTimerProc(HWND hwnd, UINT, UINT_PTR event_id, DWORD) {
+  // SetTimer is periodic, not one-shot; kill it immediately so a dwell only
+  // ever fires once, before any of the checks below can early-return.
+  KillTimer(hwnd, event_id);
+  // KillTimer does not flush a WM_TIMER already generated, so a stale fire
+  // for a previously canceled window may still land here; do not clobber the
+  // bookkeeping of a timer since armed on another window.
+  if (hover_tab_root == hwnd) {
+    hover_tab_root = nullptr;
+  }
+
+  // The timer firing only proves the mouse went quiet; the window, cursor,
+  // and capture state must all be re-checked here since they may have
+  // changed since the timer was armed.
+  if (IsAnyMouseButtonPressed() || GetCapture() != nullptr) {
+    return;
+  }
+
+  POINT pt;
+  if (!GetCursorPos(&pt)) {
+    return;
+  }
+
+  const HWND point_window = WindowFromPoint(pt);
+  const HWND point_root =
+      point_window ? GetAncestor(point_window, GA_ROOT) : nullptr;
+  if (point_root != hwnd) {
+    return;
+  }
+
+  if (GetForegroundWindow() != hwnd) {
+    return;
+  }
+
+  const auto hit = FindTabHitResult(pt, false, true);
+  if (!hit || hit->on_close_button) {
+    return;
+  }
+
+  SelectTab(*hit);
+}
+
+void HandleHoverTab(const MOUSEHOOKSTRUCT* pmouse) {
+  if (!config.IsHoverTab()) {
+    return;
+  }
+
+  if (IsAnyMouseButtonPressed() || GetCapture() != nullptr) {
+    CancelHoverTabTimer();
+    return;
+  }
+
+  // Moves over web content target the Chrome_RenderWidgetHostHWND child, so
+  // this class gate keeps the hot path off the page area entirely with no
+  // UIA involvement; tab-strip moves target the Chrome_WidgetWin_* frame
+  // itself.
+  if (!IsChromeWindow(pmouse->hwnd)) {
+    CancelHoverTabTimer();
+    return;
+  }
+
+  const HWND root = GetAncestor(pmouse->hwnd, GA_ROOT);
+  if (!root) {
+    CancelHoverTabTimer();
+    return;
+  }
+
+  if (root != hover_tab_root) {
+    CancelHoverTabTimer();
+  }
+
+  // Re-issuing SetTimer with the same hwnd/id restarts the countdown, which
+  // is exactly the stationary-dwell semantics: any movement resets the
+  // clock. A zero delay is clamped by the system to USER_TIMER_MINIMUM.
+  if (SetTimer(root, kHoverTabTimerId, config.GetHoverTabDelay(),
+               HoverTabTimerProc)) {
+    hover_tab_root = root;
+  } else {
+    hover_tab_root = nullptr;
+  }
 }
 
 // Use the mouse wheel to switch tabs
@@ -240,15 +339,21 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
   static bool closing_tab_by_right = false;
 
   switch (wParam) {
+    case WM_MOUSEMOVE:
+      HandleHoverTab(pmouse);
+      return false;
     case WM_LBUTTONDOWN:
+      CancelHoverTabTimer();
       // Simply record the position of `LBUTTONDOWN` for drag detection
       closing_tab_by_dblclk = false;
       lbutton_down_point = pmouse->pt;
       return false;
     case WM_MBUTTONDOWN:
+      CancelHoverTabTimer();
       closing_tab_by_middle = false;
       return false;
     case WM_RBUTTONDOWN:
+      CancelHoverTabTimer();
       closing_tab_by_right = false;
       return false;
     case WM_LBUTTONUP:
@@ -280,6 +385,9 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
       }
       return false;
     case WM_MOUSEWHEEL:
+      // An explicit wheel switch inside the dwell window must not be
+      // overridden by the pending hover activation.
+      CancelHoverTabTimer();
       if (HandleMouseWheel(lParam, pmouse)) {
         // Mark it true only when a tab switch is performed via mouse wheel with
         // right button pressed. Otherwise, normal mouse wheel to switch tabs
@@ -385,6 +493,10 @@ bool TabBookmarkKeyboardHandler(WPARAM wParam, LPARAM lParam) {
   if (lParam & 0x80000000) {
     return false;
   }
+
+  // Keyboard tab switching or typing during the dwell window supersedes
+  // hover intent.
+  CancelHoverTabTimer();
 
   if (HandleKeepTab(wParam)) {
     return true;

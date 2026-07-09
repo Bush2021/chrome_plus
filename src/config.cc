@@ -50,6 +50,9 @@ void Config::LoadConfig() {
   wheel_tab_when_press_rbutton_ =
       ::GetPrivateProfileIntW(L"tabs", L"wheel_tab_when_press_rbutton", 1,
                               GetIniPath().c_str()) != 0;
+  hover_tab_ = ::GetPrivateProfileIntW(L"tabs", L"hover_tab", 0,
+                                       GetIniPath().c_str()) != 0;
+  hover_tab_delay_ = LoadHoverTabDelay();
   open_url_new_tab_ = LoadOpenUrlNewTabMode();
   bookmark_new_tab_ = LoadBookmarkNewTabMode();
   new_tab_disable_ = ::GetPrivateProfileIntW(L"tabs", L"new_tab_disable", 1,
@@ -114,6 +117,17 @@ std::optional<std::wstring> Config::LoadDirPath(const std::wstring& dir_type) {
   std::wstring expanded_path = ExpandEnvironmentPath(dir_buffer);
   ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
   return GetAbsolutePath(expanded_path);
+}
+
+int Config::LoadHoverTabDelay() {
+  constexpr int kDefaultDelayMs = 400;
+  constexpr int kMaxDelayMs = 5000;
+  const int delay = ::GetPrivateProfileIntW(
+      L"tabs", L"hover_tab_delay", kDefaultDelayMs, GetIniPath().c_str());
+  if (delay < 0 || delay > kMaxDelayMs) {
+    return kDefaultDelayMs;
+  }
+  return delay;
 }
 
 int Config::LoadOpenUrlNewTabMode() {
