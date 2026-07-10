@@ -69,6 +69,11 @@ bool IsSameHoverTarget(HWND hwnd, const RECT& tab_rect) {
          EqualRect(&hover_activate_tab_state.tab_rect, &tab_rect);
 }
 
+bool IsInsideHoverTarget(HWND hwnd, POINT pt) {
+  return hover_activate_tab_state.hwnd == hwnd &&
+         PtInRect(&hover_activate_tab_state.tab_rect, pt);
+}
+
 void CancelHoverActivateTabTimer() {
   if (hover_activate_tab_state.hwnd) {
     KillTimer(hover_activate_tab_state.hwnd, kHoverActivateTabTimerId);
@@ -143,6 +148,10 @@ void HandleHoverActivateTab(const MOUSEHOOKSTRUCT* pmouse) {
   const HWND root = GetChromeRootAtPoint(pt);
   if (!root) {
     CancelHoverActivateTabTimer();
+    return;
+  }
+
+  if (IsInsideHoverTarget(root, pt)) {
     return;
   }
 
