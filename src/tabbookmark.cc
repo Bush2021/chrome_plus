@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include <optional>
+
 #include "config.h"
 #include "inputhook.h"
 #include "uia.h"
@@ -15,6 +17,20 @@ POINT lbutton_down_point = {-1, -1};
 constexpr UINT_PTR kHoverTabTimerId = 0x68764254;  // 'hvBT'
 // Non-null while a dwell timer is armed on that top-level window.
 HWND hover_tab_root = nullptr;
+// Screen position of the last WM_MOUSEMOVE handled by HandleHoverTab.
+// Windows posts a synthetic same-position WM_MOUSEMOVE to the window under
+// the cursor whenever the HWND arrangement beneath it may have changed
+// (https://devblogs.microsoft.com/oldnewthing/20031001-00/?p=42343), and a
+// tab switch does exactly that by showing/hiding
+// `Chrome_RenderWidgetHostHWND`. Chromium drops such moves too, see
+// `HWNDMessageHandler::OnMouseRange` in ui/views/win/hwnd_message_handler.cc.
+std::optional<POINT> last_hover_move_point;
+// Anchor of the last wheel-driven tab switch. While set, hover activation is
+// suspended: rolling the wheel nudges the cursor a pixel or two, which would
+// otherwise re-arm the dwell and select the tab still under the cursor,
+// reverting the switch the user just made. Cleared once the cursor travels
+// beyond the jitter threshold.
+std::optional<POINT> wheel_switch_point;
 
 enum class KeepTabTrigger {
   kRightClick = 0,
@@ -51,6 +67,23 @@ bool IsAnyMouseButtonPressed() {
          IsKeyPressed(VK_MBUTTON);
 }
 
+// https://github.com/Bush2021/chrome_plus/issues/226
+UINT GetWindowDpiSafe(HWND hwnd) {
+  // `GetDpiForWindow` requires Windows 10, version 1607 or later.
+  const HMODULE user32 = GetModuleHandleW(L"user32.dll");
+  if (!user32) {
+    return kDefaultDpi;
+  }
+  using GetDpiForWindowFn = UINT(WINAPI*)(HWND);
+  const auto fn = reinterpret_cast<GetDpiForWindowFn>(
+      GetProcAddress(user32, "GetDpiForWindow"));
+  if (!fn) {
+    return kDefaultDpi;
+  }
+  const UINT dpi = fn(hwnd);
+  return dpi ? dpi : kDefaultDpi;
+}
+
 void CancelHoverTabTimer() {
   if (!hover_tab_root) {
     return;
@@ -68,6 +101,13 @@ void CALLBACK HoverTabTimerProc(HWND hwnd, UINT, UINT_PTR event_id, DWORD) {
   // bookkeeping of a timer since armed on another window.
   if (hover_tab_root == hwnd) {
     hover_tab_root = nullptr;
+  }
+
+  // A stale fire may also land after a wheel switch already canceled the
+  // timer; hover stays suspended until real cursor movement, so activating
+  // here would revert the switch.
+  if (wheel_switch_point) {
+    return;
   }
 
   // The timer firing only proves the mouse went quiet; the window, cursor,
@@ -104,6 +144,27 @@ void CALLBACK HoverTabTimerProc(HWND hwnd, UINT, UINT_PTR event_id, DWORD) {
 void HandleHoverTab(const MOUSEHOOKSTRUCT* pmouse) {
   if (!config.IsHoverTab()) {
     return;
+  }
+
+  // A same-position move is synthetic (see `last_hover_move_point`), not
+  // hover intent; leave any pending dwell untouched.
+  if (last_hover_move_point && last_hover_move_point->x == pmouse->pt.x &&
+      last_hover_move_point->y == pmouse->pt.y) {
+    return;
+  }
+  last_hover_move_point = pmouse->pt;
+
+  if (wheel_switch_point) {
+    // Scale by DPI the same way as the drag threshold in `HandleDrag`.
+    constexpr UINT kWheelJitterThreshold = 8;
+    const UINT dx = std::abs(pmouse->pt.x - wheel_switch_point->x);
+    const UINT dy = std::abs(pmouse->pt.y - wheel_switch_point->y);
+    const UINT dpi = GetWindowDpiSafe(pmouse->hwnd);
+    const UINT threshold = MulDiv(kWheelJitterThreshold, dpi, kDefaultDpi);
+    if (dx <= threshold && dy <= threshold) {
+      return;
+    }
+    wheel_switch_point.reset();
   }
 
   if (IsAnyMouseButtonPressed() || GetCapture() != nullptr) {
@@ -258,23 +319,6 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
   return true;
 }
 
-// https://github.com/Bush2021/chrome_plus/issues/226
-UINT GetWindowDpiSafe(HWND hwnd) {
-  // `GetDpiForWindow` requires Windows 10, version 1607 or later.
-  const HMODULE user32 = GetModuleHandleW(L"user32.dll");
-  if (!user32) {
-    return kDefaultDpi;
-  }
-  using GetDpiForWindowFn = UINT(WINAPI*)(HWND);
-  const auto fn = reinterpret_cast<GetDpiForWindowFn>(
-      GetProcAddress(user32, "GetDpiForWindow"));
-  if (!fn) {
-    return kDefaultDpi;
-  }
-  const UINT dpi = fn(hwnd);
-  return dpi ? dpi : kDefaultDpi;
-}
-
 // Check if mouse movement is a drag operation.
 // Since `MouseProc` hook doesn't handle any drag-related events,
 // this detection can return early to avoid interference.
@@ -389,6 +433,9 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
       // overridden by the pending hover activation.
       CancelHoverTabTimer();
       if (HandleMouseWheel(lParam, pmouse)) {
+        // Suspend hover re-arm until real cursor movement (see
+        // `wheel_switch_point`).
+        wheel_switch_point = pmouse->pt;
         // Mark it true only when a tab switch is performed via mouse wheel with
         // right button pressed. Otherwise, normal mouse wheel to switch tabs
         // will swallow irrelevant RBUTTONUP events, causing #198.
