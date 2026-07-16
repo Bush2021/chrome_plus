@@ -56,11 +56,11 @@ struct TabContainer {
   TabContainerKind kind = TabContainerKind::kHorizontal;
 };
 
-// Tab UI resolved for one top-level window, kept until an element dies or the
-// window/fullscreen state changes. UIA elements are live references, so
+// Tab UI resolved for one top-level window, kept until validation fails or
+// the window/fullscreen state changes. UIA elements are live references, so
 // property reads on cached elements (bounding rectangles in particular) track
-// resizes without re-resolving; a re-created tab strip fails the read instead,
-// which invalidates the entry.
+// resizes without re-resolving; staleness is detected by rectangle checks in
+// `GetValidatedTabUi`, not by failing reads.
 struct TabUiCache {
   HWND window = nullptr;
   bool fullscreen = false;
@@ -639,11 +639,20 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
   return nullptr;
 }
 
-// Returns the cached tab UI for `hwnd` with liveness proven by a bounding-
-// rectangle read on the gate element, retrying once with a fresh resolve when
-// the cached element has died (tab strip re-created, window layout changed).
-// `gate_rect` receives the live rectangle of the tab strip region (or of the
-// container in the fullscreen fallback) for point gating.
+// Returns the cached tab UI for `hwnd`, retrying once with a fresh resolve
+// when validation fails. `gate_rect` receives the live rectangle of the tab
+// strip region (or of the container in the fullscreen fallback) for point
+// gating.
+//
+// A failing read is not a usable staleness signal here: toggling between
+// horizontal and vertical tabs keeps both region views alive as `BrowserView`
+// children and only destroys/recreates the inner tab strip
+// (`BrowserView::OnVerticalTabStripModeChanged` in
+// chrome/browser/ui/views/frame/browser_view.cc), and Chromium's UIA provider
+// answers rectangle reads on the hidden region and on the destroyed container
+// with S_OK and an empty rectangle rather than an error. Outside fullscreen a
+// live tab strip always has a non-empty rectangle, so an empty region or
+// container rectangle marks a cache entry orphaned by a layout toggle.
 TabUiCache* GetValidatedTabUi(UiaSession* session, HWND hwnd, RECT* gate_rect) {
   for (int attempt = 0; attempt < 2; ++attempt) {
     TabUiCache* ui = ResolveTabUi(session, hwnd);
@@ -654,7 +663,19 @@ TabUiCache* GetValidatedTabUi(UiaSession* session, HWND hwnd, RECT* gate_rect) {
     const ComPtr<IUIAutomationElement>& gate =
         ui->region ? ui->region : ui->container.element;
     if (SUCCEEDED(gate->get_CurrentBoundingRectangle(gate_rect))) {
-      return ui;
+      if (!ui->region) {
+        // Fullscreen raw-view fallback: the auto-hidden strip may
+        // legitimately report an empty rectangle, so a successful read stays
+        // the only gate.
+        return ui;
+      }
+      RECT container_rect;
+      if (!IsRectEmpty(gate_rect) &&
+          SUCCEEDED(ui->container.element->get_CurrentBoundingRectangle(
+              &container_rect)) &&
+          !IsRectEmpty(&container_rect)) {
+        return ui;
+      }
     }
     session->tab_ui_cache = TabUiCache();
   }
