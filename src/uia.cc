@@ -87,8 +87,13 @@ struct UiaSession {
 };
 
 UiaSession& GetThreadLocalUiaSession() {
-  thread_local UiaSession session;
-  return session;
+  // UI Automation proxies can block while being released from Chrome's UI
+  // thread during process teardown. Keep the apartment-bound session isolated
+  // per thread, but intentionally give it process lifetime so no COM cleanup
+  // runs from the injected DLL's TLS teardown path. Windows reclaims the
+  // allocation and COM references when the process exits.
+  thread_local UiaSession* session = new UiaSession;
+  return *session;
 }
 
 bool CreateClassCondition(const ComPtr<IUIAutomation>& automation,
