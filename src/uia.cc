@@ -937,6 +937,22 @@ FindBookmarkCoveringPoint(const UiaSession& session, HWND window, POINT pt) {
                                 session.class_conditions.bookmark_button, pt);
   }
 
+  // `FindBarHost` is a separate widget positioned from
+  // `BrowserView::find_bar_host_view()` (chrome/browser/ui/views/
+  // find_bar_host.cc and frame/browser_view.h). While it is visible, UIA can
+  // expose only `FindBarView` from the root HWND. Point lookup still reaches
+  // uncovered browser chrome, but keep it gated on a Views HWND so a page
+  // click never crosses `Chrome_RenderWidgetHostHWND`.
+  const HWND point_window = WindowFromPoint(pt);
+  if (point_window && IsChromeWindow(point_window)) {
+    ComPtr<IUIAutomationElement> pointed;
+    if (SUCCEEDED(session.automation->ElementFromPoint(
+            pt, pointed.ReleaseAndGetAddressOf())) &&
+        IsValidBookmark(pointed)) {
+      return pointed;
+    }
+  }
+
   // Bookmark folder menu: its own top-level popup window, all views, so the
   // window root is a safe anchor for the subtree `FindAll`. Windows that host
   // web content without `TopContainerView` (undocked DevTools again) must be
