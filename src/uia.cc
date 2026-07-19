@@ -290,6 +290,52 @@ bool HasAnyClassName(
   return std::ranges::contains(expected_class_names, class_name_view);
 }
 
+ComPtr<IUIAutomationElement> FindBrowserViewFromTopChrome(
+    const UiaSession& session,
+    HWND window) {
+  RECT client_rect;
+  if (!window || !GetClientRect(window, &client_rect) ||
+      client_rect.right - client_rect.left <= 1 ||
+      client_rect.bottom - client_rect.top <= 1) {
+    return nullptr;
+  }
+
+  POINT point{client_rect.left + 1, client_rect.top + 1};
+  if (!ClientToScreen(window, &point)) {
+    return nullptr;
+  }
+
+  // In a normal tabbed window, the top-left client point stays on browser
+  // chrome above the find widget. Require the exact top-level Views HWND so
+  // point lookup cannot start from a hosted child such as web content.
+  const HWND point_window = WindowFromPoint(point);
+  if (point_window != window || !IsChromeWindow(point_window)) {
+    return nullptr;
+  }
+
+  ComPtr<IUIAutomationElement> element;
+  if (FAILED(session.automation->ElementFromPoint(
+          point, element.ReleaseAndGetAddressOf())) ||
+      !element) {
+    return nullptr;
+  }
+
+  constexpr int kMaxAncestorDepth = 12;
+  for (int depth = 0; element && depth < kMaxAncestorDepth; ++depth) {
+    if (HasClassName(element, L"BrowserView")) {
+      return element;
+    }
+
+    ComPtr<IUIAutomationElement> parent;
+    if (FAILED(session.control_view_walker->GetParentElement(
+            element.Get(), parent.ReleaseAndGetAddressOf()))) {
+      return nullptr;
+    }
+    element = std::move(parent);
+  }
+  return nullptr;
+}
+
 bool IsValidBookmark(const ComPtr<IUIAutomationElement>& element) {
   if (!HasAnyClassName(element, {L"BookmarkButton", L"MenuItemView"})) {
     return false;
@@ -663,11 +709,36 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
   // horizontal_tab_strip_region_view.h). Match the pre-152 and `Old` names;
   // the flagged `New` view hosts a different subtree (TabCollectionNode) and
   // needs its own container resolution once it ships enabled.
-  if (const auto region = FindShallowDescendantByClasses(
-          session->control_view_walker.Get(), window_element,
-          {L"HorizontalTabStripRegionView", L"HorizontalTabStripRegionViewOld",
-           L"VerticalTabStripRegionView"},
-          /*max_visited=*/256)) {
+  auto region = FindShallowDescendantByClasses(
+      session->control_view_walker.Get(), window_element,
+      {L"HorizontalTabStripRegionView", L"HorizontalTabStripRegionViewOld",
+       L"VerticalTabStripRegionView"},
+      /*max_visited=*/256);
+  if (!region && !fullscreen &&
+      FindShallowDescendantByClasses(session->control_view_walker.Get(),
+                                     window_element, {L"FindBarView"},
+                                     /*max_visited=*/32)) {
+    // `FindBarHost` owns a separate Widget parented to the browser's native
+    // view. While it is visible, `ElementFromHandle` can expose only that
+    // widget's UIA fragment instead of `BrowserView`.
+    // https://source.chromium.org/chromium/chromium/src/+/main:chrome/browser/ui/views/find_bar_host.cc
+    DebugLog(L"UIA: recovering tab UI while find bar is visible");
+    const auto browser_view = FindBrowserViewFromTopChrome(*session, hwnd);
+    if (!browser_view) {
+      DebugLog(L"UIA: failed to recover BrowserView from browser chrome");
+      return nullptr;
+    }
+    region = FindShallowDescendantByClasses(
+        session->control_view_walker.Get(), browser_view,
+        {L"HorizontalTabStripRegionView", L"HorizontalTabStripRegionViewOld",
+         L"VerticalTabStripRegionView"},
+        /*max_visited=*/256);
+    if (!region) {
+      DebugLog(L"UIA: recovered BrowserView has no tab strip region");
+    }
+  }
+
+  if (region) {
     const bool vertical = HasClassName(region, L"VerticalTabStripRegionView");
     if (auto container = FindTabContainerInRegion(*session, region, vertical)) {
       cache.region = region;
