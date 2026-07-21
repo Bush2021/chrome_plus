@@ -243,6 +243,12 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
 
   const POINT pt = pmouse->pt;
   HWND hwnd = WindowFromPoint(pt);
+  // Commands target the browser frame; child HWNDs under the cursor are common.
+  if (hwnd) {
+    if (const HWND root = GetAncestor(hwnd, GA_ROOT)) {
+      hwnd = root;
+    }
+  }
   const auto hit = FindTabHitResult(pt, config.IsKeepLastTab(), true);
   if (!hit || hit->on_close_button) {
     return false;
@@ -375,33 +381,50 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
   PMOUSEHOOKSTRUCT pmouse = reinterpret_cast<PMOUSEHOOKSTRUCT>(lParam);
 
   static bool wheel_tab_ing_with_rbutton = false;
-  // Set when a tab-closing handler succeeds. While active, subsequent messages
-  // in the same click sequence are swallowed to prevent Windows' consecutive
-  // DBLCLK messages from closing extra tabs or crashing vertical tabs.
-  static bool closing_tab_by_dblclk = false;
-  static bool closing_tab_by_middle = false;
-  static bool closing_tab_by_right = false;
+  // After a left double-click tab close, Windows still delivers the trailing
+  // WM_LBUTTONUP of that gesture. Swallow that single UP only.
+  // A sticky flag until the next LBUTTONDOWN is too wide: it can disrupt the
+  // next window action (close, minimize, caption drag) on Chrome's custom
+  // frame.
+  static bool swallow_next_lbutton_up = false;
+  // While set, ignore further LBUTTONDBLCLK on tabs so a burst of clicks
+  // cannot close more than one tab when Windows omits LBUTTONDOWN between
+  // consecutive DBLCLKs. Cleared on any new left-button down.
+  static ULONGLONG ignore_lbutton_dblclk_until = 0;
+  // Windows pairs two nearby clicks into one double-click even when the first
+  // landed on the new-tab button (or other non-tab chrome) and the second on
+  // a tab. Only treat DBLCLK as close when the preceding LBUTTONDOWN was on a
+  // tab body.
+  static bool last_lbutton_down_on_tab = false;
 
   switch (wParam) {
     case WM_MOUSEMOVE:
       HandleHoverTab(pmouse);
       return false;
     case WM_LBUTTONDOWN:
+    case WM_NCLBUTTONDOWN:
       CancelHoverTabTimer();
-      // Simply record the position of `LBUTTONDOWN` for drag detection
-      closing_tab_by_dblclk = false;
-      lbutton_down_point = pmouse->pt;
+      swallow_next_lbutton_up = false;
+      ignore_lbutton_dblclk_until = 0;
+      if (wParam == WM_LBUTTONDOWN) {
+        lbutton_down_point = pmouse->pt;
+        const auto hit = FindTabHitResult(pmouse->pt, false, true);
+        last_lbutton_down_on_tab = hit && !hit->on_close_button;
+      } else {
+        last_lbutton_down_on_tab = false;
+      }
       return false;
     case WM_MBUTTONDOWN:
+    case WM_NCMBUTTONDOWN:
       CancelHoverTabTimer();
-      closing_tab_by_middle = false;
       return false;
     case WM_RBUTTONDOWN:
+    case WM_NCRBUTTONDOWN:
       CancelHoverTabTimer();
-      closing_tab_by_right = false;
       return false;
     case WM_LBUTTONUP:
-      if (closing_tab_by_dblclk) {
+      if (swallow_next_lbutton_up) {
+        swallow_next_lbutton_up = false;
         return true;
       }
       if (HandleDrag(pmouse)) {
@@ -409,14 +432,16 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
       } else if (HandleBookmark(pmouse)) {
         return true;
       } else if (HandleCloseButton(pmouse)) {
-        closing_tab_by_dblclk = true;
+        return true;
+      }
+      return false;
+    case WM_NCLBUTTONUP:
+      if (swallow_next_lbutton_up) {
+        swallow_next_lbutton_up = false;
         return true;
       }
       return false;
     case WM_RBUTTONUP:
-      if (closing_tab_by_right) {
-        return true;
-      }
       if (wheel_tab_ing_with_rbutton) {
         // Swallow the first RBUTTONUP that follows a wheel-based tab switch to
         // suppress Chrome's context menu; the RBUTTONUP arrives after
@@ -424,7 +449,6 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
         wheel_tab_ing_with_rbutton = false;
         return true;
       } else if (HandleRightClick(pmouse)) {
-        closing_tab_by_right = true;
         return true;
       }
       return false;
@@ -444,35 +468,41 @@ bool TabBookmarkMouseHandler(WPARAM wParam, LPARAM lParam) {
       }
       return false;
     case WM_LBUTTONDBLCLK:
-      if (closing_tab_by_dblclk) {
-        // Windows generates consecutive WM_LBUTTONDBLCLK for rapid clicks
-        // at the same position (no WM_LBUTTONDOWN in between). Swallow
-        // them to ensure one double-click gesture closes exactly one tab.
-        return true;
+      if (GetTickCount64() < ignore_lbutton_dblclk_until) {
+        // Burst DBLCLK only for tabs. Other clicks must pass through even
+        // inside the system double-click interval.
+        const auto hit = FindTabHitResult(pmouse->pt, false, true);
+        if (hit && !hit->on_close_button) {
+          swallow_next_lbutton_up = true;
+          return true;
+        }
+        ignore_lbutton_dblclk_until = 0;
+      }
+      // Require the first click of the double-click pair to be on a tab.
+      // Otherwise "new tab, then a quick click on a tab" becomes a system
+      // DBLCLK and would close that tab.
+      if (!last_lbutton_down_on_tab) {
+        return false;
       }
       if (HandleDoubleClick(pmouse)) {
         // Swallow the double-click so Chrome does not process it on the
         // now-destroyed tab (prevents crash on vertical tabs, issue #220).
-        // Also keep the flag active to suppress the following WM_LBUTTONUP
-        // (orphan UP in the DOWN-UP-DBLCLK-UP sequence) and any further
-        // consecutive DBLCLK messages from rapid clicking.
-        closing_tab_by_dblclk = true;
+        // Only the orphan UP of this DBLCLK-UP pair is suppressed; the next
+        // real left-button gesture must reach Chrome.
+        swallow_next_lbutton_up = true;
+        ignore_lbutton_dblclk_until =
+            GetTickCount64() + GetDoubleClickTime();
         return true;
       }
       return false;
     case WM_MBUTTONUP:
-      if (closing_tab_by_middle) {
-        return true;
-      }
       if (HandleMiddleClick(pmouse)) {
-        closing_tab_by_middle = true;
         return true;
       }
       return false;
     case WM_MBUTTONDBLCLK:
-      return closing_tab_by_middle;
     case WM_RBUTTONDBLCLK:
-      return closing_tab_by_right;
+      return false;
   }
   return false;
 }
