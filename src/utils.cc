@@ -229,10 +229,20 @@ void ExecuteCommand(int id, HWND hwnd) {
   if (hwnd == 0) {
     hwnd = GetForegroundWindow();
   }
-  // hwnd = GetTopWnd(hwnd);
-  // hwnd = GetForegroundWindow();
-  // PostMessage(hwnd, WM_SYSCOMMAND, id, 0);
-  ::SendMessageTimeoutW(hwnd, WM_SYSCOMMAND, id, 0, 0, 1000, 0);
+  // A null hwnd would turn the PostMessage below into a thread message.
+  if (!hwnd) {
+    return;
+  }
+  // Browser commands are window-scoped. Callers often pass the HWND under the
+  // cursor (child widget / render host); route to the top-level frame.
+  if (const HWND root = ::GetAncestor(hwnd, GA_ROOT)) {
+    hwnd = root;
+  }
+  // Post, do not Send: frequently called from the UI-thread mouse hook
+  // (double-click close). A synchronous SendMessageTimeout can re-enter
+  // Chrome while the hook is still on the stack and break the next
+  // window gesture after close.
+  ::PostMessageW(hwnd, WM_SYSCOMMAND, id, 0);
 }
 
 void LaunchCommands(const std::wstring& get_commands) {
