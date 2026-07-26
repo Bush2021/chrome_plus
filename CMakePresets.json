@@ -1,0 +1,29 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "cacheVariables": {
+        "CHROME_PLUS_ARCH": "x64",
+        "CHROME_PLUS_USE_VC_LTL": "ON",
+        "CMAKE_CONFIGURATION_TYPES": "Debug;MinSizeRel"
+      }
+    },
+    {
+      "name": "ninja",
+      "displayName": "Ninja Multi-Config with Clang-CL",
+      "inherits": "base",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/build/ninja-x64",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/clang-cl.cmake"
+    },
+    {
+      "name": "vs",
+      "displayName": "Visual Studio with MSVC",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build/vs-x64",
+      "architecture": "x64"
+    }
+  ]
+}

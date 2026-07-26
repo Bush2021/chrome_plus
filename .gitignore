@@ -1,5 +1,5 @@
-.xmake/
 build/
+out/
 .vscode/
 .zed/
 .idea/
@@ -9,4 +9,5 @@ CLAUDE.md
 TODO.md
 cppguide.html
 compile_commands.json
+CMakeUserPresets.json
 .cache/

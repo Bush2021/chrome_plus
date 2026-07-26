@@ -90,34 +90,14 @@ jobs:
           echo "BUILD_MODE=$BUILD_MODE" >> $GITHUB_ENV
           echo "Using BUILD_MODE=$BUILD_MODE"
 
-      - name: Set CLANG_BIN
-        shell: bash
-        run: |
-          CLANG_BIN=$(dirname "$(where clang-cl | head -n 1)")
-          echo "CLANG_BIN=$CLANG_BIN" >> $GITHUB_ENV
-
-      - name: Setup Xmake
-        uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: '3.0.5'
-
-      - name: Configure Xmake
-        run: xmake f -m ${{ env.BUILD_MODE }} -a ${{ matrix.arch }} --toolchain=clang-cl --bin="${{ env.CLANG_BIN }}" --yes
-
       - name: Build Chrome++
-        shell: bash
-        run: |
-          if [ "${{ env.BUILD_MODE }}" == "debug" ]; then
-            xmake -vD
-          else
-            xmake
-          fi
+        run: .\build.cmd ${{ matrix.arch }} ${{ env.BUILD_MODE }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
         with:
           name: version-${{ matrix.arch }}${{ env.BUILD_MODE == 'debug' && '-debug' || '' }}-${{ env.VERSION }}
-          path: build/${{ env.BUILD_MODE }}/*
+          path: out/${{ matrix.arch }}/${{ env.BUILD_MODE }}/*
 
   create_pr:
     needs: build
