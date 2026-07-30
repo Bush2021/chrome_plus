@@ -188,10 +188,9 @@ bool PatchSettingsHtml(uint8_t* begin, uint32_t size, size_t& new_len) {
   // RemoveUpdateError
   // if (IsNeedPortable())
   {
-    ReplaceStringInPlace(html, R"(hidden="[[!showUpdateStatus_]]")",
+    ReplaceStringInPlace(html, R"(?hidden="${!this.showUpdateStatus_}")",
                          R"(hidden="true")");
-    ReplaceStringInPlace(html,
-                         R"(hidden="[[!shouldShowIcons_(showUpdateStatus_)]]")",
+    ReplaceStringInPlace(html, R"(?hidden="${!this.shouldShowIcons_()}")",
                          R"(hidden="true")");
   }
 
