@@ -5,9 +5,13 @@ set "generator=ninja"
 set "architecture=x64"
 set "configuration=MinSizeRel"
 set "mode=release"
+set "build_version="
 
 :parse
 if "%~1"=="" goto parsed
+set "option=%~1"
+if /i "%option%"=="version" goto use_split_version
+if /i "%option:~0,8%"=="version=" goto use_version
 if /i "%~1"=="ninja" goto use_ninja
 if /i "%~1"=="vs" goto use_vs
 if /i "%~1"=="x86" goto use_x86
@@ -59,6 +63,25 @@ set "mode=release"
 shift
 goto parse
 
+:use_version
+set "build_version=%option:~8%"
+if not defined build_version (
+  echo Build version cannot be empty.
+  exit /b 1
+)
+shift
+goto parse
+
+:use_split_version
+shift
+if "%~1"=="" (
+  echo Build version cannot be empty.
+  exit /b 1
+)
+set "build_version=%~1"
+shift
+goto parse
+
 :parsed
 set "source_dir=%~dp0"
 set "build_dir=%source_dir%build\%generator%-%architecture%"
@@ -91,13 +114,15 @@ goto configure_vs
 
 :configure_ninja
 cmake --preset ninja -B "%build_dir%" ^
-  -DCHROME_PLUS_ARCH=%architecture%
+  -DCHROME_PLUS_ARCH=%architecture% ^
+  "-DCHROME_PLUS_BUILD_VERSION=%build_version%"
 goto configured
 
 :configure_vs
 call :set_vs_arch
 cmake --preset vs -B "%build_dir%" -A %vs_arch% ^
-  -DCHROME_PLUS_ARCH=%architecture%
+  -DCHROME_PLUS_ARCH=%architecture% ^
+  "-DCHROME_PLUS_BUILD_VERSION=%build_version%"
 
 :configured
 if errorlevel 1 exit /b %errorlevel%
@@ -198,7 +223,7 @@ if "%architecture%"=="arm64" set "vs_arch=ARM64"
 exit /b 0
 
 :help
-echo Usage: build [ninja^|vs] [x86^|x64^|arm64] [debug^|release]
+echo Usage: build [ninja^|vs] [x86^|x64^|arm64] [debug^|release] [version=VALUE]
 echo.
 echo Defaults: ninja x64 release
 echo.
@@ -208,8 +233,9 @@ echo   build debug
 echo   build arm64 release
 echo   build vs
 echo   build vs x86 debug
+echo   build version=1.19.0
 exit /b 0
 
 :help_error
-echo Usage: build [ninja^|vs] [x86^|x64^|arm64] [debug^|release]
+echo Usage: build [ninja^|vs] [x86^|x64^|arm64] [debug^|release] [version=VALUE]
 exit /b 1

@@ -47,37 +47,17 @@ jobs:
         with:
           submodules: 'true'
 
-      - name: Update version.h
+      - name: Set Version
         shell: bash
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          if [ "${{ github.event_name }}" == "push" ]; then
-            COMMIT_HASH=$(git rev-parse --short HEAD)
-            VERSION="alpha-${COMMIT_HASH}"
-            echo "VERSION=$VERSION" >> $GITHUB_ENV
-            sed -i '/#define RELEASE_VER_STR/,/RELEASE_VER_PRE_SUFFIX/c\#define RELEASE_VER_STR "'"$VERSION"'"' src/version.h
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            INPUT_VERSION="${{ github.event.inputs.version }}"
-            if [ -n "$INPUT_VERSION" ]; then
-              VERSION="$INPUT_VERSION"
-              if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
-                echo "::error::Invalid version '$VERSION'. Expected SemVer like 1.2.3 or 1.2.3-alpha.1" >&2
-                exit 1
-              fi
-              echo "VERSION=$VERSION" >> $GITHUB_ENV
-              CORE="${VERSION%%-*}"
-              PRE="${VERSION#*-}"
-              if [ "$PRE" = "$VERSION" ]; then PRE_SUFFIX=""; else PRE_SUFFIX="-$PRE"; fi
-              IFS='.' read -r MAJOR MINOR PATCH <<< "$CORE"
-              sed -i 's/#define RELEASE_VER_MAIN .*/#define RELEASE_VER_MAIN '"$MAJOR"'/' src/version.h
-              sed -i 's/#define RELEASE_VER_SUB .*/#define RELEASE_VER_SUB '"$MINOR"'/' src/version.h
-              sed -i 's/#define RELEASE_VER_FIX .*/#define RELEASE_VER_FIX '"$PATCH"'/' src/version.h
-              sed -i 's|#define RELEASE_VER_PRE_SUFFIX .*|#define RELEASE_VER_PRE_SUFFIX "'"$PRE_SUFFIX"'"|' src/version.h
-            else
-              COMMIT_HASH=$(git rev-parse --short HEAD)
-              VERSION="manual-${COMMIT_HASH}"
-              echo "VERSION=$VERSION" >> $GITHUB_ENV
-            fi
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+          else
+            VERSION="alpha-${GITHUB_SHA:0:7}"
           fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Set Build Mode
         shell: bash
@@ -91,7 +71,9 @@ jobs:
           echo "Using BUILD_MODE=$BUILD_MODE"
 
       - name: Build Chrome++
-        run: .\build.cmd ${{ matrix.arch }} ${{ env.BUILD_MODE }}
+        env:
+          BUILD_ARCH: ${{ matrix.arch }}
+        run: .\build.cmd $env:BUILD_ARCH $env:BUILD_MODE "version=$env:VERSION"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7

@@ -38,6 +38,51 @@ if(NOT CHROME_PLUS_ARCH MATCHES "^(x86|x64|arm64)$")
   message(FATAL_ERROR "CHROME_PLUS_ARCH must be x86, x64, or arm64.")
 endif()
 
+set(
+  CHROME_PLUS_BUILD_VERSION
+  ""
+  CACHE STRING
+  "Override the embedded build version"
+)
+set(
+  CHROME_PLUS_EFFECTIVE_BUILD_VERSION
+  "${CHROME_PLUS_BUILD_VERSION}"
+)
+
+if(NOT CHROME_PLUS_EFFECTIVE_BUILD_VERSION)
+  find_package(Git QUIET)
+  if(Git_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    execute_process(
+      COMMAND
+        "${GIT_EXECUTABLE}" -C "${CMAKE_SOURCE_DIR}"
+        rev-parse --short=7 HEAD
+      RESULT_VARIABLE CHROME_PLUS_GIT_RESULT
+      OUTPUT_VARIABLE CHROME_PLUS_GIT_COMMIT
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+    )
+    if(CHROME_PLUS_GIT_RESULT EQUAL 0)
+      set(
+        CHROME_PLUS_EFFECTIVE_BUILD_VERSION
+        "alpha-${CHROME_PLUS_GIT_COMMIT}"
+      )
+    endif()
+  endif()
+endif()
+
+if(CHROME_PLUS_EFFECTIVE_BUILD_VERSION)
+  if(
+    NOT "${CHROME_PLUS_EFFECTIVE_BUILD_VERSION}"
+      MATCHES "^[0-9A-Za-z][0-9A-Za-z.-]*$"
+  )
+    message(
+      FATAL_ERROR
+      "Invalid build version: "
+      "${CHROME_PLUS_EFFECTIVE_BUILD_VERSION}"
+    )
+  endif()
+endif()
+
 option(
   CHROME_PLUS_USE_VC_LTL
   "Use VC-LTL for optimized configurations"
@@ -111,6 +156,34 @@ add_library(chrome_plus SHARED
   src/upgradenotification.cc
   src/utils.cc
 )
+
+if(CHROME_PLUS_EFFECTIVE_BUILD_VERSION)
+  set(
+    CHROME_PLUS_VERSION_DEFINITIONS
+    "RELEASE_VER_STR=\"${CHROME_PLUS_EFFECTIVE_BUILD_VERSION}\""
+  )
+  if(
+    "${CHROME_PLUS_EFFECTIVE_BUILD_VERSION}"
+      MATCHES
+      "^([0-9]+)[.]([0-9]+)[.]([0-9]+)(-[0-9A-Za-z][0-9A-Za-z.-]*)?$"
+  )
+    list(
+      APPEND
+      CHROME_PLUS_VERSION_DEFINITIONS
+      "RELEASE_VER_MAIN=${CMAKE_MATCH_1}"
+      "RELEASE_VER_SUB=${CMAKE_MATCH_2}"
+      "RELEASE_VER_FIX=${CMAKE_MATCH_3}"
+    )
+  endif()
+  target_compile_definitions(
+    chrome_plus PRIVATE ${CHROME_PLUS_VERSION_DEFINITIONS}
+  )
+  message(
+    STATUS
+    "Chrome++ build version: "
+    "${CHROME_PLUS_EFFECTIVE_BUILD_VERSION}"
+  )
+endif()
 
 target_link_libraries(chrome_plus PRIVATE
   onecore
