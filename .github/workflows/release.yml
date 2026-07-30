@@ -14,6 +14,15 @@ on:
 
 jobs:
   release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        startsWith(
+          github.event.head_commit.message,
+          'build(release): bump version to '
+        ) &&
+        contains(github.event.head_commit.message, 'Build-Run-Id:')
+      )
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -28,11 +37,32 @@ jobs:
 
       - name: Get Version from version.h
         run: |
-          MAJOR=$(grep '#define RELEASE_VER_MAIN' src/version.h | awk '{print $3}')
-          MINOR=$(grep '#define RELEASE_VER_SUB' src/version.h | awk '{print $3}')
-          PATCH=$(grep '#define RELEASE_VER_FIX' src/version.h | awk '{print $3}')
-          PRE_SUFFIX=$(grep '#define RELEASE_VER_PRE_SUFFIX' src/version.h | awk '{print $3}' | tr -d '"')
+          set -euo pipefail
+          get_define() {
+            awk -v name="$1" '
+              $1 == "#define" && $2 == name {
+                value = $3
+                gsub(/"/, "", value)
+                print value
+                found = 1
+                exit
+              }
+              END {
+                if (!found) {
+                  exit 1
+                }
+              }
+            ' src/version.h
+          }
+          MAJOR=$(get_define RELEASE_VER_MAIN)
+          MINOR=$(get_define RELEASE_VER_SUB)
+          PATCH=$(get_define RELEASE_VER_FIX)
+          PRE_SUFFIX=$(get_define RELEASE_VER_PRE_SUFFIX)
           VERSION="$MAJOR.$MINOR.$PATCH$PRE_SUFFIX"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Invalid version '$VERSION' in src/version.h." >&2
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           if [ -n "$PRE_SUFFIX" ]; then
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
