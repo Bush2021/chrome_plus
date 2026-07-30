@@ -3,6 +3,7 @@ out/
 .vscode/
 .zed/
 .idea/
+.agents/
 .claude/
 AGENTS.md
 CLAUDE.md
