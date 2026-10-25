@@ -1,5 +1,5 @@
 name: Bug Report
-description: "Latest stable Google Chrome only. Questions, support requests, and unsupported Chromium forks are out of scope."
+description: "Stable Google Chrome is the priority. Beta, Dev, and Canary regressions are welcome. Questions, support requests, and unsupported Chromium forks are out of scope."
 title: "[Bug] "
 body:
   - type: checkboxes
@@ -10,7 +10,7 @@ body:
       options:
         - label: I have carefully read the [INI configuration file](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) and understand the relevant options.
           required: true
-        - label: I confirmed the problem happens on the latest stable Google Chrome.
+        - label: I identified my Chrome channel. For a Beta, Dev, or Canary report, I included a comparison with the latest Stable release or explained why I could not test it.
           required: true
         - label: I am using the latest Chrome++ release.
           required: true
@@ -18,12 +18,24 @@ body:
           required: true
         - label: I reproduced the problem in a clean environment, with extensions disabled and unrelated tools, injectors, overlays, launchers, and UI modifiers ruled out.
           required: true
-        - label: I tested at least one older Chrome++ release and will provide the last known good version, or clearly state that the problem never worked for me.
+        - label: I checked for a regression by testing an older Chrome++ release or Chrome build, or explained why I could not test older versions.
           required: true
         - label: I understand unsupported Chromium forks, questions, support requests, and reports missing required information may be closed.
           required: true
         - label: I make sure to describe the problem in English.
           required: true
+  - type: dropdown
+    id: chrome_channel
+    attributes:
+      label: Chrome Channel
+      description: Stable Chrome is the primary support target. Beta, Dev, and Canary regression reports are also welcome.
+      options:
+        - Stable
+        - Beta
+        - Dev
+        - Canary
+    validations:
+      required: true
   - type: textarea
     id: version_info
     attributes:
@@ -35,11 +47,14 @@ body:
     id: regression_check
     attributes:
       label: Regression Check
-      description: State which older Chrome++ release still worked for you. If you tested older releases and the problem never worked, say that explicitly.
+      description: |
+        State whether the problem began after a Chrome++ update or a Chrome update. Include the versions tested and the last working and first affected versions, if known.
+        For Beta, Dev, or Canary regressions, an older Chrome build can help identify where the problem started. If it never worked or you could not test older versions, say so and explain.
       placeholder: |
-        Last known good Chrome++ version: 1.xx.x
-        First bad Chrome++ version: 1.yy.y or latest
-        Notes: never worked for me / could not test older releases because ...
+        Chrome++ versions tested and results:
+        Chrome versions/channels tested and results:
+        Last working / first affected versions:
+        Notes: never worked for me / could not test older versions (explain why)
     validations:
       required: true
   - type: textarea

@@ -12,7 +12,7 @@ Chrome++ Next 是一个 `version.dll` 注入项目，会与 `chrome.exe` 一同�
 - 优先处理扩展难以实现、或外部方案无法很好解决的能力。
 
 ## 支持策略
-- 只接受最新版稳定版 Google Chrome 的问题反馈。
+- 稳定版 Google Chrome 是主要支持目标，也欢迎 Beta、Dev 和 Canary 的回归问题反馈。
 - 其它 Chromium 分支浏览器能用则用，但不属于正式支持目标。
 - 具体反馈要求以 GitHub Issues 页面和表单为准。
 

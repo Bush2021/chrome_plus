@@ -12,7 +12,7 @@ Chrome++ Next is a `version.dll` injection project for Google Chrome. It is load
 - Prioritizes capabilities that browser extensions cannot implement well, or that external tools do not solve cleanly.
 
 ## Support Policy
-- Bug reports are accepted only for the latest stable Google Chrome.
+- Stable Google Chrome is the primary support target. Reports of regressions in Beta, Dev, and Canary are also welcome.
 - Other Chromium-based browsers may work, but they are not supported targets.
 - Reporting requirements are enforced in the GitHub Issues templates.
 

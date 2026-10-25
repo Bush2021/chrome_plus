@@ -1,5 +1,5 @@
 name: 错误反馈
-description: "仅受理最新版稳定版 Google Chrome 的错误反馈。提问、求助和其它 Chromium 分支问题不受理。"
+description: "优先支持稳定版 Google Chrome，也欢迎 Beta、Dev 和 Canary 的回归问题反馈。提问、求助和其它 Chromium 分支问题不受理。"
 title: "[Bug] "
 body:
   - type: checkboxes
@@ -10,7 +10,7 @@ body:
       options:
         - label: 我仔细阅读了 [INI 配置文件](https://github.com/Bush2021/chrome_plus/blob/main/src/chrome%2B%2B.ini) 并理解相关配置项。
           required: true
-        - label: 我确认问题发生在最新版稳定版 Google Chrome。
+        - label: 我已注明 Chrome 渠道。如果问题发生在 Beta、Dev 或 Canary，我也提供了与最新版稳定版的对比结果，或说明了无法测试稳定版的原因。
           required: true
         - label: 我使用的是当前最新的 Chrome++ release。
           required: true
@@ -18,12 +18,24 @@ body:
           required: true
         - label: 我已经在干净环境中复现该问题，并已禁用扩展，排除了无关工具、注入器、覆盖层、启动器和界面修改工具的干扰。
           required: true
-        - label: 我至少测试过一个更早的 Chrome++ 版本，并会提供最后一个正常版本；如果它从未正常工作，我也会明确写出。
+        - label: 我测试过更早的 Chrome++ 或 Chrome 版本以检查回归，或说明了无法测试旧版本的原因。
           required: true
         - label: 我理解不受支持的 Chromium 分支、提问/求助类内容，以及缺少必要信息的报告都可能被直接关闭。
           required: true
         - label: 我确保使用中文清楚描述问题。
           required: true
+  - type: dropdown
+    id: chrome_channel
+    attributes:
+      label: Chrome 渠道
+      description: 稳定版 Chrome 是主要支持目标，也欢迎 Beta、Dev 和 Canary 的回归问题反馈。
+      options:
+        - Stable
+        - Beta
+        - Dev
+        - Canary
+    validations:
+      required: true
   - type: textarea
     id: version_info
     attributes:
@@ -35,10 +47,13 @@ body:
     id: regression_check
     attributes:
       label: 回归检查
-      description: 请写明哪个更早的 Chrome++ 版本是正常的。如果你测试了旧版本但从未正常工作，也请明确写出。
+      description: |
+        请说明问题是在更新 Chrome++ 还是更新 Chrome 后出现的，并列出测试过的版本及结果。如果已确定最后一个正常版本和第一个异常版本，请一并提供。
+        对于 Beta、Dev 或 Canary 的回归问题，测试更早的 Chrome 版本有助于确定问题从哪个版本开始。如果从未正常工作或无法测试旧版本，请说明情况及原因。
       placeholder: |
-        最后一个正常的 Chrome++ 版本：1.xx.x
-        第一个异常的 Chrome++ 版本：1.yy.y 或 latest
+        测试过的 Chrome++ 版本及结果：
+        测试过的 Chrome 版本、渠道及结果：
+        最后一个正常版本 / 第一个异常版本：
         备注：从未正常工作 / 无法测试旧版本，原因是 ...
     validations:
       required: true
