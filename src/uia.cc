@@ -36,7 +36,7 @@ class ScopedVariant {
 
 struct CachedClassConditions {
   ComPtr<IUIAutomationCondition> tab_strip_drag_context;
-  ComPtr<IUIAutomationCondition> tab_container_impl;
+  ComPtr<IUIAutomationCondition> horizontal_tab_container;
   ComPtr<IUIAutomationCondition> vertical_unpinned_tab_container_view;
   ComPtr<IUIAutomationCondition> unpinned_tab_container_view;
   ComPtr<IUIAutomationCondition> tab;
@@ -130,11 +130,23 @@ bool InitializeClassConditions(UiaSession* session) {
   }
 
   auto& conditions = session->class_conditions;
+  // Chrome 158 merged TabContainerImpl into TabContainer. Both names are
+  // needed while stable Chrome still uses the subclass: crrev.com/c/8625829.
+  ComPtr<IUIAutomationCondition> tab_container;
+  ComPtr<IUIAutomationCondition> tab_container_impl;
+  if (!CreateClassCondition(session->automation, L"TabContainer",
+                            &tab_container) ||
+      !CreateClassCondition(session->automation, L"TabContainerImpl",
+                            &tab_container_impl) ||
+      FAILED(session->automation->CreateOrCondition(
+          tab_container.Get(), tab_container_impl.Get(),
+          conditions.horizontal_tab_container.ReleaseAndGetAddressOf()))) {
+    return false;
+  }
+
   return CreateClassCondition(session->automation,
                               L"TabStrip::TabDragContextImpl",
                               &conditions.tab_strip_drag_context) &&
-         CreateClassCondition(session->automation, L"TabContainerImpl",
-                              &conditions.tab_container_impl) &&
          CreateClassCondition(
              session->automation, L"VerticalUnpinnedTabContainerView",
              &conditions.vertical_unpinned_tab_container_view) &&
@@ -435,10 +447,10 @@ std::optional<int> CountDescendantsByClassRaw(
   return count;
 }
 
-ComPtr<IUIAutomationElement> FindSiblingByClass(
+ComPtr<IUIAutomationElement> FindSiblingByClasses(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& element,
-    std::wstring_view class_name) {
+    std::initializer_list<std::wstring_view> class_names) {
   if (!element || !session.control_view_walker) {
     return nullptr;
   }
@@ -451,7 +463,7 @@ ComPtr<IUIAutomationElement> FindSiblingByClass(
                      : session.control_view_walker->GetPreviousSiblingElement(
                            element.Get(), current.ReleaseAndGetAddressOf());
     while (SUCCEEDED(hr) && current) {
-      if (HasClassName(current, class_name)) {
+      if (HasAnyClassName(current, class_names)) {
         return current;
       }
 
@@ -667,16 +679,19 @@ std::optional<TabContainer> FindTabContainerInRegion(
 
   if (const auto tab_strip = FindFirstDescendantByClass(
           region, session.class_conditions.tab_strip_drag_context)) {
-    if (const auto container =
-            FindSiblingByClass(session, tab_strip, L"TabContainerImpl")) {
+    if (const auto container = FindSiblingByClasses(
+            session, tab_strip, {L"TabContainer", L"TabContainerImpl"})) {
+      DebugLog(L"UIA: resolved horizontal tab container via sibling");
       return TabContainer{container, TabContainerKind::kHorizontal};
     }
   }
 
   if (const auto container = FindFirstDescendantByClass(
-          region, session.class_conditions.tab_container_impl)) {
+          region, session.class_conditions.horizontal_tab_container)) {
+    DebugLog(L"UIA: resolved horizontal tab container via descendant");
     return TabContainer{container, TabContainerKind::kHorizontal};
   }
+  DebugLog(L"UIA: horizontal tab container not found");
   return std::nullopt;
 }
 
@@ -756,8 +771,8 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
     // browser windows.
     if (const auto container = FindShallowDescendantByClasses(
             session->raw_view_walker.Get(), window_element,
-            {L"TabContainerImpl", L"VerticalUnpinnedTabContainerView",
-             L"UnpinnedTabContainerView"},
+            {L"TabContainer", L"TabContainerImpl",
+             L"VerticalUnpinnedTabContainerView", L"UnpinnedTabContainerView"},
             /*max_visited=*/512)) {
       TabContainerKind kind = TabContainerKind::kHorizontal;
       if (HasClassName(container, L"VerticalUnpinnedTabContainerView")) {
@@ -766,6 +781,7 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
         kind = TabContainerKind::kUnified;
       }
       cache.container = TabContainer{container, kind};
+      DebugLog(L"UIA: resolved fullscreen tab container");
       return &cache;
     }
   }
