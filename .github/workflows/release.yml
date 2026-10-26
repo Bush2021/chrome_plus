@@ -150,15 +150,16 @@ jobs:
           cd ..
 
       - name: Attest Release Packages
-        uses: actions/attest-build-provenance@v4
+        uses: actions/attest@v4
         with:
           subject-path: |
             Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
             setdll.7z
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v3.0.3
         with:
+          token: ${{ secrets.TOKEN }}
           files: |
             Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
             setdll.7z
@@ -166,5 +167,3 @@ jobs:
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
           prerelease: ${{ env.IS_PRERELEASE }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
