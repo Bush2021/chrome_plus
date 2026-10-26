@@ -37,10 +37,8 @@ class ScopedVariant {
 struct CachedClassConditions {
   ComPtr<IUIAutomationCondition> tab_strip_drag_context;
   ComPtr<IUIAutomationCondition> horizontal_tab_container;
-  ComPtr<IUIAutomationCondition> vertical_unpinned_tab_container_view;
   ComPtr<IUIAutomationCondition> unpinned_tab_container_view;
   ComPtr<IUIAutomationCondition> tab;
-  ComPtr<IUIAutomationCondition> vertical_tab_view;
   ComPtr<IUIAutomationCondition> tab_view;
   ComPtr<IUIAutomationCondition> tab_close_button;
   ComPtr<IUIAutomationCondition> bookmark_button;
@@ -50,8 +48,7 @@ struct CachedClassConditions {
 
 enum class TabContainerKind {
   kHorizontal,
-  kVertical,
-  // Chrome 152 rebuilt the vertical strip on the unified TabCollectionNode
+  // Chrome 151 rebuilt the vertical strip on the unified TabCollectionNode
   // system (chrome/browser/ui/views/tabs/common/tab_strip_view.h): the
   // container is `UnpinnedTabContainerView` and tabs are `TabView`. The
   // horizontal strip moves to the same classes once
@@ -147,14 +144,9 @@ bool InitializeClassConditions(UiaSession* session) {
   return CreateClassCondition(session->automation,
                               L"TabStrip::TabDragContextImpl",
                               &conditions.tab_strip_drag_context) &&
-         CreateClassCondition(
-             session->automation, L"VerticalUnpinnedTabContainerView",
-             &conditions.vertical_unpinned_tab_container_view) &&
          CreateClassCondition(session->automation, L"UnpinnedTabContainerView",
                               &conditions.unpinned_tab_container_view) &&
          CreateClassCondition(session->automation, L"Tab", &conditions.tab) &&
-         CreateClassCondition(session->automation, L"VerticalTabView",
-                              &conditions.vertical_tab_view) &&
          CreateClassCondition(session->automation, L"TabView",
                               &conditions.tab_view) &&
          CreateClassCondition(session->automation, L"TabCloseButton",
@@ -592,9 +584,9 @@ ComPtr<IUIAutomationElement> FindShallowDescendantByClasses(
 }
 
 TreeScope GetTabElementScope(TabContainerKind kind) {
-  // Horizontal tabs are direct children of the trusted container. Vertical
-  // tabs are usually nested below a `ScrollView` wrapper, so subtree search is
-  // required once the vertical container is known to be credible.
+  // Horizontal tabs are direct children of the trusted container. Unified
+  // (vertical) tabs are found with a subtree search once the container is
+  // known to be credible.
   return kind == TabContainerKind::kHorizontal ? TreeScope_Children
                                                : TreeScope_Subtree;
 }
@@ -603,8 +595,6 @@ std::wstring_view GetTabElementClassName(TabContainerKind kind) {
   switch (kind) {
     case TabContainerKind::kHorizontal:
       return L"Tab";
-    case TabContainerKind::kVertical:
-      return L"VerticalTabView";
     case TabContainerKind::kUnified:
       return L"TabView";
   }
@@ -617,8 +607,6 @@ const ComPtr<IUIAutomationCondition>& GetTabElementCondition(
   switch (kind) {
     case TabContainerKind::kHorizontal:
       return session.class_conditions.tab;
-    case TabContainerKind::kVertical:
-      return session.class_conditions.vertical_tab_view;
     case TabContainerKind::kUnified:
       return session.class_conditions.tab_view;
   }
@@ -650,23 +638,17 @@ bool IsWindowFullScreen(HWND hwnd) {
 // Resolves the tab container inside an already validated tab strip region.
 // The region subtree is content-free, so scoped `FindFirst` is safe here. Trust
 // is anchored on the region itself: popup windows expose no
-// `HorizontalTabStripRegionView`/`VerticalTabStripRegionView`, so tab-like
+// `HorizontalTabStripRegionViewOld`/`VerticalTabStripRegionView`, so tab-like
 // nodes elsewhere can never be misclassified as a tab strip.
 std::optional<TabContainer> FindTabContainerInRegion(
     const UiaSession& session,
     const ComPtr<IUIAutomationElement>& region,
     bool vertical) {
   if (vertical) {
-    if (const auto container = FindFirstDescendantByClass(
-            region,
-            session.class_conditions.vertical_unpinned_tab_container_view)) {
-      return TabContainer{container, TabContainerKind::kVertical};
-    }
-    // Chrome 152 vertical strip (unified TabCollectionNode system): the
-    // region name is unchanged but the subtree is `TabStripView ▸ ScrollView
-    // ▸ Viewport ▸ UnpinnedTabContainerView ▸ TabView`. Anchoring on the
-    // unpinned container mirrors the pre-152 behavior (pinned tabs live in a
-    // sibling `PinnedTabContainerView` and stay out of hit-testing/counts).
+    // The vertical strip is the unified TabCollectionNode system: the subtree
+    // is `TabStripView ▸ ScrollView ▸ Viewport ▸ UnpinnedTabContainerView ▸
+    // TabView`. Anchoring on the unpinned container keeps pinned tabs (a
+    // sibling `PinnedTabContainerView`) out of hit-testing and counts.
     // The scoped `FindFirst` also matters functionally: Chromium materializes
     // this subtree lazily, and tree-walker navigation below `TabStripView`
     // returns no children until a scoped Find query has touched it.
@@ -695,6 +677,22 @@ std::optional<TabContainer> FindTabContainerInRegion(
   return std::nullopt;
 }
 
+// Chrome 152 renamed `HorizontalTabStripRegionView` to
+// `HorizontalTabStripRegionViewOld` and put a rewritten
+// `HorizontalTabStripRegionViewNew` behind `tabs::kTabStripUnification`
+// (crrev.com/c/7963961, chrome/browser/ui/views/frame/
+// horizontal_tab_strip_region_view.h). The flagged `New` view hosts a
+// different subtree (TabCollectionNode) and needs its own container
+// resolution once it ships enabled.
+ComPtr<IUIAutomationElement> FindTabStripRegion(
+    const UiaSession& session,
+    const ComPtr<IUIAutomationElement>& anchor) {
+  return FindShallowDescendantByClasses(
+      session.control_view_walker.Get(), anchor,
+      {L"HorizontalTabStripRegionViewOld", L"VerticalTabStripRegionView"},
+      /*max_visited=*/256);
+}
+
 TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
   TabUiCache& cache = session->tab_ui_cache;
   const bool fullscreen = IsWindowFullScreen(hwnd);
@@ -717,18 +715,7 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
     return nullptr;
   }
 
-  // Chrome 152 renamed `HorizontalTabStripRegionView` to
-  // `HorizontalTabStripRegionViewOld` and put a rewritten
-  // `HorizontalTabStripRegionViewNew` behind `tabs::kTabStripUnification`
-  // (crrev.com/c/7963961, chrome/browser/ui/views/frame/
-  // horizontal_tab_strip_region_view.h). Match the pre-152 and `Old` names;
-  // the flagged `New` view hosts a different subtree (TabCollectionNode) and
-  // needs its own container resolution once it ships enabled.
-  auto region = FindShallowDescendantByClasses(
-      session->control_view_walker.Get(), window_element,
-      {L"HorizontalTabStripRegionView", L"HorizontalTabStripRegionViewOld",
-       L"VerticalTabStripRegionView"},
-      /*max_visited=*/256);
+  auto region = FindTabStripRegion(*session, window_element);
   if (!region && !fullscreen &&
       FindShallowDescendantByClasses(session->control_view_walker.Get(),
                                      window_element, {L"FindBarView"},
@@ -743,11 +730,7 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
       DebugLog(L"UIA: failed to recover BrowserView from browser chrome");
       return nullptr;
     }
-    region = FindShallowDescendantByClasses(
-        session->control_view_walker.Get(), browser_view,
-        {L"HorizontalTabStripRegionView", L"HorizontalTabStripRegionViewOld",
-         L"VerticalTabStripRegionView"},
-        /*max_visited=*/256);
+    region = FindTabStripRegion(*session, browser_view);
     if (!region) {
       DebugLog(L"UIA: recovered BrowserView has no tab strip region");
     }
@@ -771,15 +754,12 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
     // browser windows.
     if (const auto container = FindShallowDescendantByClasses(
             session->raw_view_walker.Get(), window_element,
-            {L"TabContainer", L"TabContainerImpl",
-             L"VerticalUnpinnedTabContainerView", L"UnpinnedTabContainerView"},
+            {L"TabContainer", L"TabContainerImpl", L"UnpinnedTabContainerView"},
             /*max_visited=*/512)) {
-      TabContainerKind kind = TabContainerKind::kHorizontal;
-      if (HasClassName(container, L"VerticalUnpinnedTabContainerView")) {
-        kind = TabContainerKind::kVertical;
-      } else if (HasClassName(container, L"UnpinnedTabContainerView")) {
-        kind = TabContainerKind::kUnified;
-      }
+      const TabContainerKind kind =
+          HasClassName(container, L"UnpinnedTabContainerView")
+              ? TabContainerKind::kUnified
+              : TabContainerKind::kHorizontal;
       cache.container = TabContainer{container, kind};
       DebugLog(L"UIA: resolved fullscreen tab container");
       return &cache;
