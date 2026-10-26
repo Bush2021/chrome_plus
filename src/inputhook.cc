@@ -18,6 +18,18 @@ struct HandlerEntry {
 std::vector<HandlerEntry<KeyboardHandler>> keyboard_handlers;
 std::vector<HandlerEntry<MouseHandler>> mouse_handlers;
 
+// Inserts after every handler of equal priority, so those keep their
+// registration order.
+template <typename Handler>
+void InsertByPriority(std::vector<HandlerEntry<Handler>>& handlers,
+                      Handler handler,
+                      HandlerPriority priority) {
+  const int value = static_cast<int>(priority);
+  handlers.insert(std::ranges::upper_bound(handlers, value, {},
+                                           &HandlerEntry<Handler>::priority),
+                  HandlerEntry<Handler>{std::move(handler), value});
+}
+
 HHOOK keyboard_hook = nullptr;
 HHOOK mouse_hook = nullptr;
 
@@ -60,17 +72,11 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 void RegisterKeyboardHandler(KeyboardHandler handler,
                              HandlerPriority priority) {
-  keyboard_handlers.emplace_back(std::move(handler), static_cast<int>(priority));
-  std::ranges::sort(keyboard_handlers, [](const auto& a, const auto& b) {
-    return a.priority < b.priority;
-  });
+  InsertByPriority(keyboard_handlers, std::move(handler), priority);
 }
 
 void RegisterMouseHandler(MouseHandler handler, HandlerPriority priority) {
-  mouse_handlers.emplace_back(std::move(handler), static_cast<int>(priority));
-  std::ranges::sort(mouse_handlers, [](const auto& a, const auto& b) {
-    return a.priority < b.priority;
-  });
+  InsertByPriority(mouse_handlers, std::move(handler), priority);
 }
 
 bool IsKeyPressed(int vk) {
