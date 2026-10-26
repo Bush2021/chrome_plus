@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <initializer_list>
 #include <span>
 #include <string>
 #include <string_view>
@@ -60,9 +61,10 @@ std::span<uint8_t> SearchMemory(std::span<uint8_t> src,
                                 std::span<const uint8_t> sub);
 
 // Parse the INI file
-std::wstring GetIniString(std::wstring_view section,
-                          std::wstring_view key,
-                          std::wstring_view default_value);
+std::wstring GetIniString(const wchar_t* section,
+                          const wchar_t* key,
+                          const wchar_t* default_value);
+int GetIniInt(const wchar_t* section, const wchar_t* key, int default_value);
 
 // Canonicalize the path
 std::wstring CanonicalizePath(const std::wstring& path);
@@ -104,81 +106,12 @@ HWND GetTopWnd(HWND hwnd);
 void ExecuteCommand(int id, HWND hwnd = 0);
 void LaunchCommands(const std::wstring& get_commands);
 [[nodiscard]] bool IsChromeWindow(HWND hwnd);
+// Returns nullptr when the window under `pt` is not part of Chrome.
+[[nodiscard]] HWND GetChromeRootWindowAt(POINT pt);
 
-// Keyboard and mouse input functions
-// Template function for sending combined key operations - kept in header
-template <typename... T>
-void SendKey(T&&... keys) {
-  std::vector<typename std::common_type<T...>::type> keys_ = {
-      std::forward<T>(keys)...};
-  std::vector<INPUT> inputs{};
-  inputs.reserve(keys_.size() * 2);
-  for (auto& key : keys_) {
-    INPUT input = {0};
-    // Adjust mouse messages
-    switch (key) {
-      case VK_RBUTTON:
-        input.type = INPUT_MOUSE;
-        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
-                               ? MOUSEEVENTF_LEFTDOWN
-                               : MOUSEEVENTF_RIGHTDOWN;
-        input.mi.dwExtraInfo = GetMagicCode();
-        break;
-      case VK_LBUTTON:
-        input.type = INPUT_MOUSE;
-        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
-                               ? MOUSEEVENTF_RIGHTDOWN
-                               : MOUSEEVENTF_LEFTDOWN;
-        input.mi.dwExtraInfo = GetMagicCode();
-        break;
-      case VK_MBUTTON:
-        input.type = INPUT_MOUSE;
-        input.mi.dwFlags = MOUSEEVENTF_MIDDLEDOWN;
-        input.mi.dwExtraInfo = GetMagicCode();
-        break;
-      default:
-        input.type = INPUT_KEYBOARD;
-        input.ki.wVk = (WORD)key;
-        input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
-        input.ki.dwExtraInfo = GetMagicCode();
-        break;
-    }
-    inputs.emplace_back(std::move(input));
-  }
-  for (auto& key : keys_) {
-    INPUT input = {0};
-    // Adjust mouse messages
-    switch (key) {
-      case VK_RBUTTON:
-        input.type = INPUT_MOUSE;
-        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
-                               ? MOUSEEVENTF_LEFTUP
-                               : MOUSEEVENTF_RIGHTUP;
-        input.mi.dwExtraInfo = GetMagicCode();
-        break;
-      case VK_LBUTTON:
-        input.type = INPUT_MOUSE;
-        input.mi.dwFlags = GetSystemMetrics(SM_SWAPBUTTON) == TRUE
-                               ? MOUSEEVENTF_RIGHTUP
-                               : MOUSEEVENTF_LEFTUP;
-        input.mi.dwExtraInfo = GetMagicCode();
-        break;
-      case VK_MBUTTON:
-        input.type = INPUT_MOUSE;
-        input.mi.dwFlags = MOUSEEVENTF_MIDDLEUP;
-        input.mi.dwExtraInfo = GetMagicCode();
-        break;
-      default:
-        input.type = INPUT_KEYBOARD;
-        input.ki.wVk = (WORD)key;
-        input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
-        input.ki.dwExtraInfo = GetMagicCode();
-        break;
-    }
-    inputs.emplace_back(std::move(input));
-  }
-  SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
-}
+// Presses `keys` in order, then releases them in the same order. Mouse
+// buttons are sent as mouse input. Every event carries `GetMagicCode()`.
+void SendKey(std::initializer_list<UINT> keys);
 
 // Parse hotkey string like "Ctrl+Shift+A" into MAKELPARAM(modifiers, vk)
 // Supports modifiers: shift, ctrl/control, alt, win

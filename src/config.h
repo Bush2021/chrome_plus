@@ -61,8 +61,6 @@ class Config {
 
   std::optional<std::wstring> LoadDirPath(const std::wstring& dir_type);
   int LoadHoverTabDelay();
-  int LoadOpenUrlNewTabMode();
-  int LoadBookmarkNewTabMode();
 
  private:
   // general

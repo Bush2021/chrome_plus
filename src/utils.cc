@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cwctype>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -173,14 +174,14 @@ std::span<uint8_t> SearchMemory(std::span<uint8_t> src,
   return {};
 }
 
-std::wstring GetIniString(std::wstring_view section,
-                          std::wstring_view key,
-                          std::wstring_view default_value) {
+std::wstring GetIniString(const wchar_t* section,
+                          const wchar_t* key,
+                          const wchar_t* default_value) {
   std::vector<TCHAR> buffer(100);
   DWORD bytesread = 0;
   do {
     bytesread = ::GetPrivateProfileStringW(
-        section.data(), key.data(), default_value.data(), buffer.data(),
+        section, key, default_value, buffer.data(),
         static_cast<DWORD>(buffer.size()), GetIniPath().c_str());
     if (bytesread >= buffer.size() - 1) {
       buffer.resize(buffer.size() * 2);
@@ -190,6 +191,11 @@ std::wstring GetIniString(std::wstring_view section,
   } while (true);
 
   return std::wstring(buffer.data());
+}
+
+int GetIniInt(const wchar_t* section, const wchar_t* key, int default_value) {
+  return static_cast<int>(::GetPrivateProfileIntW(section, key, default_value,
+                                                  GetIniPath().c_str()));
 }
 
 std::wstring CanonicalizePath(const std::wstring& path) {
@@ -281,6 +287,60 @@ void LaunchCommands(const std::wstring& get_commands) {
                                           static_cast<std::size_t>(length)};
   constexpr std::wstring_view target_prefix = L"Chrome_WidgetWin_";
   return class_name_view.starts_with(target_prefix);
+}
+
+HWND GetChromeRootWindowAt(POINT pt) {
+  const HWND hwnd = ::WindowFromPoint(pt);
+  const HWND root = hwnd ? ::GetAncestor(hwnd, GA_ROOT) : nullptr;
+  return root && IsChromeWindow(root) ? root : nullptr;
+}
+
+namespace {
+
+INPUT MakeKeyInput(UINT key, bool key_up) {
+  INPUT input = {};
+  // `SendInput` takes physical buttons, so a logical left or right click has
+  // to be swapped back when the user swapped the mouse buttons.
+  const bool swapped = ::GetSystemMetrics(SM_SWAPBUTTON) != 0;
+  switch (key) {
+    case VK_LBUTTON:
+    case VK_RBUTTON:
+      input.type = INPUT_MOUSE;
+      if ((key == VK_LBUTTON) != swapped) {
+        input.mi.dwFlags = key_up ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_LEFTDOWN;
+      } else {
+        input.mi.dwFlags = key_up ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_RIGHTDOWN;
+      }
+      input.mi.dwExtraInfo = GetMagicCode();
+      break;
+    case VK_MBUTTON:
+      input.type = INPUT_MOUSE;
+      input.mi.dwFlags = key_up ? MOUSEEVENTF_MIDDLEUP : MOUSEEVENTF_MIDDLEDOWN;
+      input.mi.dwExtraInfo = GetMagicCode();
+      break;
+    default:
+      input.type = INPUT_KEYBOARD;
+      input.ki.wVk = static_cast<WORD>(key);
+      input.ki.dwFlags = key_up ? KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP
+                                : KEYEVENTF_EXTENDEDKEY;
+      input.ki.dwExtraInfo = GetMagicCode();
+      break;
+  }
+  return input;
+}
+
+}  // namespace
+
+void SendKey(std::initializer_list<UINT> keys) {
+  std::vector<INPUT> inputs;
+  inputs.reserve(keys.size() * 2);
+  for (const UINT key : keys) {
+    inputs.push_back(MakeKeyInput(key, /*key_up=*/false));
+  }
+  for (const UINT key : keys) {
+    inputs.push_back(MakeKeyInput(key, /*key_up=*/true));
+  }
+  ::SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
 }
 
 namespace {

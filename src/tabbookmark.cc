@@ -63,6 +63,12 @@ bool IsNeedKeep(int tab_count, KeepTabTrigger trigger) {
   return keep_tab;
 }
 
+// Closing the only tab this way leaves the window open.
+void ReplaceLastTab(HWND hwnd) {
+  ExecuteCommand(IDC_NEW_TAB, hwnd);
+  ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+}
+
 bool IsAnyMouseButtonPressed() {
   return IsKeyPressed(VK_LBUTTON) || IsKeyPressed(VK_RBUTTON) ||
          IsKeyPressed(VK_MBUTTON);
@@ -123,10 +129,7 @@ void CALLBACK HoverTabTimerProc(HWND hwnd, UINT, UINT_PTR event_id, DWORD) {
     return;
   }
 
-  const HWND point_window = WindowFromPoint(pt);
-  const HWND point_root =
-      point_window ? GetAncestor(point_window, GA_ROOT) : nullptr;
-  if (point_root != hwnd) {
+  if (GetChromeRootWindowAt(pt) != hwnd) {
     return;
   }
 
@@ -249,8 +252,7 @@ bool HandleDoubleClick(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
   if (hit->tab_count == 1) {
-    ExecuteCommand(IDC_NEW_TAB, hwnd);
-    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+    ReplaceLastTab(hwnd);
   } else {
     ExecuteCommand(IDC_CLOSE_TAB, hwnd);
   }
@@ -270,12 +272,11 @@ bool HandleRightClick(const MOUSEHOOKSTRUCT* pmouse) {
     return false;
   }
   if (IsNeedKeep(hit->tab_count, KeepTabTrigger::kRightClick)) {
-    ExecuteCommand(IDC_NEW_TAB, hwnd);
-    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+    ReplaceLastTab(hwnd);
   } else {
-    // Attempt new SendKey function which includes a `dwExtraInfo`
-    // value (GetMagicCode()).
-    SendKey(VK_MBUTTON);
+    // The injected middle click carries `GetMagicCode()`, so `MouseProc`
+    // passes it to Chrome instead of handling it again.
+    SendKey({VK_MBUTTON});
   }
   return true;
 }
@@ -294,8 +295,7 @@ bool HandleMiddleClick(const MOUSEHOOKSTRUCT* pmouse) {
   }
 
   if (IsNeedKeep(hit->tab_count, KeepTabTrigger::kMiddleClick)) {
-    ExecuteCommand(IDC_NEW_TAB, hwnd);
-    ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+    ReplaceLastTab(hwnd);
     return true;
   }
   return false;
@@ -315,8 +315,7 @@ bool HandleCloseButton(const MOUSEHOOKSTRUCT* pmouse) {
   if (!IsNeedKeep(hit->tab_count, KeepTabTrigger::kCloseButton)) {
     return false;
   }
-  ExecuteCommand(IDC_NEW_TAB, hwnd);
-  ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  ReplaceLastTab(hwnd);
   return true;
 }
 
@@ -362,9 +361,9 @@ bool HandleBookmark(const MOUSEHOOKSTRUCT* pmouse) {
     // the cursor on release.
     SetCursorPos(pt.x, pt.y);
     if (mode == 1) {
-      SendKey(VK_MBUTTON, VK_SHIFT);
+      SendKey({VK_MBUTTON, VK_SHIFT});
     } else if (mode == 2) {
-      SendKey(VK_MBUTTON);
+      SendKey({VK_MBUTTON});
     }
     return true;
   }
@@ -542,8 +541,7 @@ bool HandleKeepTab(WPARAM wParam) {
     return false;
   }
 
-  ExecuteCommand(IDC_NEW_TAB, hwnd);
-  ExecuteCommand(IDC_WINDOW_CLOSE_OTHER_TABS, hwnd);
+  ReplaceLastTab(hwnd);
   return true;
 }
 
@@ -563,9 +561,9 @@ bool HandleOpenUrlNewTab(WPARAM wParam) {
   }
 
   if (mode == 1) {
-    SendKey(VK_MENU, VK_RETURN);
+    SendKey({VK_MENU, VK_RETURN});
   } else if (mode == 2) {
-    SendKey(VK_SHIFT, VK_MENU, VK_RETURN);
+    SendKey({VK_SHIFT, VK_MENU, VK_RETURN});
   }
   return true;
 }

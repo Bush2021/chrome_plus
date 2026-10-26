@@ -27,36 +27,24 @@ void Config::LoadConfig() {
   disk_cache_dir_ = LoadDirPath(L"cache");
   boss_key_ = GetIniString(L"general", L"boss_key", L"");
   translate_key_ = GetIniString(L"general", L"translate_key", L"");
-  show_password_ = ::GetPrivateProfileIntW(L"general", L"show_password", 1,
-                                           GetIniPath().c_str()) != 0;
-  win32k_ = ::GetPrivateProfileIntW(L"general", L"win32k", 0,
-                                    GetIniPath().c_str()) != 0;
-  ignore_policies_ = ::GetPrivateProfileIntW(L"general", L"ignore_policies", 0,
-                                             GetIniPath().c_str()) != 0;
+  show_password_ = GetIniInt(L"general", L"show_password", 1) != 0;
+  win32k_ = GetIniInt(L"general", L"win32k", 0) != 0;
+  ignore_policies_ = GetIniInt(L"general", L"ignore_policies", 0) != 0;
   suppress_false_upgrade_notification_ =
-      ::GetPrivateProfileIntW(L"general",
-                              L"suppress_false_upgrade_notification", 0,
-                              GetIniPath().c_str()) != 0;
+      GetIniInt(L"general", L"suppress_false_upgrade_notification", 0) != 0;
 
   // tabs
-  keep_last_tab_ = ::GetPrivateProfileIntW(L"tabs", L"keep_last_tab", 1,
-                                           GetIniPath().c_str()) != 0;
-  double_click_close_ = ::GetPrivateProfileIntW(L"tabs", L"double_click_close",
-                                                1, GetIniPath().c_str()) != 0;
-  right_click_close_ = ::GetPrivateProfileIntW(L"tabs", L"right_click_close", 0,
-                                               GetIniPath().c_str()) != 0;
-  wheel_tab_ = ::GetPrivateProfileIntW(L"tabs", L"wheel_tab", 1,
-                                       GetIniPath().c_str()) != 0;
+  keep_last_tab_ = GetIniInt(L"tabs", L"keep_last_tab", 1) != 0;
+  double_click_close_ = GetIniInt(L"tabs", L"double_click_close", 1) != 0;
+  right_click_close_ = GetIniInt(L"tabs", L"right_click_close", 0) != 0;
+  wheel_tab_ = GetIniInt(L"tabs", L"wheel_tab", 1) != 0;
   wheel_tab_when_press_rbutton_ =
-      ::GetPrivateProfileIntW(L"tabs", L"wheel_tab_when_press_rbutton", 1,
-                              GetIniPath().c_str()) != 0;
-  hover_tab_ = ::GetPrivateProfileIntW(L"tabs", L"hover_tab", 0,
-                                       GetIniPath().c_str()) != 0;
+      GetIniInt(L"tabs", L"wheel_tab_when_press_rbutton", 1) != 0;
+  hover_tab_ = GetIniInt(L"tabs", L"hover_tab", 0) != 0;
   hover_tab_delay_ = LoadHoverTabDelay();
-  open_url_new_tab_ = LoadOpenUrlNewTabMode();
-  bookmark_new_tab_ = LoadBookmarkNewTabMode();
-  new_tab_disable_ = ::GetPrivateProfileIntW(L"tabs", L"new_tab_disable", 1,
-                                             GetIniPath().c_str()) != 0;
+  open_url_new_tab_ = GetIniInt(L"tabs", L"open_url_new_tab", 0);
+  bookmark_new_tab_ = GetIniInt(L"tabs", L"open_bookmark_new_tab", 0);
+  new_tab_disable_ = GetIniInt(L"tabs", L"new_tab_disable", 1) != 0;
   disable_tab_names_ = StringSplit(
       GetIniString(L"tabs", L"new_tab_disable_name", L""), L',', L"\"");
 
@@ -104,7 +92,8 @@ void Config::LoadKeyMappings() {
 std::optional<std::wstring> Config::LoadDirPath(const std::wstring& dir_type) {
   std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dir_type);
   std::wstring dir_key = dir_type + L"_dir";
-  std::wstring dir_buffer = GetIniString(L"general", dir_key, path);
+  std::wstring dir_buffer =
+      GetIniString(L"general", dir_key.c_str(), path.c_str());
 
   if (dir_buffer == L"none") {
     return std::nullopt;
@@ -122,21 +111,11 @@ std::optional<std::wstring> Config::LoadDirPath(const std::wstring& dir_type) {
 int Config::LoadHoverTabDelay() {
   constexpr int kDefaultDelayMs = 400;
   constexpr int kMaxDelayMs = 5000;
-  const int delay = ::GetPrivateProfileIntW(
-      L"tabs", L"hover_tab_delay", kDefaultDelayMs, GetIniPath().c_str());
+  const int delay = GetIniInt(L"tabs", L"hover_tab_delay", kDefaultDelayMs);
   if (delay < 0 || delay > kMaxDelayMs) {
     return kDefaultDelayMs;
   }
   return delay;
-}
-
-int Config::LoadOpenUrlNewTabMode() {
-  return ::GetPrivateProfileIntW(L"tabs", L"open_url_new_tab", 0,
-                                 GetIniPath().c_str());
-}
-int Config::LoadBookmarkNewTabMode() {
-  return ::GetPrivateProfileIntW(L"tabs", L"open_bookmark_new_tab", 0,
-                                 GetIniPath().c_str());
 }
 
 const Config& config = Config::Instance();

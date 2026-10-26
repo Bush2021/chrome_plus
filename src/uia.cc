@@ -216,11 +216,6 @@ class ScopedBstr {
   BSTR bstr_ = nullptr;
 };
 
-bool BstrEqualsStringView(BSTR bstr, std::wstring_view expected) {
-  return bstr != nullptr &&
-         std::wstring_view(bstr, SysStringLen(bstr)) == expected;
-}
-
 ComPtr<IUIAutomationElement> GetFocusedElement(const UiaSession& session) {
   ComPtr<IUIAutomationElement> focused;
   if (FAILED(session.automation->GetFocusedElement(
@@ -261,22 +256,7 @@ std::optional<std::wstring> GetStringProperty(
   return std::wstring(property.Ref().bstrVal);
 }
 
-bool HasClassName(const ComPtr<IUIAutomationElement>& element,
-                  std::wstring_view expected_class_name) {
-  if (!element) {
-    return false;
-  }
-
-  ScopedBstr class_name;
-  if (FAILED(element->get_CurrentClassName(class_name.Receive())) ||
-      !class_name) {
-    return false;
-  }
-
-  return BstrEqualsStringView(class_name.Get(), expected_class_name);
-}
-
-bool HasAnyClassName(
+bool HasClassName(
     const ComPtr<IUIAutomationElement>& element,
     std::initializer_list<std::wstring_view> expected_class_names) {
   if (!element) {
@@ -326,7 +306,7 @@ ComPtr<IUIAutomationElement> FindBrowserViewFromTopChrome(
 
   constexpr int kMaxAncestorDepth = 12;
   for (int depth = 0; element && depth < kMaxAncestorDepth; ++depth) {
-    if (HasClassName(element, L"BrowserView")) {
+    if (HasClassName(element, {L"BrowserView"})) {
       return element;
     }
 
@@ -341,7 +321,7 @@ ComPtr<IUIAutomationElement> FindBrowserViewFromTopChrome(
 }
 
 bool IsValidBookmark(const ComPtr<IUIAutomationElement>& element) {
-  if (!HasAnyClassName(element, {L"BookmarkButton", L"MenuItemView"})) {
+  if (!HasClassName(element, {L"BookmarkButton", L"MenuItemView"})) {
     return false;
   }
   const auto full_description =
@@ -431,7 +411,7 @@ std::optional<int> CountDescendantsByClassRaw(
 
   int count = 0;
   TraverseDescendantsRaw(session, root, [&](const auto& node) {
-    if (HasClassName(node, class_name)) {
+    if (HasClassName(node, {class_name})) {
       ++count;
     }
     return false;
@@ -455,7 +435,7 @@ ComPtr<IUIAutomationElement> FindSiblingByClasses(
                      : session.control_view_walker->GetPreviousSiblingElement(
                            element.Get(), current.ReleaseAndGetAddressOf());
     while (SUCCEEDED(hr) && current) {
-      if (HasAnyClassName(current, class_names)) {
+      if (HasClassName(current, class_names)) {
         return current;
       }
 
@@ -737,7 +717,7 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
   }
 
   if (region) {
-    const bool vertical = HasClassName(region, L"VerticalTabStripRegionView");
+    const bool vertical = HasClassName(region, {L"VerticalTabStripRegionView"});
     if (auto container = FindTabContainerInRegion(*session, region, vertical)) {
       cache.region = region;
       cache.container = std::move(*container);
@@ -757,7 +737,7 @@ TabUiCache* ResolveTabUi(UiaSession* session, HWND hwnd) {
             {L"TabContainer", L"TabContainerImpl", L"UnpinnedTabContainerView"},
             /*max_visited=*/512)) {
       const TabContainerKind kind =
-          HasClassName(container, L"UnpinnedTabContainerView")
+          HasClassName(container, {L"UnpinnedTabContainerView"})
               ? TabContainerKind::kUnified
               : TabContainerKind::kHorizontal;
       cache.container = TabContainer{container, kind};
@@ -812,6 +792,46 @@ TabUiCache* GetValidatedTabUi(UiaSession* session, HWND hwnd, RECT* gate_rect) {
   return nullptr;
 }
 
+template <typename Predicate>
+ComPtr<IUIAutomationElement> FindFirstInArray(
+    const ComPtr<IUIAutomationElementArray>& elements,
+    Predicate predicate) {
+  if (!elements) {
+    return nullptr;
+  }
+
+  int length = 0;
+  if (FAILED(elements->get_Length(&length))) {
+    return nullptr;
+  }
+
+  for (int i = 0; i < length; ++i) {
+    ComPtr<IUIAutomationElement> element;
+    if (FAILED(elements->GetElement(i, element.ReleaseAndGetAddressOf())) ||
+        !element) {
+      continue;
+    }
+    if (predicate(element)) {
+      return element;
+    }
+  }
+  return nullptr;
+}
+
+bool ContainsPoint(const ComPtr<IUIAutomationElement>& element, POINT pt) {
+  RECT rect;
+  return SUCCEEDED(element->get_CurrentBoundingRectangle(&rect)) &&
+         PtInRect(&rect, pt);
+}
+
+bool IsSelected(const ComPtr<IUIAutomationElement>& tab) {
+  ScopedVariant is_selected;
+  return SUCCEEDED(tab->GetCurrentPropertyValue(
+             UIA_SelectionItemIsSelectedPropertyId, is_selected.Ptr())) &&
+         is_selected.Ref().vt == VT_BOOL &&
+         is_selected.Ref().boolVal == VARIANT_TRUE;
+}
+
 ComPtr<IUIAutomationElementArray> FindTabElements(
     const UiaSession& session,
     const TabContainer& tab_container) {
@@ -831,38 +851,6 @@ ComPtr<IUIAutomationElementArray> FindTabElements(
   return tab_elements;
 }
 
-ComPtr<IUIAutomationElement> FindTabElementAtPoint(
-    const ComPtr<IUIAutomationElementArray>& tab_elements,
-    POINT pt) {
-  if (!tab_elements) {
-    return nullptr;
-  }
-
-  int count = 0;
-  if (FAILED(tab_elements->get_Length(&count))) {
-    return nullptr;
-  }
-
-  for (int i = 0; i < count; ++i) {
-    ComPtr<IUIAutomationElement> tab_element;
-    if (FAILED(tab_elements->GetElement(
-            i, tab_element.ReleaseAndGetAddressOf())) ||
-        !tab_element) {
-      continue;
-    }
-
-    RECT rect;
-    if (FAILED(tab_element->get_CurrentBoundingRectangle(&rect))) {
-      continue;
-    }
-    if (PtInRect(&rect, pt)) {
-      return tab_element;
-    }
-  }
-
-  return nullptr;
-}
-
 bool IsOnTabCloseButton(const UiaSession& session,
                         const ComPtr<IUIAutomationElement>& tab_element,
                         POINT pt) {
@@ -872,49 +860,13 @@ bool IsOnTabCloseButton(const UiaSession& session,
 
   const auto close_button = FindFirstDescendantByClass(
       tab_element, session.class_conditions.tab_close_button);
-  if (!close_button) {
-    return false;
-  }
-
-  RECT close_button_rect;
-  if (FAILED(close_button->get_CurrentBoundingRectangle(&close_button_rect))) {
-    return false;
-  }
-  return PtInRect(&close_button_rect, pt) != FALSE;
+  return close_button && ContainsPoint(close_button, pt);
 }
 
 ComPtr<IUIAutomationElement> FindSelectedTabElement(
     const UiaSession& session,
     const TabContainer& tab_container) {
-  const auto tab_elements = FindTabElements(session, tab_container);
-  if (!tab_elements) {
-    return nullptr;
-  }
-
-  int length = 0;
-  if (FAILED(tab_elements->get_Length(&length))) {
-    return nullptr;
-  }
-
-  for (int i = 0; i < length; ++i) {
-    ComPtr<IUIAutomationElement> tab;
-    if (FAILED(tab_elements->GetElement(i, tab.ReleaseAndGetAddressOf())) ||
-        !tab) {
-      continue;
-    }
-
-    ScopedVariant is_selected;
-    if (FAILED(tab->GetCurrentPropertyValue(
-            UIA_SelectionItemIsSelectedPropertyId, is_selected.Ptr()))) {
-      continue;
-    }
-
-    if (is_selected.Ref().vt == VT_BOOL &&
-        is_selected.Ref().boolVal == VARIANT_TRUE) {
-      return tab;
-    }
-  }
-  return nullptr;
+  return FindFirstInArray(FindTabElements(session, tab_container), IsSelected);
 }
 
 std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
@@ -922,12 +874,11 @@ std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
                                               POINT pt,
                                               bool need_count,
                                               bool need_close_button) {
-  const auto tab_elements = FindTabElements(session, tab_container);
-  if (!tab_elements) {
-    return std::nullopt;
-  }
-
-  const auto tab_element = FindTabElementAtPoint(tab_elements, pt);
+  const auto tab_element =
+      FindFirstInArray(FindTabElements(session, tab_container),
+                       [pt](const ComPtr<IUIAutomationElement>& tab) {
+                         return ContainsPoint(tab, pt);
+                       });
   if (!tab_element) {
     return std::nullopt;
   }
@@ -987,25 +938,10 @@ ComPtr<IUIAutomationElement> FindBookmarkInAnchor(
       !elements) {
     return nullptr;
   }
-  int length = 0;
-  if (FAILED(elements->get_Length(&length))) {
-    return nullptr;
-  }
-  for (int i = 0; i < length; ++i) {
-    ComPtr<IUIAutomationElement> element;
-    if (FAILED(elements->GetElement(i, element.ReleaseAndGetAddressOf())) ||
-        !element) {
-      continue;
-    }
-    RECT rect;
-    if (FAILED(element->get_CurrentBoundingRectangle(&rect))) {
-      continue;
-    }
-    if (PtInRect(&rect, pt) && IsValidBookmark(element)) {
-      return element;
-    }
-  }
-  return nullptr;
+  return FindFirstInArray(
+      elements, [pt](const ComPtr<IUIAutomationElement>& element) {
+        return ContainsPoint(element, pt) && IsValidBookmark(element);
+      });
 }
 
 // True when `window` hosts web content. WebContents on Windows always carries
@@ -1125,9 +1061,8 @@ std::optional<TabHitResult> FindTabHitResult(POINT pt,
     return std::nullopt;
   }
 
-  const HWND hwnd = WindowFromPoint(pt);
-  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
-  if (!root || !IsChromeWindow(root)) {
+  const HWND root = GetChromeRootWindowAt(pt);
+  if (!root) {
     return std::nullopt;
   }
 
@@ -1218,9 +1153,8 @@ bool IsOnTabBar(POINT pt) {
     return false;
   }
 
-  const HWND hwnd = WindowFromPoint(pt);
-  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
-  if (!root || !IsChromeWindow(root)) {
+  const HWND root = GetChromeRootWindowAt(pt);
+  if (!root) {
     return false;
   }
 
@@ -1247,9 +1181,8 @@ bool IsOnBookmark(POINT pt) {
   // the top-level tree -- the #238 regression from dropping `GA_ROOT`. Web
   // content is still screened out downstream since the search anchors
   // `TopContainerView`, so a real page click lands in no `BookmarkButton` rect.
-  const HWND hwnd = WindowFromPoint(pt);
-  const HWND root = hwnd ? GetAncestor(hwnd, GA_ROOT) : nullptr;
-  if (!root || !IsChromeWindow(root)) {
+  const HWND root = GetChromeRootWindowAt(pt);
+  if (!root) {
     return false;
   }
 
@@ -1281,7 +1214,7 @@ bool IsOmniboxFocused() {
     return false;
   }
 
-  return HasAnyClassName(focused, {L"OmniboxViewViews", L"OmniboxResultView"});
+  return HasClassName(focused, {L"OmniboxViewViews", L"OmniboxResultView"});
 }
 
 bool IsOnNewTab(HWND hwnd, const std::vector<std::wstring>& extra_tab_names) {
