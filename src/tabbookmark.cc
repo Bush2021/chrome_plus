@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include <cstdlib>
 #include <optional>
 
 #include "config.h"

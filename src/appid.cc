@@ -27,13 +27,13 @@ uint64_t Fnv1aHash(std::wstring_view input) {
   return hash;
 }
 
-constexpr std::wstring_view APPID_PREFIX = L"ChromePlusNext.";
+constexpr std::wstring_view kAppIdPrefix = L"ChromePlusNext.";
 const std::wstring& GetCustomAppUserModelID() {
   static const std::wstring custom_appid = [] {
     constexpr wchar_t hex[] = L"0123456789ABCDEF";
     auto hash = Fnv1aHash(GetAppDir());
-    std::wstring result{APPID_PREFIX};
-    result.reserve(APPID_PREFIX.size() + 16);
+    std::wstring result{kAppIdPrefix};
+    result.reserve(kAppIdPrefix.size() + 16);
     for (int i = 60; i >= 0; i -= 4) {
       result += hex[(hash >> i) & 0xF];
     }
@@ -51,7 +51,7 @@ struct PropVariantDeleter {
 };
 using ScopedPropVariant = std::unique_ptr<PROPVARIANT, PropVariantDeleter>;
 
-// `InitPropVariantFromString` is not used because it signiticantly increases
+// `InitPropVariantFromString` is not used because it significantly increases
 // the size of the binary (~25KB).
 ScopedPropVariant MakeAppIdVariant() {
   auto pv = ScopedPropVariant(new PROPVARIANT{});
@@ -142,7 +142,7 @@ class PropertyStoreWrapper final : public IPropertyStore {
   std::atomic<ULONG> ref_count_{1};
 };
 
-static auto RawSetCurrentProcessExplicitAppUserModelID =
+auto RawSetCurrentProcessExplicitAppUserModelID =
     SetCurrentProcessExplicitAppUserModelID;
 
 HRESULT WINAPI MySetCurrentProcessExplicitAppUserModelID(PCWSTR appid) {
@@ -150,7 +150,7 @@ HRESULT WINAPI MySetCurrentProcessExplicitAppUserModelID(PCWSTR appid) {
       GetCustomAppUserModelID().c_str());
 }
 
-static auto RawSHGetPropertyStoreForWindow = SHGetPropertyStoreForWindow;
+auto RawSHGetPropertyStoreForWindow = SHGetPropertyStoreForWindow;
 
 HRESULT WINAPI MySHGetPropertyStoreForWindow(HWND hwnd,
                                              REFIID riid,

@@ -13,20 +13,13 @@
 
 namespace {
 
-// Static function pointers for original functions
-static auto RawUpdateProcThreadAttribute = UpdateProcThreadAttribute;
-static auto RawCryptProtectData = CryptProtectData;
-static auto RawCryptUnprotectData = CryptUnprotectData;
-static auto RawLogonUserW = LogonUserW;
-static auto RawIsOS = IsOS;
-static auto RawNetUserGetInfo = NetUserGetInfo;
-static auto RawGetVolumeInformationW = GetVolumeInformationW;
-
-// Enumeration for process creation mitigation policy
-enum ProcessCreationMitigationPolicy : DWORD64 {
-  BlockNonMicrosoftBinariesAlwaysOn = 0x00000001ui64 << 44,
-  Win32kSystemCallDisableAlwaysOn = 0x00000001ui64 << 28
-};
+auto RawUpdateProcThreadAttribute = UpdateProcThreadAttribute;
+auto RawCryptProtectData = CryptProtectData;
+auto RawCryptUnprotectData = CryptUnprotectData;
+auto RawLogonUserW = LogonUserW;
+auto RawIsOS = IsOS;
+auto RawNetUserGetInfo = NetUserGetInfo;
+auto RawGetVolumeInformationW = GetVolumeInformationW;
 
 BOOL WINAPI FakeGetComputerName(_Out_ LPTSTR lpBuffer,
                                 _Inout_ LPDWORD lpnSize) {
@@ -79,10 +72,10 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
     // https://source.chromium.org/chromium/chromium/src/+/main:sandbox/win/src/process_mitigations.cc;l=362;drc=4c2fec5f6699ffeefd93137d2bf8c03504c6664c
     PDWORD64 policy_value_1 = &(static_cast<PDWORD64>(lpValue))[0];
     *policy_value_1 &= ~static_cast<DWORD64>(
-        ProcessCreationMitigationPolicy::BlockNonMicrosoftBinariesAlwaysOn);
+        PROCESS_CREATION_MITIGATION_POLICY_BLOCK_NON_MICROSOFT_BINARIES_ALWAYS_ON);
     if (config.IsWin32K()) {
       *policy_value_1 &= ~static_cast<DWORD64>(
-          ProcessCreationMitigationPolicy::Win32kSystemCallDisableAlwaysOn);
+          PROCESS_CREATION_MITIGATION_POLICY_WIN32K_SYSTEM_CALL_DISABLE_ALWAYS_ON);
     }
   }
   return RawUpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute,

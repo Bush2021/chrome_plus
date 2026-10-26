@@ -25,10 +25,10 @@ namespace {
 #define BUILD_ARCH " (32-bit)"
 #endif
 
-static HANDLE resources_pak_map = nullptr;
+HANDLE resources_pak_map = nullptr;
 
-static auto RawCreateFileMapping = CreateFileMappingW;
-static auto RawMapViewOfFile = MapViewOfFile;
+auto RawCreateFileMapping = CreateFileMappingW;
+auto RawMapViewOfFile = MapViewOfFile;
 
 // `PakPatch()` runs in the browser and in every renderer (see the loader in
 // chrome++.cc: with in-process WebUI resource loading the renderer serves
@@ -52,7 +52,7 @@ struct PakBlobHeader {
 
 // Keeps the published section alive for the browser's lifetime so child
 // processes can open it by name.
-static HANDLE published_blob_section = nullptr;
+[[maybe_unused]] HANDLE published_blob_section = nullptr;
 
 // The loader calls `PakPatch()` only in the browser and in `--type=renderer`
 // children (chrome++.cc `Loader`), so no `-type=` switch means the browser.
@@ -186,13 +186,10 @@ bool PatchSettingsHtml(uint8_t* begin, uint32_t size, size_t& new_len) {
   compression_html(html);
 
   // RemoveUpdateError
-  // if (IsNeedPortable())
-  {
-    ReplaceStringInPlace(html, R"(?hidden="${!this.showUpdateStatus_}")",
-                         R"(hidden="true")");
-    ReplaceStringInPlace(html, R"(?hidden="${!this.shouldShowIcons_()}")",
-                         R"(hidden="true")");
-  }
+  ReplaceStringInPlace(html, R"(?hidden="${!this.showUpdateStatus_}")",
+                       R"(hidden="true")");
+  ReplaceStringInPlace(html, R"(?hidden="${!this.shouldShowIcons_()}")",
+                       R"(hidden="true")");
 
   const char product_title[] =
       R"({aboutBrowserVersion}</div><div class="secondary">Powered by <a target="_blank" href="https://github.com/Bush2021/chrome_plus">Chrome++ Next</a> )" RELEASE_VER_STR BUILD_ARCH

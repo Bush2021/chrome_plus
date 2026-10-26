@@ -57,8 +57,8 @@ void Config::LoadConfig() {
   bookmark_new_tab_ = LoadBookmarkNewTabMode();
   new_tab_disable_ = ::GetPrivateProfileIntW(L"tabs", L"new_tab_disable", 1,
                                              GetIniPath().c_str()) != 0;
-  disable_tab_name_ = GetIniString(L"tabs", L"new_tab_disable_name", L"");
-  disable_tab_names_ = StringSplit(disable_tab_name_, L',', L"\"");
+  disable_tab_names_ = StringSplit(
+      GetIniString(L"tabs", L"new_tab_disable_name", L""), L',', L"\"");
 
   // keymapping
   LoadKeyMappings();

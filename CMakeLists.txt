@@ -188,7 +188,6 @@ endif()
 target_link_libraries(chrome_plus PRIVATE
   onecore
   propsys
-  oleacc
   detours
   mini_gzip
 )

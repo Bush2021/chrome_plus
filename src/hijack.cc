@@ -98,7 +98,9 @@ void InstallDetours(PBYTE pTarget, PBYTE pDetour) {
   DetourTransactionCommit();
 }
 
-void LoadVersion(HINSTANCE module_handle) {
+}  // namespace
+
+void LoadSysDll(HINSTANCE module_handle) {
   auto image_base = reinterpret_cast<PBYTE>(module_handle);
   auto dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(image_base);
   if (dos_header->e_magic == IMAGE_DOS_SIGNATURE) {
@@ -140,9 +142,4 @@ void LoadVersion(HINSTANCE module_handle) {
       }
     }
   }
-}
-}  // namespace
-
-void LoadSysDll(HINSTANCE hModule) {
-  LoadVersion(hModule);
 }

@@ -15,8 +15,8 @@
 
 namespace {
 
-static auto RawRegOpenKeyExW = RegOpenKeyExW;
-static auto RawRegQueryValueExW = RegQueryValueExW;
+auto RawRegOpenKeyExW = RegOpenKeyExW;
+auto RawRegQueryValueExW = RegQueryValueExW;
 
 // Read the running browser version from the loaded `chrome.dll`'s embedded
 // version resource, which is the same `VS_FIXEDFILEINFO` that

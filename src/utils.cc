@@ -8,9 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cstdarg>
-#include <cstdio>
-#include <cstring>
+#include <cstdlib>
 #include <cwctype>
 #include <functional>
 #include <optional>

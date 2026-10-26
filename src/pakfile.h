@@ -1,4 +1,4 @@
-﻿#ifndef CHROME_PLUS_SRC_PAKFILE_H_
+#ifndef CHROME_PLUS_SRC_PAKFILE_H_
 #define CHROME_PLUS_SRC_PAKFILE_H_
 
 #include <cstdint>

@@ -1,7 +1,6 @@
 #include <windows.h>
 
 #include <psapi.h>
-#include <stdio.h>
 
 #include "detours.h"
 
@@ -66,7 +65,6 @@ void ChromePlusCommand(LPWSTR param) {
 int Loader() {
   // Only main interface.
   LPWSTR param = GetCommandLineW();
-  // DebugLog(L"param {}", param);
   if (!wcsstr(param, L"-type=")) {
     ChromePlusCommand(param);
   } else if (wcsstr(param, L"--type=renderer")) {

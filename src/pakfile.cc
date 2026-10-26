@@ -8,18 +8,18 @@
 #include <memory>
 #include <ranges>
 #include <span>
-#include <vector>
 
+#pragma warning(push)
 #pragma warning(disable : 4334)
 #pragma warning(disable : 4267)
 #pragma warning(disable : 4838)
-
 extern "C" {
-#include "..\mini_gzip\mini_gzip.h"
+#include "mini_gzip.h"
 void* gzip_compress(uint8_t* data, size_t len, size_t* out_len);
 int mini_gz_start(struct mini_gzip* gz_ptr, const void* mem, size_t mem_len);
 int mini_gz_unpack(struct mini_gzip* gz_ptr, void* mem_out, size_t mem_out_len);
 }
+#pragma warning(pop)
 
 namespace {
 #pragma pack(push)
@@ -127,11 +127,6 @@ uint16_t TraversalGZIPFile(uint8_t* buffer,
 
     auto unpack_buffer =
         std::make_unique_for_overwrite<uint8_t[]>(original_size);
-
-    if (!unpack_buffer) {
-      pak_entry = next_entry;
-      continue;
-    }
 
     struct mini_gzip gz;
     mini_gz_start(&gz, buffer + pak_entry->file_offset, old_size);

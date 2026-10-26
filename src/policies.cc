@@ -11,7 +11,7 @@
 
 namespace {
 
-static auto RawRegOpenKeyExW = RegOpenKeyExW;
+auto RawRegOpenKeyExW = RegOpenKeyExW;
 
 bool IsPolicyKey(LPCWSTR lpSubKey) {
   if (!lpSubKey) {

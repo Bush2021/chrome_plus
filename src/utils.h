@@ -19,24 +19,12 @@ consteval uint32_t GetMagicCode() {
 
 // Chrome command IDs
 // https://source.chromium.org/chromium/chromium/src/+/main:chrome/app/chrome_command_ids.h?q=chrome_command_ids.h&ss=chromium%2Fchromium%2Fsrc
-#define IDC_NEW_TAB 34014
-#define IDC_CLOSE_TAB 34015
-#define IDC_SELECT_NEXT_TAB 34016
-#define IDC_SELECT_PREVIOUS_TAB 34017
-#define IDC_SELECT_TAB_0 34018
-#define IDC_SELECT_TAB_1 34019
-#define IDC_SELECT_TAB_2 34020
-#define IDC_SELECT_TAB_3 34021
-#define IDC_SELECT_TAB_4 34022
-#define IDC_SELECT_TAB_5 34023
-#define IDC_SELECT_TAB_6 34024
-#define IDC_SELECT_TAB_7 34025
-#define IDC_SELECT_LAST_TAB 34026
-#define IDC_FULLSCREEN 34030
-#define IDC_SHOW_TRANSLATE 35009
-#define IDC_WINDOW_CLOSE_OTHER_TABS 35023
-#define IDC_CLOSE_FIND_OR_STOP 37003
-#define IDC_UPGRADE_DIALOG 40024
+inline constexpr int IDC_NEW_TAB = 34014;
+inline constexpr int IDC_CLOSE_TAB = 34015;
+inline constexpr int IDC_SELECT_NEXT_TAB = 34016;
+inline constexpr int IDC_SELECT_PREVIOUS_TAB = 34017;
+inline constexpr int IDC_SHOW_TRANSLATE = 35009;
+inline constexpr int IDC_WINDOW_CLOSE_OTHER_TABS = 35023;
 
 // Global constants - use functions to avoid static initialization order issues
 const std::wstring& GetAppDir();
@@ -182,7 +170,6 @@ void SendKey(T&&... keys) {
         break;
       default:
         input.type = INPUT_KEYBOARD;
-        input.ki.dwFlags = KEYEVENTF_KEYUP;
         input.ki.wVk = (WORD)key;
         input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
         input.ki.dwExtraInfo = GetMagicCode();
