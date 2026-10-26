@@ -173,11 +173,9 @@ HRESULT WINAPI MySHGetPropertyStoreForWindow(HWND hwnd,
 void SetAppId() {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(
-      reinterpret_cast<LPVOID*>(&RawSetCurrentProcessExplicitAppUserModelID),
-      reinterpret_cast<void*>(MySetCurrentProcessExplicitAppUserModelID));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawSHGetPropertyStoreForWindow),
-               reinterpret_cast<void*>(MySHGetPropertyStoreForWindow));
+  DetourAttach(&RawSetCurrentProcessExplicitAppUserModelID,
+               MySetCurrentProcessExplicitAppUserModelID);
+  DetourAttach(&RawSHGetPropertyStoreForWindow, MySHGetPropertyStoreForWindow);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"SetAppId failed {}", status);

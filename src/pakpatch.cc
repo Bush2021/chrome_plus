@@ -247,8 +247,7 @@ HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
     resources_pak_map = nullptr;
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourDetach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile),
-                 reinterpret_cast<void*>(MyMapViewOfFile));
+    DetourDetach(&RawMapViewOfFile, MyMapViewOfFile);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawMapViewOfFile failed {}", status);
@@ -308,8 +307,7 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
     // No more hook needed.
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourDetach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
-                 reinterpret_cast<void*>(MyCreateFileMapping));
+    DetourDetach(&RawCreateFileMapping, MyCreateFileMapping);
     auto status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Unhook RawCreateFileMapping failed {}", status);
@@ -317,8 +315,7 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawMapViewOfFile),
-                 reinterpret_cast<void*>(MyMapViewOfFile));
+    DetourAttach(&RawMapViewOfFile, MyMapViewOfFile);
     status = DetourTransactionCommit();
     if (status != NO_ERROR) {
       DebugLog(L"Hook RawMapViewOfFile failed {}", status);
@@ -335,8 +332,7 @@ HANDLE WINAPI MyCreateFileMapping(_In_ HANDLE hFile,
 void PakPatch() {
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCreateFileMapping),
-               reinterpret_cast<void*>(MyCreateFileMapping));
+  DetourAttach(&RawCreateFileMapping, MyCreateFileMapping);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"Hook RawCreateFileMapping failed {}", status);

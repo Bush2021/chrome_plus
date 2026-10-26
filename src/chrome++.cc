@@ -94,8 +94,7 @@ void InstallLoader() {
 
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&ExeMain),
-               reinterpret_cast<void*>(Loader));
+  DetourAttach(&ExeMain, Loader);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"InstallLoader failed: {}", status);

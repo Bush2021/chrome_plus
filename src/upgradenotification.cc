@@ -173,10 +173,8 @@ void SuppressFalseUpgradeNotification() {
 
   DetourTransactionBegin();
   DetourUpdateThread(GetCurrentThread());
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawRegOpenKeyExW),
-               reinterpret_cast<void*>(MyRegOpenKeyExW));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawRegQueryValueExW),
-               reinterpret_cast<void*>(MyRegQueryValueExW));
+  DetourAttach(&RawRegOpenKeyExW, MyRegOpenKeyExW);
+  DetourAttach(&RawRegQueryValueExW, MyRegQueryValueExW);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
     DebugLog(L"SuppressFalseUpgradeNotification hooks failed: {}", status);

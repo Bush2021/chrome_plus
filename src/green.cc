@@ -162,32 +162,24 @@ void MakeGreen() {
   DetourUpdateThread(GetCurrentThread());
 
   // kernel32.dll
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawGetComputerNameW),
-               reinterpret_cast<void*>(FakeGetComputerName));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawGetVolumeInformationW),
-               reinterpret_cast<void*>(FakeGetVolumeInformation));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawUpdateProcThreadAttribute),
-               reinterpret_cast<void*>(MyUpdateProcThreadAttribute));
+  DetourAttach(&RawGetComputerNameW, FakeGetComputerName);
+  DetourAttach(&RawGetVolumeInformationW, FakeGetVolumeInformation);
+  DetourAttach(&RawUpdateProcThreadAttribute, MyUpdateProcThreadAttribute);
 
   // components/os_crypt/os_crypt_win.cc
   // crypt32.dll
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptProtectData),
-               reinterpret_cast<void*>(MyCryptProtectData));
-  DetourAttach(reinterpret_cast<LPVOID*>(&RawCryptUnprotectData),
-               reinterpret_cast<void*>(MyCryptUnprotectData));
+  DetourAttach(&RawCryptProtectData, MyCryptProtectData);
+  DetourAttach(&RawCryptUnprotectData, MyCryptUnprotectData);
 
   if (config.IsShowPassword()) {
     // advapi32.dll
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawLogonUserW),
-                 reinterpret_cast<void*>(MyLogonUserW));
+    DetourAttach(&RawLogonUserW, MyLogonUserW);
 
     // shlwapi.dll
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawIsOS),
-                 reinterpret_cast<void*>(MyIsOS));
+    DetourAttach(&RawIsOS, MyIsOS);
 
     // netapi32.dll
-    DetourAttach(reinterpret_cast<LPVOID*>(&RawNetUserGetInfo),
-                 reinterpret_cast<void*>(MyNetUserGetInfo));
+    DetourAttach(&RawNetUserGetInfo, MyNetUserGetInfo);
   }
 
   auto status = DetourTransactionCommit();
