@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include <array>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -27,6 +28,16 @@ struct TranslateKey {
 
 std::vector<KeyMapping> key_mappings;
 TranslateKey translate_key;
+
+// Target key-downs that `SendMappedKey` injected and the hook has not seen
+// yet, per virtual key. Matching them against the mappings again would chain
+// mappings, and loop forever when two mappings target each other's source key
+// (`f1=f2` with `f2=f1`). The thread keyboard hook cannot read the injected
+// key's `dwExtraInfo`: `GetMessageExtraInfo()` there still reports an earlier
+// message. A pending entry is therefore only spent on a key with scan code 0,
+// which `SendInput` reports for keys injected without one, so a physical
+// press of the same key queued ahead of the injected one is still mapped.
+std::array<int, 256> pending_injected_downs = {};
 
 bool CheckModifiers(UINT modifiers) {
   const bool shift_ok = !(modifiers & MOD_SHIFT) || IsKeyPressed(VK_SHIFT);
@@ -126,7 +137,10 @@ void SendMappedKey(const KeyMapping& mapping) {
     input.ki.dwExtraInfo = GetMagicCode();
     inputs.emplace_back(input);
   }
-  SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
+  if (SendInput(static_cast<UINT>(inputs.size()), inputs.data(),
+                sizeof(INPUT)) > 0) {
+    ++pending_injected_downs[mapping.target_vk & 0xFF];
+  }
 
   // Release modifiers we pressed
   SendModifiers(to_press, true);
@@ -147,6 +161,12 @@ void ExecuteMappedCommand(const KeyMapping& mapping) {
 
 bool KeyMappingHandler(WPARAM wParam, LPARAM lParam) {
   if (lParam & 0x80000000) {
+    return false;
+  }
+  const UINT scan_code = (lParam >> 16) & 0xFF;
+  if (int& pending = pending_injected_downs[wParam & 0xFF];
+      pending > 0 && scan_code == 0) {
+    --pending;
     return false;
   }
 
