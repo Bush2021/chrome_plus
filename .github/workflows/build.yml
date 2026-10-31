@@ -70,6 +70,22 @@ jobs:
           echo "BUILD_MODE=$BUILD_MODE" >> $GITHUB_ENV
           echo "Using BUILD_MODE=$BUILD_MODE"
 
+      - name: Install Latest LLVM
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # LLVM attaches Windows packages after publishing a release, so use
+          # the newest release that already has one.
+          PACKAGE_SUFFIX="-x86_64-pc-windows-msvc.tar.zst"
+          LLVM_TAG=$(gh api repos/llvm/llvm-project/releases --jq "[.[] | select(.prerelease | not) | select(any(.assets[].name; endswith(\"$PACKAGE_SUFFIX\")))][0].tag_name")
+          echo "Using LLVM_TAG=$LLVM_TAG"
+          LLVM_DIR="$(cygpath -u "$RUNNER_TEMP")/llvm"
+          gh release download "$LLVM_TAG" --repo llvm/llvm-project --pattern "clang+llvm-*$PACKAGE_SUFFIX" --output "$LLVM_DIR.tar.zst"
+          mkdir "$LLVM_DIR"
+          zstd -dc --long=30 "$LLVM_DIR.tar.zst" | tar -xf - -C "$LLVM_DIR" --strip-components=1
+          cygpath -w "$LLVM_DIR/bin" >> "$GITHUB_PATH"
+
       - name: Build Chrome++
         env:
           BUILD_ARCH: ${{ matrix.arch }}
