@@ -72,6 +72,10 @@ std::wstring CanonicalizePath(const std::wstring& path);
 // Get the absolute path
 std::wstring GetAbsolutePath(const std::wstring& path);
 
+// Returns an ID shared by every path to a directory, empty when it can't be
+// opened.
+std::wstring GetDirectoryId(const std::wstring& path);
+
 // Expand environment variables in the path
 std::wstring ExpandEnvironmentPath(const std::wstring& path);
 

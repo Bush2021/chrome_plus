@@ -210,6 +210,26 @@ std::wstring GetAbsolutePath(const std::wstring& path) {
   return buffer;
 }
 
+std::wstring GetDirectoryId(const std::wstring& path) {
+  const HANDLE directory = ::CreateFileW(
+      path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+      nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+  if (directory == INVALID_HANDLE_VALUE) {
+    return L"";
+  }
+  // The file index and the volume serial number identify a file on a computer:
+  // https://learn.microsoft.com/en-us/windows/win32/api/fileapi/ns-fileapi-by_handle_file_information
+  BY_HANDLE_FILE_INFORMATION info{};
+  const BOOL succeeded = ::GetFileInformationByHandle(directory, &info);
+  ::CloseHandle(directory);
+  if (!succeeded) {
+    return L"";
+  }
+  return std::to_wstring(info.dwVolumeSerialNumber) + L"-" +
+         std::to_wstring(info.nFileIndexHigh) + L"-" +
+         std::to_wstring(info.nFileIndexLow);
+}
+
 std::wstring ExpandEnvironmentPath(const std::wstring& path) {
   std::vector<wchar_t> buffer(MAX_PATH);
   size_t ExpandedLength = ::ExpandEnvironmentStrings(
@@ -258,20 +278,33 @@ void LaunchCommands(const std::wstring& get_commands) {
   if (commands.empty()) {
     return;
   }
+  const std::wstring comspec = ExpandEnvironmentPath(L"%ComSpec%");
   for (const auto& command : commands) {
+    if (command.empty()) {
+      continue;
+    }
     std::wstring expanded_path = ExpandEnvironmentPath(command);
     ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
 
-    // Using `start` launches the command in a new window asynchronously,
-    // avoiding blocking Chrome's main thread. For more details:
+    // `cmd` waits for the program it runs, so nothing here may wait for `cmd`:
+    // that blocks Chrome and hid IDM's floating bar. See:
     // https://github.com/Bush2021/chrome_plus/issues/130#issuecomment-2925782726
-    // https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/start
-    //  `cmd /c` ensures the command window exits after execution, preventing
-    //  the "Not enough memory resources are available to process this command"
-    //  error even when all commands run successfully.
-    std::wstring cmd =
-        LR"(start "chrome++ cmd" cmd /c ")" + expanded_path + LR"(")";
-    _wsystem(cmd.c_str());
+    // `CREATE_NO_WINDOW` hides the console that `cmd` and console programs
+    // share, and GUI programs keep their windows. A command that needs a
+    // console opens one with `start "" <command>`. See:
+    // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+    // `/s` stays out: it strips the quotes around a lone path with spaces,
+    // which GetPrivateProfileString has already taken from the INI value. See:
+    // https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/cmd
+    std::wstring command_line = LR"(cmd /d /c ")" + expanded_path + LR"(")";
+    STARTUPINFOW startup_info{.cb = sizeof(STARTUPINFOW)};
+    PROCESS_INFORMATION process_info{};
+    if (::CreateProcessW(comspec.c_str(), command_line.data(), nullptr, nullptr,
+                         FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
+                         &startup_info, &process_info)) {
+      ::CloseHandle(process_info.hThread);
+      ::CloseHandle(process_info.hProcess);
+    }
   }
 }
 
