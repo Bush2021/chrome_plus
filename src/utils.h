@@ -108,7 +108,7 @@ inline void DebugLog(std::wstring_view, auto&&...) {}
 // Window and message processing functions
 HWND GetTopWnd(HWND hwnd);
 void ExecuteCommand(int id, HWND hwnd = 0);
-void LaunchCommands(const std::wstring& get_commands);
+void LaunchCommands(const std::wstring& get_commands, DWORD wait_ms = 0);
 [[nodiscard]] bool IsChromeWindow(HWND hwnd);
 // Returns nullptr when the window under `pt` is not part of Chrome.
 [[nodiscard]] HWND GetChromeRootWindowAt(POINT pt);

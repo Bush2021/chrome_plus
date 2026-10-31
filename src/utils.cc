@@ -269,7 +269,7 @@ void ExecuteCommand(int id, HWND hwnd) {
   ::PostMessageW(hwnd, WM_SYSCOMMAND, id, 0);
 }
 
-void LaunchCommands(const std::wstring& get_commands) {
+void LaunchCommands(const std::wstring& get_commands, DWORD wait_ms) {
   auto commands = StringSplit(
       get_commands,
       L';');  // Quotes should not be used as they can cause errors with paths
@@ -279,6 +279,7 @@ void LaunchCommands(const std::wstring& get_commands) {
     return;
   }
   const std::wstring comspec = ExpandEnvironmentPath(L"%ComSpec%");
+  std::vector<HANDLE> processes;
   for (const auto& command : commands) {
     if (command.empty()) {
       continue;
@@ -286,8 +287,8 @@ void LaunchCommands(const std::wstring& get_commands) {
     std::wstring expanded_path = ExpandEnvironmentPath(command);
     ReplaceStringInPlace(expanded_path, L"%app%", GetAppDir());
 
-    // `cmd` waits for the program it runs, so nothing here may wait for `cmd`:
-    // that blocks Chrome and hid IDM's floating bar. See:
+    // `cmd` waits for the program it runs, so waiting for `cmd` while Chrome
+    // runs blocks Chrome and hid IDM's floating bar. See:
     // https://github.com/Bush2021/chrome_plus/issues/130#issuecomment-2925782726
     // `CREATE_NO_WINDOW` hides the console that `cmd` and console programs
     // share, and GUI programs keep their windows. A command that needs a
@@ -303,8 +304,15 @@ void LaunchCommands(const std::wstring& get_commands) {
                          FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
                          &startup_info, &process_info)) {
       ::CloseHandle(process_info.hThread);
-      ::CloseHandle(process_info.hProcess);
+      processes.emplace_back(process_info.hProcess);
     }
+  }
+  if (!processes.empty()) {
+    ::WaitForMultipleObjects(static_cast<DWORD>(processes.size()),
+                             processes.data(), TRUE, wait_ms);
+  }
+  for (const HANDLE process : processes) {
+    ::CloseHandle(process);
   }
 }
 

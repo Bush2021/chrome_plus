@@ -24,9 +24,11 @@
 #include "version.h"
 
 using Startup = int (*)();
+constexpr DWORD kExitCommandsWaitMs = 3000;
 constexpr DWORD kOwnershipPollMs = 50;
 static std::atomic<bool> should_run_exit_cmd = false;
 Startup ExeMain = nullptr;
+auto RawExitProcess = ExitProcess;
 
 void ChromePlus() {
   // Shortcut.
@@ -115,11 +117,35 @@ void RunStartupCommands() {
   }).detach();
 }
 
+// ExitProcess ends every other thread before DLL_PROCESS_DETACH, and with them
+// the owner of the mutex. A relaunched browser would then run its startup
+// commands ahead of the exit commands, which may be a `taskkill` of what those
+// startup commands started. So run the exit commands here, and let the mutex
+// go only when they finish.
+// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-exitprocess
+DECLSPEC_NORETURN void WINAPI MyExitProcess(UINT exit_code) {
+  if (should_run_exit_cmd.exchange(false)) {
+    LaunchCommands(config.GetLaunchOnExit(), kExitCommandsWaitMs);
+  }
+  RawExitProcess(exit_code);
+}
+
+void InstallExitHook() {
+  DetourTransactionBegin();
+  DetourUpdateThread(GetCurrentThread());
+  DetourAttach(&RawExitProcess, MyExitProcess);
+  auto status = DetourTransactionCommit();
+  if (status != NO_ERROR) {
+    DebugLog(L"InstallExitHook failed: {}", status);
+  }
+}
+
 void ChromePlusCommand(LPWSTR param) {
   if (!wcsstr(param, L"--portable")) {
     Portable(param);
   } else {
     ChromePlus();
+    InstallExitHook();
     RunStartupCommands();
   }
 }
@@ -174,9 +200,6 @@ BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv) {
     LoadSysDll(hModule);
 
     InstallLoader();
-  } else if (dwReason == DLL_PROCESS_DETACH && ::should_run_exit_cmd) {
-    LaunchCommands(config.GetLaunchOnExit());
-    should_run_exit_cmd = false;
   }
   return TRUE;
 }
