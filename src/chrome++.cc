@@ -3,6 +3,7 @@
 #include <psapi.h>
 
 #include <atomic>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -141,7 +142,7 @@ void InstallExitHook() {
 }
 
 void ChromePlusCommand(LPWSTR param) {
-  if (!wcsstr(param, L"--portable")) {
+  if (!GetSwitchValue(param, L"--portable").has_value()) {
     Portable(param);
   } else {
     ChromePlus();
@@ -153,9 +154,13 @@ void ChromePlusCommand(LPWSTR param) {
 int Loader() {
   // Only main interface.
   LPWSTR param = GetCommandLineW();
-  if (!wcsstr(param, L"-type=")) {
+  // A switch without a value also means the browser (`GetProcessType` in
+  // chrome/install_static/install_util.cc).
+  const std::wstring process_type =
+      GetSwitchValue(param, L"--type").value_or(L"");
+  if (process_type.empty()) {
     ChromePlusCommand(param);
-  } else if (wcsstr(param, L"--type=renderer")) {
+  } else if (process_type == L"renderer") {
     // With in-process WebUI resource loading on (V1, crrev.com/c/5868139,
     // crbug.com/362511750), the browser fills `LocalResourceLoaderConfig`
     // (content/browser/webui/web_ui_impl.cc) and the renderer materializes

@@ -4,6 +4,7 @@
 
 #include <shellapi.h>
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -287,4 +288,20 @@ void Portable(LPWSTR param) {
     ExitProcess(0);
   }
   DebugLog(L"Create portable process failed: {}", GetLastError());
+}
+
+std::optional<std::wstring> GetSwitchValue(LPWSTR param,
+                                           std::wstring_view name) {
+  auto [command_line, suffix] = SplitSingleArgumentSwitch(param);
+  auto [main_args, trailing_args] =
+      SeparateSentinelArgs(ParseCommandLineArgs(command_line));
+  for (const std::wstring_view arg : main_args) {
+    if (arg == name) {
+      return L"";
+    }
+    if (arg.starts_with(name) && arg[name.size()] == L'=') {
+      return std::wstring(arg.substr(name.size() + 1));
+    }
+  }
+  return std::nullopt;
 }

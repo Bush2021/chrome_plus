@@ -13,6 +13,7 @@
 #include "detours.h"
 
 #include "pakfile.h"
+#include "portable.h"
 #include "utils.h"
 #include "version.h"
 
@@ -55,9 +56,9 @@ struct PakBlobHeader {
 [[maybe_unused]] HANDLE published_blob_section = nullptr;
 
 // The loader calls `PakPatch()` only in the browser and in `--type=renderer`
-// children (chrome++.cc `Loader`), so no `-type=` switch means the browser.
+// children (chrome++.cc `Loader`), so an empty `--type` means the browser.
 bool IsBrowserProcess() {
-  return !wcsstr(GetCommandLineW(), L"-type=");
+  return GetSwitchValue(GetCommandLineW(), L"--type").value_or(L"").empty();
 }
 
 uint16_t GetPakTargetId() {
