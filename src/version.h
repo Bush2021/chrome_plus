@@ -6,11 +6,11 @@
 #endif
 
 #ifndef RELEASE_VER_SUB
-#define RELEASE_VER_SUB 18
+#define RELEASE_VER_SUB 19
 #endif
 
 #ifndef RELEASE_VER_FIX
-#define RELEASE_VER_FIX 3
+#define RELEASE_VER_FIX 0
 #endif
 
 #ifndef RELEASE_VER_PRE_SUFFIX
