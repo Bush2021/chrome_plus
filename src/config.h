@@ -28,6 +28,7 @@ class Config {
   bool IsSuppressFalseUpgradeNotification() const {
     return suppress_false_upgrade_notification_;
   }
+  bool IsManagedUpdates() const { return managed_updates_; }
 
   // tabs
   bool IsKeepLastTab() const { return keep_last_tab_; }
@@ -75,6 +76,7 @@ class Config {
   bool win32k_;
   bool ignore_policies_;
   bool suppress_false_upgrade_notification_;
+  bool managed_updates_;
 
   // tabs
   bool keep_last_tab_;

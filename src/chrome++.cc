@@ -20,6 +20,7 @@
 #include "policies.h"
 #include "portable.h"
 #include "tabbookmark.h"
+#include "update.h"
 #include "upgradenotification.h"
 #include "utils.h"
 #include "version.h"
@@ -53,8 +54,7 @@ void ChromePlus() {
   // Patch the pak file.
   PakPatch();
 
-  // Suppress Chrome's false "out of date" upgrade notification.
-  SuppressFalseUpgradeNotification();
+  UpgradeNotification();
 
   // Process the hotkey.
   GetHotkey();
@@ -142,6 +142,10 @@ void InstallExitHook() {
 }
 
 void ChromePlusCommand(LPWSTR param) {
+  if (config.IsManagedUpdates() &&
+      GetSwitchValue(param, kFinishUpdateSwitch).has_value()) {
+    ExitProcess(FinishUpdate());
+  }
   if (!GetSwitchValue(param, L"--portable").has_value()) {
     Portable(param);
   } else {

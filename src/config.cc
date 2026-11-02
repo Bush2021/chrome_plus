@@ -32,6 +32,7 @@ void Config::LoadConfig() {
   ignore_policies_ = GetIniInt(L"general", L"ignore_policies", 0) != 0;
   suppress_false_upgrade_notification_ =
       GetIniInt(L"general", L"suppress_false_upgrade_notification", 0) != 0;
+  managed_updates_ = GetIniInt(L"general", L"managed_updates", 0) != 0;
 
   // tabs
   keep_last_tab_ = GetIniInt(L"tabs", L"keep_last_tab", 1) != 0;

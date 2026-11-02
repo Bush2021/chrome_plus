@@ -4,19 +4,25 @@
 
 #include <shlwapi.h>
 
+#include <atomic>
 #include <cstring>
 #include <mutex>
 #include <string>
+#include <string_view>
 
 #include "detours.h"
 
 #include "config.h"
+#include "update.h"
 #include "utils.h"
 
 namespace {
 
 auto RawRegOpenKeyExW = RegOpenKeyExW;
 auto RawRegQueryValueExW = RegQueryValueExW;
+auto RawRegCloseKey = RegCloseKey;
+
+std::atomic<HKEY> rename_command_key{nullptr};
 
 // Read the running browser version from the loaded `chrome.dll`'s embedded
 // version resource, which is the same `VS_FIXEDFILEINFO` that
@@ -76,6 +82,33 @@ std::wstring RunningChromeVersion() {
   return cached;
 }
 
+LSTATUS AnswerString(const std::wstring& value,
+                     LPDWORD type,
+                     LPBYTE data,
+                     LPDWORD data_size) {
+  const DWORD size = static_cast<DWORD>((value.size() + 1) * sizeof(wchar_t));
+  if (type) {
+    *type = REG_SZ;
+  }
+  if (!data) {
+    // Size probe: report the bytes needed, including the null terminator.
+    if (data_size) {
+      *data_size = size;
+    }
+    return ERROR_SUCCESS;
+  }
+  if (!data_size) {
+    return ERROR_INVALID_PARAMETER;
+  }
+  if (*data_size < size) {
+    *data_size = size;
+    return ERROR_MORE_DATA;
+  }
+  std::memcpy(data, value.c_str(), size);
+  *data_size = size;
+  return ERROR_SUCCESS;
+}
+
 // `InstallUtil::GetChromeVersion` reads `pv` (REG_SZ) under
 // `...\Google\Update\Clients\{GUID}` (chrome/installer/util/install_util.cc).
 // When a co-installed or policy-managed Chrome keeps that value ahead of the
@@ -93,41 +126,31 @@ std::wstring RunningChromeVersion() {
 // extension/component updaters are left intact (unlike
 // `--disable-background-networking`, which suppresses the prompt by disabling
 // all background networking).
+//
+// With managed updates enabled, report a staged build instead so Chrome offers
+// "Relaunch to update" for it, regardless of the suppression setting.
 LSTATUS APIENTRY MyRegQueryValueExW(HKEY hKey,
                                     LPCWSTR lpValueName,
                                     LPDWORD lpReserved,
                                     LPDWORD lpType,
                                     LPBYTE lpData,
                                     LPDWORD lpcbData) {
+  if (hKey && hKey == rename_command_key.load() && lpValueName &&
+      lstrcmpiW(lpValueName, L"CommandLine") == 0) {
+    return AnswerString(FinishUpdateCommandLine(), lpType, lpData, lpcbData);
+  }
   if (lpValueName && lstrcmpiW(lpValueName, L"pv") == 0) {
-    const std::wstring version = RunningChromeVersion();
-    DebugLog(
-        L"SuppressFalseUpgradeNotification: intercepted 'pv' read, "
-        L"version='{}'",
-        version);
+    std::wstring version;
+    if (config.IsManagedUpdates()) {
+      version = StagedChromeVersion().value_or(L"");
+    }
+    if (version.empty()) {
+      version = RunningChromeVersion();
+    }
+    DebugLog(L"UpgradeNotification: intercepted 'pv' read, version='{}'",
+             version);
     if (!version.empty()) {
-      const DWORD size =
-          static_cast<DWORD>((version.size() + 1) * sizeof(wchar_t));
-      if (lpType) {
-        *lpType = REG_SZ;
-      }
-      if (!lpData) {
-        // Size probe: report the bytes needed, including the null terminator.
-        if (lpcbData) {
-          *lpcbData = size;
-        }
-        return ERROR_SUCCESS;
-      }
-      if (lpcbData) {
-        if (*lpcbData < size) {
-          *lpcbData = size;
-          return ERROR_MORE_DATA;
-        }
-        std::memcpy(lpData, version.c_str(), size);
-        *lpcbData = size;
-        return ERROR_SUCCESS;
-      }
-      // A data buffer with no size pointer cannot be satisfied; fall through.
+      return AnswerString(version, lpType, lpData, lpcbData);
     }
   }
   return RawRegQueryValueExW(hKey, lpValueName, lpReserved, lpType, lpData,
@@ -141,33 +164,61 @@ LSTATUS APIENTRY MyRegQueryValueExW(HKEY hKey,
 // treats the unreadable version as an available upgrade. Hence, the false
 // prompt persists with `MyRegQueryValueExW` never getting a chance to answer.
 // When that specific open fails, hand back a stand-in handle (a duplicate of
-// the requested root) so the `pv` read proceeds and is answered with the
-// running version. Matching with a trailing separator keeps this off the
-// sibling `ClientState` key.
+// the requested root) so the `pv` read proceeds and `MyRegQueryValueExW`
+// answers it. Matching with a trailing separator keeps this off the sibling
+// `ClientState` key.
+//
+// On restart, a per-user Chrome swaps in a staged build by running the
+// `CommandLine` under `...\Google\Update\Clients\{GUID}\Commands\cmd`
+// (`SwapNewChromeExeIfPresent` in chrome/browser/first_run/upgrade_util_win.cc,
+// `AppCommand::Initialize` in chrome/installer/util/app_command.cc). While a
+// Chrome++ build is staged, that open gets a stand-in even when the key
+// exists, since a real key belongs to an installed Google Chrome. The stand-in
+// is a fresh handle rather than a predefined root, which `RegKey` never closes,
+// so `MyRegCloseKey` sees when Chrome is done with it.
 LSTATUS APIENTRY MyRegOpenKeyExW(HKEY hKey,
                                  LPCWSTR lpSubKey,
                                  DWORD ulOptions,
                                  REGSAM samDesired,
                                  PHKEY phkResult) {
+  const bool clients_key =
+      phkResult && lpSubKey && StrStrIW(lpSubKey, L"Google\\Update\\Clients\\");
+  if (config.IsManagedUpdates() && clients_key && hKey == HKEY_CURRENT_USER &&
+      std::wstring_view(lpSubKey).ends_with(L"\\Commands\\cmd") &&
+      StagedChromeVersion()) {
+    const LSTATUS result = RawRegOpenKeyExW(HKEY_CURRENT_USER, L"Software", 0,
+                                            samDesired, phkResult);
+    if (result == ERROR_SUCCESS) {
+      rename_command_key.store(*phkResult);
+    }
+    DebugLog(L"UpgradeNotification: rename command stand-in: {}", result);
+    return result;
+  }
   const LSTATUS result =
       RawRegOpenKeyExW(hKey, lpSubKey, ulOptions, samDesired, phkResult);
-  if (result != ERROR_SUCCESS && phkResult && lpSubKey &&
-      StrStrIW(lpSubKey, L"Google\\Update\\Clients\\")) {
+  if (result != ERROR_SUCCESS && clients_key) {
     if (RawRegOpenKeyExW(hKey, L"", 0, samDesired, phkResult) ==
         ERROR_SUCCESS) {
       DebugLog(
-          L"SuppressFalseUpgradeNotification: Clients key absent, substituting "
-          L"stand-in handle");
+          L"UpgradeNotification: Clients key absent, substituting stand-in "
+          L"handle");
       return ERROR_SUCCESS;
     }
   }
   return result;
 }
 
+LSTATUS APIENTRY MyRegCloseKey(HKEY hKey) {
+  HKEY expected = hKey;
+  rename_command_key.compare_exchange_strong(expected, nullptr);
+  return RawRegCloseKey(hKey);
+}
+
 }  // namespace
 
-void SuppressFalseUpgradeNotification() {
-  if (!config.IsSuppressFalseUpgradeNotification()) {
+void UpgradeNotification() {
+  if (!config.IsManagedUpdates() &&
+      !config.IsSuppressFalseUpgradeNotification()) {
     return;
   }
 
@@ -175,10 +226,11 @@ void SuppressFalseUpgradeNotification() {
   DetourUpdateThread(GetCurrentThread());
   DetourAttach(&RawRegOpenKeyExW, MyRegOpenKeyExW);
   DetourAttach(&RawRegQueryValueExW, MyRegQueryValueExW);
+  DetourAttach(&RawRegCloseKey, MyRegCloseKey);
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
-    DebugLog(L"SuppressFalseUpgradeNotification hooks failed: {}", status);
+    DebugLog(L"UpgradeNotification hooks failed: {}", status);
   } else {
-    DebugLog(L"SuppressFalseUpgradeNotification: hooks installed");
+    DebugLog(L"UpgradeNotification: hooks installed");
   }
 }

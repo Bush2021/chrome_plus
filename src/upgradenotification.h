@@ -1,6 +1,6 @@
 #ifndef CHROME_PLUS_SRC_UPGRADENOTIFICATION_H_
 #define CHROME_PLUS_SRC_UPGRADENOTIFICATION_H_
 
-void SuppressFalseUpgradeNotification();
+void UpgradeNotification();
 
 #endif  // CHROME_PLUS_SRC_UPGRADENOTIFICATION_H_

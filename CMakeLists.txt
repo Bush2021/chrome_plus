@@ -153,6 +153,7 @@ add_library(chrome_plus SHARED
   src/portable.cc
   src/tabbookmark.cc
   src/uia.cc
+  src/update.cc
   src/upgradenotification.cc
   src/utils.cc
 )
