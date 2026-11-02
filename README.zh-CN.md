@@ -20,10 +20,18 @@ Chrome++ Next 是一个 `version.dll` 注入项目，会与 `chrome.exe` 一同�
 - [Releases](https://github.com/Bush2021/chrome_plus/releases)
 
 ## 安装
+
+推荐使用 [Pitstop](https://github.com/Bush2021/pitstop)，自动部署 Chrome 和 Chrome++ Next，并在图形界面中管理配置与更新。开启自动更新后，小版本升级可通过 Chrome 原生的“重新启动以更新”完成。
+
+<details>
+<summary>手动安装</summary>
+
 - 请确保将 `version.dll` 放在 `chrome.exe` 同一目录。
-- 推荐使用 [Chrome 离线安装包](https://github.com/Bush2021/chrome_installer)，解压两次后直接使用解包得到的 Chrome 程序文件。
+- 如需 Chrome 程序文件，可使用 [Chrome 离线安装包](https://github.com/Bush2021/chrome_installer)，解压两次后直接使用解包得到的 Chrome 程序文件。
 - 本项目面向便携式 Chrome 部署场景。如果系统中保留了 updater 组件或其它 Chrome 遗留项，由此产生的环境问题需要自行处理。
 - 如果 `version.dll` 没有被正确加载，可以尝试 [setdll](https://github.com/Bush2021/setdll/)。
+
+</details>
 
 ## 功能概览
 ### 标签页与书签行为

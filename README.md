@@ -20,10 +20,18 @@ Chrome++ Next is a `version.dll` injection project for Google Chrome. It is load
 - [Latest releases](https://github.com/Bush2021/chrome_plus/releases)
 
 ## Installation
+
+Use [Pitstop](https://github.com/Bush2021/pitstop) to set up Chrome and Chrome++ Next and manage settings and updates through a graphical interface. With automatic updates enabled, patch releases use Chrome's native "Relaunch to update" flow.
+
+<details>
+<summary>Manual installation</summary>
+
 - Put `version.dll` in the same directory as `chrome.exe`.
-- The recommended installation method is to use the [Chrome offline installer package](https://github.com/Bush2021/chrome_installer), extract it twice, and use the unpacked Chrome program files directly.
+- For Chrome program files, use the [Chrome offline installer package](https://github.com/Bush2021/chrome_installer), extract it twice, and use the unpacked Chrome program files directly.
 - The project is intended for portable Chrome deployments. If you keep updater components or other Chrome remnants on the system, you are responsible for the resulting environment-specific behavior.
 - If `version.dll` is not loaded correctly, you can try [setdll](https://github.com/Bush2021/setdll/).
+
+</details>
 
 ## Capability Overview
 ### Tab and bookmark behavior
