@@ -27,7 +27,6 @@ void Config::LoadConfig() {
   disk_cache_dir_ = LoadDirPath(L"cache");
   boss_key_ = GetIniString(L"general", L"boss_key", L"");
   translate_key_ = GetIniString(L"general", L"translate_key", L"");
-  show_password_ = GetIniInt(L"general", L"show_password", 1) != 0;
   win32k_ = GetIniInt(L"general", L"win32k", 0) != 0;
   ignore_policies_ = GetIniInt(L"general", L"ignore_policies", 0) != 0;
   suppress_false_upgrade_notification_ =

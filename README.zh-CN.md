@@ -58,7 +58,6 @@ Chrome++ Next 是一个 `version.dll` 注入项目，会与 `chrome.exe` 一同�
 - 通过 `ignore_policies` 忽略企业策略。
 - 仅在 Chrome++ 自身导致启动崩溃时再考虑启用 `win32k` 兜底选项。
 - 通过 `suppress_false_upgrade_notification` 抑制便携版上错误的“已过期”升级提示。
-- `show_password` 等其它公开选项仍以 [`src/chrome++.ini`](src/chrome++.ini) 为准。
 
 ## 配置说明
 - 完整公开配置请参见 [`src/chrome++.ini`](src/chrome++.ini)。

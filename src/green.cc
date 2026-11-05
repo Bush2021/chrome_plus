@@ -2,9 +2,7 @@
 
 #include <windows.h>
 
-#include <lmaccess.h>
 #include <processthreadsapi.h>
-#include <shlwapi.h>
 
 #include "detours.h"
 
@@ -16,9 +14,6 @@ namespace {
 auto RawUpdateProcThreadAttribute = UpdateProcThreadAttribute;
 auto RawCryptProtectData = CryptProtectData;
 auto RawCryptUnprotectData = CryptUnprotectData;
-auto RawLogonUserW = LogonUserW;
-auto RawIsOS = IsOS;
-auto RawNetUserGetInfo = NetUserGetInfo;
 auto RawGetVolumeInformationW = GetVolumeInformationW;
 
 BOOL WINAPI FakeGetComputerName(_Out_ LPTSTR lpBuffer,
@@ -118,41 +113,6 @@ MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
   return true;
 }
 
-BOOL WINAPI MyLogonUserW(LPCWSTR lpszUsername,
-                         LPCWSTR lpszDomain,
-                         LPCWSTR lpszPassword,
-                         DWORD dwLogonType,
-                         DWORD dwLogonProvider,
-                         PHANDLE phToken) {
-  BOOL ret = RawLogonUserW(lpszUsername, lpszDomain, lpszPassword, dwLogonType,
-                           dwLogonProvider, phToken);
-
-  SetLastError(ERROR_ACCOUNT_RESTRICTION);
-  return ret;
-}
-
-BOOL WINAPI MyIsOS(DWORD dwOS) {
-  DWORD ret = RawIsOS(dwOS);
-  if (dwOS == OS_DOMAINMEMBER) {
-    return false;
-  }
-
-  return ret;
-}
-
-NET_API_STATUS WINAPI MyNetUserGetInfo(LPCWSTR servername,
-                                       LPCWSTR username,
-                                       DWORD level,
-                                       LPBYTE* bufptr) {
-  NET_API_STATUS ret = RawNetUserGetInfo(servername, username, level, bufptr);
-  if (level == 1 && ret == 0) {
-    LPUSER_INFO_1 user_info = reinterpret_cast<LPUSER_INFO_1>(*bufptr);
-    user_info->usri1_password_age = 0;
-  }
-
-  return ret;
-}
-
 }  // namespace
 
 void MakeGreen() {
@@ -170,17 +130,6 @@ void MakeGreen() {
   // crypt32.dll
   DetourAttach(&RawCryptProtectData, MyCryptProtectData);
   DetourAttach(&RawCryptUnprotectData, MyCryptUnprotectData);
-
-  if (config.IsShowPassword()) {
-    // advapi32.dll
-    DetourAttach(&RawLogonUserW, MyLogonUserW);
-
-    // shlwapi.dll
-    DetourAttach(&RawIsOS, MyIsOS);
-
-    // netapi32.dll
-    DetourAttach(&RawNetUserGetInfo, MyNetUserGetInfo);
-  }
 
   auto status = DetourTransactionCommit();
   if (status != NO_ERROR) {
