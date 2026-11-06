@@ -149,6 +149,17 @@ jobs:
           7z a -mx=9 -ms=on -m0=lzma2 -mmt=on ../setdll.7z *
           cd ..
 
+      # Pitstop reads this from releases/latest/download/ instead of GitHub's
+      # API, whose unauthenticated limit is shared by everyone on an IP.
+      - name: Write Update Manifest
+        run: |
+          ARCHIVE="Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z"
+          jq -n --arg version "${{ env.VERSION }}" \
+            --argjson size "$(stat -c %s "$ARCHIVE")" \
+            --arg sha256 "$(sha256sum "$ARCHIVE" | cut -d' ' -f1)" \
+            '{version: $version, size: $size, sha256: $sha256}' > update.json
+          cat update.json
+
       - name: Attest Release Packages
         uses: actions/attest@v4
         with:
@@ -163,6 +174,7 @@ jobs:
           files: |
             Chrome++_v${{ env.VERSION }}_x86_x64_arm64.7z
             setdll.7z
+            update.json
           body_path: release.md
           tag_name: ${{ env.VERSION }}
           name: ${{ env.VERSION }}
