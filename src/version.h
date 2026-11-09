@@ -6,7 +6,7 @@
 #endif
 
 #ifndef RELEASE_VER_SUB
-#define RELEASE_VER_SUB 19
+#define RELEASE_VER_SUB 20
 #endif
 
 #ifndef RELEASE_VER_FIX
