@@ -21,7 +21,7 @@ Chrome++ Next 是一个 `version.dll` 注入项目，会与 `chrome.exe` 一同�
 
 ## 安装
 
-推荐使用 [Pitstop](https://github.com/Bush2021/pitstop)，自动部署 Chrome 和 Chrome++ Next，并在图形界面中管理配置与更新。开启自动更新后，小版本升级可通过 Chrome 原生的“重新启动以更新”完成。
+推荐使用 [Pitstop](https://github.com/Bush2021/pitstop)，自动部署 Chrome 和 Chrome++ Next，并在图形界面中管理配置与更新。开启自动更新后，Chrome 更新也可以通过 Chrome 原生的“重新启动以更新”完成。
 
 <details>
 <summary>手动安装</summary>
