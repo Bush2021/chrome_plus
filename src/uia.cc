@@ -87,6 +87,9 @@ struct UiaSession {
   ComPtr<IUIAutomation> automation;
   ComPtr<IUIAutomationTreeWalker> control_view_walker;
   ComPtr<IUIAutomationTreeWalker> raw_view_walker;
+  // Tree filter set to the true condition: the `BuildCache` variants of
+  // `FindFirst`/`FindAll` then search the raw view.
+  ComPtr<IUIAutomationCacheRequest> raw_view_request;
   CachedClassConditions class_conditions;
   TabUiCache tab_ui_cache;
 };
@@ -188,6 +191,16 @@ UiaSession* GetUiaSession() {
   if (FAILED(session.automation->get_RawViewWalker(&session.raw_view_walker)) ||
       !session.raw_view_walker) {
     DebugLog(L"UIA: get_RawViewWalker failed");
+    return nullptr;
+  }
+
+  ComPtr<IUIAutomationCondition> true_condition;
+  if (FAILED(session.automation->CreateCacheRequest(
+          session.raw_view_request.ReleaseAndGetAddressOf())) ||
+      FAILED(session.automation->CreateTrueCondition(
+          true_condition.ReleaseAndGetAddressOf())) ||
+      FAILED(session.raw_view_request->put_TreeFilter(true_condition.Get()))) {
+    DebugLog(L"UIA: failed to create raw view cache request");
     return nullptr;
   }
 
@@ -863,10 +876,24 @@ bool IsOnTabCloseButton(const UiaSession& session,
   return close_button && ContainsPoint(close_button, pt);
 }
 
+// Searches the raw view: fullscreen hides the tab strip from the control
+// view, which is the default filter of `FindAll`, so a plain search finds no
+// tab there (issue #299). Hit-testing keeps the control view because the
+// hidden tabs still report their strip rectangle, which overlaps the
+// bookmark bar on the fullscreen New Tab page. The raw view also returns tabs
+// hidden in a collapsed group; `IsSelected` filters the result either way.
 ComPtr<IUIAutomationElement> FindSelectedTabElement(
     const UiaSession& session,
     const TabContainer& tab_container) {
-  return FindFirstInArray(FindTabElements(session, tab_container), IsSelected);
+  ComPtr<IUIAutomationElementArray> tab_elements;
+  if (FAILED(tab_container.element->FindAllBuildCache(
+          GetTabElementScope(tab_container.kind),
+          GetTabElementCondition(session, tab_container.kind).Get(),
+          session.raw_view_request.Get(),
+          tab_elements.ReleaseAndGetAddressOf()))) {
+    return nullptr;
+  }
+  return FindFirstInArray(tab_elements, IsSelected);
 }
 
 std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
@@ -902,21 +929,51 @@ std::optional<TabHitResult> BuildTabHitResult(const UiaSession& session,
   return hit_result;
 }
 
-// `region` is the tab strip region: the New Tab `TabStripControlButton` sits
-// beside the tab container inside it, and anchoring there keeps the search
-// out of the content branch (a window-root search would cross it, issue
-// #270). A null region (fullscreen raw fallback) skips straight to the
-// user-configured names in the caller.
-std::optional<std::wstring> GetNewTabButtonName(
+// Ancestors of a tab container are all browser chrome, so this climb never
+// enters the web content branch.
+ComPtr<IUIAutomationElement> FindRawTabStripRegionAncestor(
     const UiaSession& session,
-    const ComPtr<IUIAutomationElement>& region) {
+    ComPtr<IUIAutomationElement> element) {
+  while (element) {
+    ComPtr<IUIAutomationElement> parent;
+    if (FAILED(session.raw_view_walker->GetParentElement(
+            element.Get(), parent.ReleaseAndGetAddressOf()))) {
+      return nullptr;
+    }
+    if (HasClassName(parent, {L"HorizontalTabStripRegionViewOld",
+                              L"VerticalTabStripRegionView"})) {
+      return parent;
+    }
+    element = std::move(parent);
+  }
+  return nullptr;
+}
+
+// The New Tab `TabStripControlButton` sits beside the tab container inside
+// the tab strip region, and anchoring there keeps the search out of the
+// content branch (a window-root search would cross it, issue #270). The
+// fullscreen fallback caches no region, so climb to it in the raw view and
+// search it there.
+std::optional<std::wstring> GetNewTabButtonName(const UiaSession& session,
+                                                const TabUiCache& ui) {
   static std::optional<std::wstring> cached_name;
   if (cached_name.has_value()) {
     return cached_name;
   }
 
-  const auto button = FindFirstDescendantByClass(
-      region, session.class_conditions.tab_strip_control_button);
+  ComPtr<IUIAutomationElement> button;
+  if (ui.region) {
+    button = FindFirstDescendantByClass(
+        ui.region, session.class_conditions.tab_strip_control_button);
+  } else if (const auto region =
+                 FindRawTabStripRegionAncestor(session, ui.container.element)) {
+    if (FAILED(region->FindFirstBuildCache(
+            TreeScope_Subtree,
+            session.class_conditions.tab_strip_control_button.Get(),
+            session.raw_view_request.Get(), button.ReleaseAndGetAddressOf()))) {
+      button = nullptr;
+    }
+  }
   if (!button) {
     return std::nullopt;
   }
@@ -1240,7 +1297,7 @@ bool IsOnNewTab(HWND hwnd, const std::vector<std::wstring>& extra_tab_names) {
     return false;
   }
 
-  const auto std_name = GetNewTabButtonName(*session, ui->region);
+  const auto std_name = GetNewTabButtonName(*session, *ui);
   if (std_name && selected_name->contains(*std_name)) {
     return true;
   }
