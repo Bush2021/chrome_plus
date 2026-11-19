@@ -104,7 +104,7 @@ void compression_html(std::string& html) {
   auto lines = StringSplit(html, '\n');
   html.clear();
   for (auto& line : lines) {
-    html += "\n";
+    html += '\n';
     html += trim(line);
   }
 }

@@ -212,7 +212,7 @@ void Hotkey(std::wstring_view keys, HotkeyAction action) {
   if (keys.empty()) {
     return;
   } else {
-    UINT flag = ParseHotkeys(keys.data());
+    UINT flag = ParseHotkeys(keys);
 
     std::thread th([flag, action]() {
       RegisterHotKey(nullptr, 0, LOWORD(flag), HIWORD(flag));
