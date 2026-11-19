@@ -1,0 +1,17 @@
+# Read by clice and clangd. The first block mirrors clangd's built-in
+# defaults so clangd keeps the checks it ran before this file existed.
+# Off for Win32: flags and LPARAM are signed by API, and hook and callback
+# parameters arrive as integers that must be cast to pointers.
+Checks: >
+  -*,
+  readability-misleading-indentation,
+  misc-unused-using-decls,
+  misc-unused-alias-decls,
+  misc-definitions-in-headers,
+  bugprone-*,
+  performance-*,
+  readability-identifier-naming,
+  -readability-magic-numbers,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-signed-bitwise,
+  -performance-no-int-to-ptr

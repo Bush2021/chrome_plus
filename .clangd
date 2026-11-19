@@ -7,14 +7,6 @@ Diagnostics:
     - unused-includes
     - missing-includes
   UnusedIncludes: None
-  ClangTidy:
-    Add:
-      - bugprone-*
-      - performance-*
-      - readability-identifier-naming
-    Remove:
-      - readability-magic-numbers
-      - bugprone-easily-swappable-parameters
 
 Index:
   Background: Build

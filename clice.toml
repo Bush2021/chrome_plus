@@ -1,0 +1,16 @@
+# clice configuration. clice does not read .clangd; this mirrors it.
+
+# Like clangd's default FastCheckFilter: slow checks run only in `clice lint`.
+[diagnostics]
+slow_clang_tidy_checks = false
+
+# Vendored submodules: no lint or format.
+[[rules]]
+patterns = ["detours/**", "mini_gzip/**"]
+lint = false
+format = false
+
+# The Ninja build's database. clice only looks one level below the root,
+# so name it instead of relying on the copy at the root.
+[[rules]]
+compile_commands = ["build/ninja-x64"]
