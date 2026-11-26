@@ -78,6 +78,19 @@ BOOL WINAPI MyUpdateProcThreadAttribute(
                                       lpReturnSize);
 }
 
+// Hands back `in` as it is, in a buffer the caller frees with `LocalFree`
+// like one from DPAPI.
+BOOL CopyBlob(const DATA_BLOB& in, DATA_BLOB& out) {
+  auto* data = static_cast<BYTE*>(LocalAlloc(LMEM_FIXED, in.cbData));
+  if (!data) {
+    return FALSE;
+  }
+  memcpy(data, in.pbData, in.cbData);
+  out.cbData = in.cbData;
+  out.pbData = data;
+  return TRUE;
+}
+
 BOOL WINAPI
 MyCryptProtectData(_In_ DATA_BLOB* pDataIn,
                    _In_opt_ LPCWSTR szDataDescr,
@@ -86,11 +99,7 @@ MyCryptProtectData(_In_ DATA_BLOB* pDataIn,
                    _In_opt_ CRYPTPROTECT_PROMPTSTRUCT* pPromptStruct,
                    _In_ DWORD dwFlags,
                    _Out_ DATA_BLOB* pDataOut) {
-  pDataOut->cbData = pDataIn->cbData;
-  pDataOut->pbData =
-      static_cast<BYTE*>(LocalAlloc(LMEM_FIXED, pDataOut->cbData));
-  memcpy(pDataOut->pbData, pDataIn->pbData, pDataOut->cbData);
-  return true;
+  return CopyBlob(*pDataIn, *pDataOut);
 }
 
 BOOL WINAPI
@@ -105,12 +114,7 @@ MyCryptUnprotectData(_In_ DATA_BLOB* pDataIn,
                             pvReserved, pPromptStruct, dwFlags, pDataOut)) {
     return true;
   }
-
-  pDataOut->cbData = pDataIn->cbData;
-  pDataOut->pbData =
-      static_cast<BYTE*>(LocalAlloc(LMEM_FIXED, pDataOut->cbData));
-  memcpy(pDataOut->pbData, pDataIn->pbData, pDataOut->cbData);
-  return true;
+  return CopyBlob(*pDataIn, *pDataOut);
 }
 
 }  // namespace

@@ -90,7 +90,7 @@ void Config::LoadKeyMappings() {
 }
 
 std::optional<std::wstring> Config::LoadDirPath(const std::wstring& dir_type) {
-  std::wstring path = CanonicalizePath(GetAppDir() + L"\\..\\" + dir_type);
+  std::wstring path = GetAbsolutePath(GetAppDir() + L"\\..\\" + dir_type);
   std::wstring dir_key = dir_type + L"_dir";
   std::wstring dir_buffer =
       GetIniString(L"general", dir_key.c_str(), path.c_str());

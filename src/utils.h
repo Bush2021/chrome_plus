@@ -28,6 +28,8 @@ inline constexpr int IDC_SHOW_TRANSLATE = 35009;
 inline constexpr int IDC_WINDOW_CLOSE_OTHER_TABS = 35023;
 
 // Global constants - use functions to avoid static initialization order issues
+// Returns the path of this process's executable, empty when it can't be read.
+std::wstring GetExePath();
 const std::wstring& GetAppDir();
 const std::wstring& GetIniPath();
 
@@ -66,10 +68,8 @@ std::wstring GetIniString(const wchar_t* section,
                           const wchar_t* default_value);
 int GetIniInt(const wchar_t* section, const wchar_t* key, int default_value);
 
-// Canonicalize the path
-std::wstring CanonicalizePath(const std::wstring& path);
-
-// Get the absolute path
+// Returns the absolute, normalized form of `path`, or `path` unchanged when
+// it can't be resolved.
 std::wstring GetAbsolutePath(const std::wstring& path);
 
 // Returns an ID shared by every path to a directory, empty when it can't be

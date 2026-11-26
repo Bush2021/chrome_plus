@@ -5,6 +5,8 @@
 #include <intrin.h>
 #include <stdint.h>
 
+#include <string>
+
 #include "detours.h"
 
 #define NOP_FUNC        \
@@ -118,14 +120,15 @@ void LoadSysDll(HINSTANCE module_handle) {
       auto ordinals_table = reinterpret_cast<WORD*>(
           image_base + export_directory->AddressOfNameOrdinals);
 
-      wchar_t system_directory[MAX_PATH + 1];
-      GetSystemDirectory(system_directory, MAX_PATH);
+      wchar_t system_directory[MAX_PATH];
+      const UINT length = GetSystemDirectory(system_directory, MAX_PATH);
+      if (length == 0 || length >= MAX_PATH) {
+        return;
+      }
+      const std::wstring dll_path =
+          std::wstring(system_directory, length) + L"\\version.dll";
 
-      wchar_t dll_path[MAX_PATH + 1];
-      lstrcpy(dll_path, system_directory);
-      lstrcat(dll_path, TEXT("\\version.dll"));
-
-      HINSTANCE original_dll_handle = LoadLibrary(dll_path);
+      HINSTANCE original_dll_handle = LoadLibrary(dll_path.c_str());
       if (!original_dll_handle) {
         return;
       }

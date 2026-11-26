@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cwchar>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -45,14 +46,8 @@ BOOL CALLBACK SearchChromeWindow(HWND hwnd, LPARAM lparam) {
 
 std::vector<DWORD> GetAppPids() {
   std::vector<DWORD> pids;
-  wchar_t current_exe_path[MAX_PATH];
-  GetModuleFileNameW(nullptr, current_exe_path, MAX_PATH);
-  wchar_t* exe_name = wcsrchr(current_exe_path, L'\\');
-  if (exe_name) {
-    ++exe_name;
-  } else {
-    exe_name = current_exe_path;
-  }
+  const std::wstring exe_name =
+      std::filesystem::path(GetExePath()).filename().wstring();
 
   HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (snapshot == INVALID_HANDLE_VALUE) {
@@ -64,7 +59,7 @@ std::vector<DWORD> GetAppPids() {
 
   if (Process32FirstW(snapshot, &pe32)) {
     do {
-      if (_wcsicmp(pe32.szExeFile, exe_name) == 0) {
+      if (_wcsicmp(pe32.szExeFile, exe_name.c_str()) == 0) {
         pids.emplace_back(pe32.th32ProcessID);
       }
     } while (Process32NextW(snapshot, &pe32));
