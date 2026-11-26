@@ -45,6 +45,10 @@ auto RawMapViewOfFile = MapViewOfFile;
 // memcpy and no decompression at all.
 constexpr wchar_t kPakTargetIdEnv[] = L"CHROME_PLUS_PAK_RES_ID";
 constexpr wchar_t kPakBlobEnv[] = L"CHROME_PLUS_PAK_BLOB";
+// The browser sets the id variable to this when its pak has no target, as in a
+// Chromium fork without the about page, so its renderers, which map the same
+// pak, skip the scan instead of each repeating it in full.
+constexpr wchar_t kPakTargetMissing[] = L"none";
 
 struct PakBlobHeader {
   uint32_t resource_id;
@@ -73,6 +77,14 @@ uint16_t GetPakTargetId() {
     return 0;
   }
   return static_cast<uint16_t>(id);
+}
+
+bool IsPakTargetMissing() {
+  wchar_t value[8];
+  const DWORD len =
+      GetEnvironmentVariableW(kPakTargetIdEnv, value, ARRAYSIZE(value));
+  return len > 0 && len < ARRAYSIZE(value) &&
+         std::wstring_view(value, len) == kPakTargetMissing;
 }
 
 // Browser side: copy the patched slot into a named read-only section and
@@ -206,15 +218,16 @@ bool PatchSettingsHtml(uint8_t* begin, uint32_t size, size_t& new_len) {
 }
 
 // One flow per process kind: the browser locates and patches the entry
-// itself, then publishes the id and the patched bytes for its children; a
-// renderer takes the cheapest tier available -- published bytes (no
-// decompression), targeted decompress (one entry), full content scan. Runs
+// itself, then publishes the id and the patched bytes for its children, or
+// that there is no target; a renderer takes the cheapest tier available --
+// nothing to patch, published bytes (no decompression), targeted decompress
+// (one entry), full content scan. Runs
 // inside `MyMapViewOfFile` after both hooks have detached themselves, so the
 // section create/open/map calls in the publish and apply helpers reach the
 // real APIs, not our hooks.
 void PatchResourcesPak(uint8_t* buffer) {
   const bool is_browser = IsBrowserProcess();
-  if (!is_browser && ApplyPatchedEntry(buffer)) {
+  if (!is_browser && (IsPakTargetMissing() || ApplyPatchedEntry(buffer))) {
     return;
   }
 
@@ -226,11 +239,16 @@ void PatchResourcesPak(uint8_t* buffer) {
     matched_id = TraversalGZIPFile(buffer, PatchSettingsHtml, 0);
   }
 
-  if (is_browser && matched_id != 0) {
-    SetEnvironmentVariableW(kPakTargetIdEnv,
-                            std::to_wstring(matched_id).c_str());
-    PublishPatchedEntry(buffer, matched_id);
+  if (!is_browser) {
+    return;
   }
+  if (matched_id == 0) {
+    DebugLog(L"PakPatch: no target in resources.pak");
+    SetEnvironmentVariableW(kPakTargetIdEnv, kPakTargetMissing);
+    return;
+  }
+  SetEnvironmentVariableW(kPakTargetIdEnv, std::to_wstring(matched_id).c_str());
+  PublishPatchedEntry(buffer, matched_id);
 }
 
 HANDLE WINAPI MyMapViewOfFile(_In_ HANDLE hFileMappingObject,
