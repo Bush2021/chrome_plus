@@ -97,6 +97,9 @@ std::wstring FindOwnedUserDataDirId() {
 // locks a file inside the directory, which makes every spelling of its path one
 // browser.
 void RunStartupCommands() {
+  if (config.GetLaunchOnStartup().empty() && config.GetLaunchOnExit().empty()) {
+    return;
+  }
   std::thread([] {
     std::wstring directory_id = FindOwnedUserDataDirId();
     while (directory_id.empty()) {
