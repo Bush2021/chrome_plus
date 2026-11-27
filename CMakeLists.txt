@@ -137,6 +137,34 @@ target_compile_options(mini_gzip PRIVATE
   $<$<COMPILE_LANG_AND_ID:C,MSVC>:/wd4267>
 )
 
+file(GLOB ZSTD_SOURCES CONFIGURE_DEPENDS
+  zstd/lib/common/*.c
+  zstd/lib/compress/*.c
+  zstd/lib/decompress/*.c
+)
+add_library(zstd STATIC ${ZSTD_SOURCES})
+
+target_include_directories(zstd PUBLIC zstd/lib)
+# Trimmed to what the pak patch uses: decoding Chrome's resources and
+# re-encoding one at level 15, which runs only the btlazy2 strategy. The
+# remaining options drop alternative code paths that exist only for speed.
+target_compile_definitions(zstd PRIVATE
+  ZSTD_DISABLE_ASM
+  ZSTD_LEGACY_SUPPORT=0
+  ZSTD_TRACE=0
+  ZSTD_NO_INLINE
+  ZSTD_STRIP_ERROR_STRINGS
+  DYNAMIC_BMI2=0
+  HUF_FORCE_DECOMPRESS_X1
+  ZSTD_FORCE_DECOMPRESS_SEQUENCES_SHORT
+  ZSTD_EXCLUDE_DFAST_BLOCK_COMPRESSOR
+  ZSTD_EXCLUDE_GREEDY_BLOCK_COMPRESSOR
+  ZSTD_EXCLUDE_LAZY_BLOCK_COMPRESSOR
+  ZSTD_EXCLUDE_LAZY2_BLOCK_COMPRESSOR
+  ZSTD_EXCLUDE_BTOPT_BLOCK_COMPRESSOR
+  ZSTD_EXCLUDE_BTULTRA_BLOCK_COMPRESSOR
+)
+
 add_library(chrome_plus SHARED
   src/appid.cc
   src/chrome++.cc
@@ -191,6 +219,7 @@ target_link_libraries(chrome_plus PRIVATE
   propsys
   detours
   mini_gzip
+  zstd
 )
 
 target_link_options(chrome_plus PRIVATE
@@ -201,7 +230,7 @@ target_link_options(chrome_plus PRIVATE
 set_target_properties(chrome_plus PROPERTIES OUTPUT_NAME version)
 
 set_property(
-  TARGET detours mini_gzip chrome_plus
+  TARGET detours mini_gzip zstd chrome_plus
   PROPERTY INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL TRUE
 )
 

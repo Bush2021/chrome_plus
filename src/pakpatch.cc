@@ -34,12 +34,12 @@ auto RawMapViewOfFile = MapViewOfFile;
 // `PakPatch()` runs in the browser and in every renderer (see the loader in
 // chrome++.cc: with in-process WebUI resource loading the renderer serves
 // `chrome://settings` from its own pak mapping, so it must patch that mapping
-// itself). Re-running the content scan in each renderer inflated every gzip
-// entry up to the target and re-deflated the patched one at level 9, on the
+// itself). Re-running the content scan in each renderer decompressed every
+// entry up to the target and recompressed the patched one, on the
 // renderer main thread during `PreSandboxStartup` -- a freeze on every new
 // tab and cross-site navigation. Instead the browser scans once and hands the
 // result to its children through two inherited environment variables: the
-// target's pak resource id, so a renderer that has to decompress inflates
+// target's pak resource id, so a renderer that has to decompress handles
 // exactly one entry, and the name of a read-only section holding the
 // browser's already-patched entry, which a renderer applies with a single
 // memcpy and no decompression at all.
@@ -232,11 +232,11 @@ void PatchResourcesPak(uint8_t* buffer) {
   }
 
   const uint16_t target_id = GetPakTargetId();
-  uint16_t matched_id = TraversalGZIPFile(buffer, PatchSettingsHtml, target_id);
+  uint16_t matched_id = PatchPakResource(buffer, PatchSettingsHtml, target_id);
   if (matched_id == 0 && target_id != 0) {
     // The inherited id missed, so the pak was replaced (browser updated
     // between sessions); redo the full content scan.
-    matched_id = TraversalGZIPFile(buffer, PatchSettingsHtml, 0);
+    matched_id = PatchPakResource(buffer, PatchSettingsHtml, 0);
   }
 
   if (!is_browser) {

@@ -11,15 +11,17 @@ struct PakResourceSlot {
   uint32_t length;
 };
 
-// Walks the pak's gzip entries, decompressing each candidate and running `f`
-// on it until `f` reports it patched its target; returns that entry's
-// resource id, or 0 when nothing was patched. A non-zero `target_resource_id`
-// skips every other entry without inflating it -- the per-renderer fast path,
-// where the browser has already located the target by content and handed its
-// id down (see pakpatch.cc).
-uint16_t TraversalGZIPFile(uint8_t* buffer,
-                           std::function<bool(uint8_t*, uint32_t, size_t&)>&& f,
-                           uint16_t target_resource_id = 0);
+// Walks the pak's gzip and zstd entries, decompressing each candidate and
+// running `f` on it until `f` reports it patched its target, then writes the
+// result back in the entry's own format; returns that entry's resource id, or
+// 0 when nothing was patched. The entry keeps its original bytes when the
+// patched data doesn't compress into its slot. A non-zero
+// `target_resource_id` skips every other entry without decompressing it --
+// the per-renderer fast path, where the browser has already located the
+// target by content and handed its id down (see pakpatch.cc).
+uint16_t PatchPakResource(uint8_t* buffer,
+                          std::function<bool(uint8_t*, uint32_t, size_t&)>&& f,
+                          uint16_t target_resource_id = 0);
 
 // Locates `resource_id` from the pak index alone -- no decompression.
 std::optional<PakResourceSlot> FindResourceSlot(uint8_t* buffer,
