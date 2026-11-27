@@ -143,7 +143,9 @@ bool PatchGzipEntry(std::span<uint8_t> entry, const PatchCallback& f) {
 
   auto* compress_buffer = static_cast<uint8_t*>(compress_buffer_ptr.get());
 
-  if (compress_buffer && compress_size < entry.size()) {
+  // The FEXTRA field takes 2 bytes for its length and pads by at most 65535.
+  if (compress_buffer && compress_size + 2 <= entry.size() &&
+      entry.size() - compress_size - 2 <= UINT16_MAX) {
     std::span<uint8_t> src_span(compress_buffer, compress_size);
     std::ranges::copy(src_span.subspan(0, 10), entry.begin());
     entry[3] = 0x04;
