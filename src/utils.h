@@ -3,6 +3,7 @@
 
 #include <windows.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <initializer_list>
 #include <span>
@@ -61,6 +62,9 @@ std::wstring JoinArgsString(const std::vector<std::wstring>& lines,
 // Memory and module search functions
 std::span<uint8_t> SearchMemory(std::span<uint8_t> src,
                                 std::span<const uint8_t> sub);
+
+// Returns the 64-bit FNV-1a hash of `bytes`. Not collision resistant.
+uint64_t Fnv1aHash(std::span<const std::byte> bytes);
 
 // Parse the INI file
 std::wstring GetIniString(const wchar_t* section,

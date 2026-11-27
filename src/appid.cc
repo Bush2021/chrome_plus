@@ -32,21 +32,11 @@
 
 namespace {
 
-uint64_t Fnv1aHash(std::wstring_view input) {
-  uint64_t hash = 14695981039346656037ULL;
-  auto bytes = std::as_bytes(std::span{input});
-  for (auto b : bytes) {
-    hash ^= static_cast<uint64_t>(b);
-    hash *= 1099511628211ULL;
-  }
-  return hash;
-}
-
 constexpr std::wstring_view kAppIdPrefix = L"ChromePlusNext.";
 const std::wstring& GetCustomAppUserModelID() {
   static const std::wstring custom_appid = [] {
     constexpr wchar_t hex[] = L"0123456789ABCDEF";
-    auto hash = Fnv1aHash(GetAppDir());
+    auto hash = Fnv1aHash(std::as_bytes(std::span(GetAppDir())));
     std::wstring result{kAppIdPrefix};
     result.reserve(kAppIdPrefix.size() + 16);
     for (int i = 60; i >= 0; i -= 4) {

@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cwctype>
 #include <filesystem>
@@ -187,6 +189,15 @@ std::span<uint8_t> SearchMemory(std::span<uint8_t> src,
     return src.subspan(std::distance(src.begin(), it));
   }
   return {};
+}
+
+uint64_t Fnv1aHash(std::span<const std::byte> bytes) {
+  uint64_t hash = 14695981039346656037ULL;
+  for (std::byte b : bytes) {
+    hash ^= static_cast<uint64_t>(b);
+    hash *= 1099511628211ULL;
+  }
+  return hash;
 }
 
 std::wstring GetIniString(const wchar_t* section,
